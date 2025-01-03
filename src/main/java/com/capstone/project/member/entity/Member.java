@@ -1,9 +1,11 @@
 package com.capstone.project.member.entity;
 
-import lombok.*;
 
 import javax.persistence.*;
+import lombok.*;
+
 import java.time.LocalDateTime;
+
 
 @Entity
 @Table(name = "members")
@@ -12,7 +14,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-public class Member4 {
+@Builder // Adds the builder pattern to your entity
+public class Member {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

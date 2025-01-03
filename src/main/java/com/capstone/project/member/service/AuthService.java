@@ -1,7 +1,17 @@
 package com.capstone.project.member.service;
 
+import com.capstone.project.jwt.TokenProvider;
+import com.capstone.project.member.dto.TokenDto;
+import com.capstone.project.member.dto.request.LoginRequestDto;
+import com.capstone.project.member.dto.request.MemberRequestDto;
+import com.capstone.project.member.dto.response.MemberResponseDto;
+import com.capstone.project.member.entity.Member;
+import com.capstone.project.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
