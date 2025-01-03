@@ -1,11 +1,11 @@
 package com.capstone.project.kedu.entity;
 
-import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import javax.persistence.*;
 import java.util.Date;
 
 @Entity
@@ -14,7 +14,7 @@ import java.util.Date;
 @Setter
 @ToString
 @NoArgsConstructor
-public class KeduEntity {
+public class KeduEntity2 {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long course_id;
