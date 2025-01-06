@@ -29,5 +29,5 @@ public class AcademyEntity2 {
     @OneToMany(mappedBy = "academy", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<CourseEntity2> courses; // 해당 기관에서 제공하는 강의 리스트
 
-    // getters and setters
+
 }

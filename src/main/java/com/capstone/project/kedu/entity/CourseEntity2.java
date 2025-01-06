@@ -34,5 +34,4 @@ public class CourseEntity2 {
     private double priceTotal;
     private double selfPayment;
 
-    // getters and setters
 }
