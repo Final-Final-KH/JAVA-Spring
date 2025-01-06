@@ -1,6 +1,7 @@
 package com.capstone.project.kedu.controller;
 
 import com.capstone.project.kedu.dto.AcademyResDTO2;
+import com.capstone.project.kedu.dto.DistrictResDTO2;
 import com.capstone.project.kedu.dto.KeduResDTO2;
 import com.capstone.project.kedu.dto.RegionResDTO2;
 import com.capstone.project.kedu.service.KeduService2;
@@ -47,5 +48,13 @@ public class KeduController2 {
         resultMap.put("list", list);
         return resultMap;
     }
+
+//    @GetMapping("/district")
+//    public Map<String , Object> district(){
+//        Map<String, Object> resultMap = new HashMap<>();
+//        List<DistrictResDTO2> list = keduService2.findByRegionDistrict();
+//        resultMap.put("list", list);
+//        return resultMap;
+//    }
 
 }

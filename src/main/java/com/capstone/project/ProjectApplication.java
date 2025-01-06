@@ -70,7 +70,8 @@ public class ProjectApplication {
 
 
 			keduService2.saveAcademy(); // 학원 데이터 저장
-			keduService2.saveCourse();  // 강좌 데이터 저장
+			//keduService2.saveCourse();  // 강좌 데이터 저장
+			keduService2.saveRegion();
 		};
 	}
 }

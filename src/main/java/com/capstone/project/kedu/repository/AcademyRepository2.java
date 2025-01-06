@@ -10,5 +10,7 @@ import java.util.Optional;
 
 @Repository
 public interface AcademyRepository2 extends JpaRepository<AcademyEntity2, Long> {
+
     Optional<AcademyEntity2> findByAcademyNameAndRegion(String academyName, String region);
+
 }

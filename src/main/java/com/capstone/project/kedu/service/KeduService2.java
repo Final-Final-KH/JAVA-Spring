@@ -1,12 +1,15 @@
 package com.capstone.project.kedu.service;
 
 import com.capstone.project.kedu.dto.AcademyResDTO2;
+import com.capstone.project.kedu.dto.DistrictResDTO2;
 import com.capstone.project.kedu.dto.KeduResDTO2;
 import com.capstone.project.kedu.dto.RegionResDTO2;
 import com.capstone.project.kedu.entity.AcademyEntity2;
+import com.capstone.project.kedu.entity.CityEntity2;
 import com.capstone.project.kedu.entity.CourseEntity2;
 import com.capstone.project.kedu.entity.KeduEntity2;
 import com.capstone.project.kedu.repository.AcademyRepository2;
+import com.capstone.project.kedu.repository.CityRepository2;
 import com.capstone.project.kedu.repository.CourseRepository2;
 import com.capstone.project.kedu.repository.KeduRepository2;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,17 +18,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class KeduService2 {
 
     @Autowired
     private KeduRepository2 repository;
+
     @Autowired
     private AcademyRepository2 academyRepository;
 
     @Autowired
     private CourseRepository2 courseRepository;
+
+    @Autowired
+    private CityRepository2 cityRepository2;
 
     public void saveCourses(List<KeduEntity2> courses) {
         repository.saveAll(courses); // List를 DB에 저장
@@ -42,22 +50,51 @@ public class KeduService2 {
 
     @Transactional
     public void saveAcademy() {
-
         List<Object[]> distinctAcademies = repository.findDistinctAcademyAndCourse();
 
-        // 반환된 값에서 데이터를 추출하여 AcademyEntity2 객체로 저장
         for (Object[] row : distinctAcademies) {
             String academyName = (String) row[0]; // academy_name
             String region = (String) row[1]; // region
 
-            AcademyEntity2 academyEntity2 = new AcademyEntity2();
-            academyEntity2.setAcademyName(academyName);
-            academyEntity2.setRegion(region);
+            // 기존 학원이 존재하는지 확인
+            Optional<AcademyEntity2> existAcademy = academyRepository.findByAcademyNameAndRegion(academyName, region);
 
-            academyRepository.save(academyEntity2); // DB에 저장
+            // 만약 학원이 존재하지 않으면 새로 추가
+            if (!existAcademy.isPresent()) {
+                AcademyEntity2 academyEntity = new AcademyEntity2();
+                academyEntity.setAcademyName(academyName);
+                academyEntity.setRegion(region);
 
+                academyRepository.save(academyEntity); // DB에 저장
+            } else {
+                // 존재하면 데이터를 업데이트하지 않고 무시
+                System.out.println("Duplicate academy found, skipping: " + academyName);
+            }
         }
     }
+    @Transactional
+    public void saveRegion() {
+        List<String> regions = repository.findDistinctCities();  // 지역 목록 가져오기
+
+        for (String regionName : regions) {
+            // 해당 지역이 이미 존재하는지 확인
+            List<CityEntity2> existRegion = cityRepository2.findByRegionName(regionName);
+
+            // 존재하지 않으면 새로운 데이터 추가
+            if (existRegion.isEmpty()) {
+                CityEntity2 cityEntity2 = new CityEntity2();
+                cityEntity2.setRegion_name(regionName);  // 지역 이름을 설정
+
+                // 데이터 저장
+                cityRepository2.save(cityEntity2);
+            } else {
+                // 이미 존재하면 데이터를 추가하지 않음
+                System.out.println("Duplicate region found, skipping: " + regionName);
+            }
+        }
+    }
+
+
 
     @Transactional
     public void saveCourse() {
@@ -97,6 +134,7 @@ public class KeduService2 {
     public List<RegionResDTO2> findAllRegion() {
         List<String> region = repository.findDistinctCities();
         List<RegionResDTO2> regionResDTO2List = new ArrayList<>();
+
         for (String city : region){
             RegionResDTO2 regionResDTO2 = new RegionResDTO2();
             regionResDTO2.setCity(city);
@@ -104,6 +142,18 @@ public class KeduService2 {
         }
         return regionResDTO2List;
     }
+
+//    public List<DistrictResDTO2> findByRegionDistrict() {
+//        List<String> district = repository.findByRegionDistrict();
+//        List<DistrictResDTO2> districtResDTO2List = new ArrayList<>();
+//
+//        for (String gu : district){
+//            DistrictResDTO2 districtResDTO2 = new DistrictResDTO2();
+//            districtResDTO2.setDistrict_name(gu);
+//            districtResDTO2List.add(districtResDTO2);
+//        }
+//        return districtResDTO2List;
+//    }
 
     public AcademyResDTO2 convertEntityToAcademyResDto(AcademyEntity2 academy) {
         AcademyResDTO2 academyResDTO2 = new AcademyResDTO2();
@@ -134,6 +184,7 @@ public class KeduService2 {
 
         return keduResDTO2;
     }
+
 
 
 }
