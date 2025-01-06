@@ -41,24 +41,23 @@ public class Member {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private Role role = Role.USER;
 
     @Column(name = "current_company", length = 255)
     private String currentCompany;
 
     @Column(name = "show_company", nullable = false)
+    @Builder.Default
     private Boolean showCompany = true;
-    
-    
-    
-    private LocalDateTime registeredAt;
-    private LocalDateTime updatedAt;
 
-    @PrePersist
-    protected void onCreate() {
-        this.registeredAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
+    @Column(nullable = false)
+    @Builder.Default
+    private LocalDateTime registeredAt = LocalDateTime.now();
+
+    @Column(nullable = false)
+    @Builder.Default
+    private LocalDateTime updatedAt = LocalDateTime.now();
 
     @PreUpdate
     protected void onUpdate() {

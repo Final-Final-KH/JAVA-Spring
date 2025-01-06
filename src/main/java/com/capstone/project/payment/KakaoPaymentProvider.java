@@ -2,9 +2,6 @@ package com.capstone.project.payment;
 
 import com.capstone.project.payment.dto.request.PaymentRequestDto;
 import com.capstone.project.payment.dto.response.PaymentResponseDto;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -16,8 +13,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Component
-@Getter
-@Setter
 @Slf4j
 public class KakaoPaymentProvider extends AbstractPaymentProvider {
 
@@ -25,7 +20,10 @@ public class KakaoPaymentProvider extends AbstractPaymentProvider {
     private final String requestUrl;
 
     public KakaoPaymentProvider(RestTemplate restTemplate, String apiKey, String requestUrl) {
-        super(restTemplate); // Call the superclass constructor
+        super(restTemplate);
+        if (apiKey == null || apiKey.isBlank() || requestUrl == null || requestUrl.isBlank()) {
+            log.warn("Kakao Payment API key or request URL is missing. Please configure application.properties properly.");
+        }
         this.apiKey = apiKey;
         this.requestUrl = requestUrl;
     }
@@ -43,27 +41,21 @@ public class KakaoPaymentProvider extends AbstractPaymentProvider {
     @Override
     protected HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "KakaoAK " + apiKey);
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.set("Authorization", "KakaoAK " + apiKey); // API 키로 인증 설정 / Configure authentication with API key
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED); // 폼 URL-인코딩 설정 / Set form URL-encoding
         return headers;
     }
 
     @Override
-    // createPayload 메서드는 각 제공자의 API에서 요구하는 구조와 일치해야 한다.
-    // Map<String, String> 페이로드를 사용.
-    // 이는 Kakao의 API가 폼-인코딩된 데이터 (form-encoded data)를 기대하기 때문일 가능성이 높기 때문.
-
     protected Object createPayload(PaymentRequestDto requestDto) {
         Map<String, String> payload = new HashMap<>();
-        payload.put("cid", "TC0ONETIME"); // Kakao의 경우, cid ("TC0ONETIME")와 같은 필드는 테스트 환경에서 사용되는 플레이스홀더
+        payload.put("cid", "TC0ONETIME"); // 테스트 환경의 CID 값 / CID value for test environment
         payload.put("partner_order_id", requestDto.getOrderId());
         payload.put("partner_user_id", requestDto.getMemberId().toString());
         payload.put("item_name", requestDto.getItemName());
         payload.put("quantity", String.valueOf(requestDto.getQuantity()));
         payload.put("total_amount", requestDto.getAmount().toString());
         payload.put("tax_free_amount", "0");
-        // 리디렉션 URL(approval_url, cancel_url, fail_url)을 포함.
-        // 이는 Kakao가 사용자 상호작용을 위해 리디렉션에 의존하기 때문
         payload.put("approval_url", requestDto.getApprovalUrl());
         payload.put("cancel_url", requestDto.getCancelUrl());
         payload.put("fail_url", requestDto.getFailUrl());
@@ -73,11 +65,13 @@ public class KakaoPaymentProvider extends AbstractPaymentProvider {
     @Override
     protected PaymentResponseDto handleResponse(ResponseEntity<?> response) {
         Map<String, Object> responseBody = (Map<String, Object>) response.getBody();
-        assert responseBody != null;
+        if (responseBody == null) {
+            throw new RuntimeException("Failed to process payment. Response body is null.");
+        }
         return PaymentResponseDto.builder()
-                .transactionId(responseBody.get("tid").toString())
-                .redirectUrl(responseBody.get("next_redirect_pc_url").toString())
-                .status(PaymentResponseDto.Status.PENDING)
+                .transactionId(responseBody.get("tid").toString()) // Kakao의 트랜잭션 ID / Kakao transaction ID
+                .redirectUrl(responseBody.get("next_redirect_pc_url").toString()) // 리디렉션 URL 제공 / Redirect URL
+                .status(PaymentResponseDto.Status.PENDING) // 결제 상태 설정 / Set payment status
                 .build();
     }
 }
