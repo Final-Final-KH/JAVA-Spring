@@ -19,7 +19,7 @@ public class KeduResDTO2 {
     private Date endDate;            // 종료 날짜
     private String region;           // 지역
     private String auth;             // 인증 상태
-    private Date trDate;             // 등록 날짜
+    private int trDate;             // 등록 날짜
     private int totalHour;           // 총 교육 시간
     private int employmentRate;      // 취업률
     private int priceTotal;          // 총 비용
