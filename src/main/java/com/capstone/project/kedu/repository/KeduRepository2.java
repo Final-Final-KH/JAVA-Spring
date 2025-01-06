@@ -15,6 +15,8 @@ public interface KeduRepository2 extends JpaRepository<KeduEntity2, Long> {
     @Query("SELECT DISTINCT k.academy_name, k.region FROM KeduEntity2 k")
     List<Object[]> findDistinctAcademyAndCourse();
 
-
+    // Native SQL query 사용하여 대도시만 추출
+    @Query(value = "SELECT DISTINCT SUBSTRING_INDEX(region, ' ', 1) FROM kedu", nativeQuery = true)
+    List<String> findDistinctCities();
 
 }

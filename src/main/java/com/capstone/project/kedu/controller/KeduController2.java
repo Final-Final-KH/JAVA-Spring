@@ -1,6 +1,8 @@
 package com.capstone.project.kedu.controller;
 
+import com.capstone.project.kedu.dto.AcademyResDTO2;
 import com.capstone.project.kedu.dto.KeduResDTO2;
+import com.capstone.project.kedu.dto.RegionResDTO2;
 import com.capstone.project.kedu.service.KeduService2;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,22 @@ public class KeduController2 {
         Map<String, Object> resultMap = new HashMap<>();
         List<KeduResDTO2> list = keduService2.findAllCourse();
         log.info("Found {} courses", list.size());
+        resultMap.put("list", list);
+        return resultMap;
+    }
+
+    @GetMapping("/academy")
+    public Map<String, Object> academyList() {
+        Map<String, Object> resultMap = new HashMap<>();
+        List<AcademyResDTO2> list = keduService2.findAllAcademy();
+        resultMap.put("list", list);
+        return resultMap;
+    }
+
+    @GetMapping("/region")
+    public Map<String, Object> region(){
+        Map<String, Object> resultMap = new HashMap<>();
+        List<RegionResDTO2> list = keduService2.findAllRegion();
         resultMap.put("list", list);
         return resultMap;
     }

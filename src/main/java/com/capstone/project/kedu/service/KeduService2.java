@@ -1,6 +1,8 @@
 package com.capstone.project.kedu.service;
 
+import com.capstone.project.kedu.dto.AcademyResDTO2;
 import com.capstone.project.kedu.dto.KeduResDTO2;
+import com.capstone.project.kedu.dto.RegionResDTO2;
 import com.capstone.project.kedu.entity.AcademyEntity2;
 import com.capstone.project.kedu.entity.CourseEntity2;
 import com.capstone.project.kedu.entity.KeduEntity2;
@@ -36,26 +38,6 @@ public class KeduService2 {
             keduResDTO2List.add(convertEntityToDtoWithoutComments(keduEntity2));
         }
         return keduResDTO2List;
-    }
-    // 댓글 제외 DTO 변환 메서드
-    private KeduResDTO2 convertEntityToDtoWithoutComments(KeduEntity2 kedu) {
-        KeduResDTO2 keduResDTO2 = new KeduResDTO2();
-
-        // KeduEntity2에서 KeduResDTO2로 데이터 매핑
-        keduResDTO2.setCourseId(kedu.getCourse_id());
-        keduResDTO2.setAcademyName(kedu.getAcademy_name());
-        keduResDTO2.setCourseName(kedu.getCourse_name());
-        keduResDTO2.setStartDate(kedu.getStart_date());
-        keduResDTO2.setEndDate(kedu.getEnd_date());
-        keduResDTO2.setRegion(kedu.getRegion());
-        keduResDTO2.setAuth(kedu.getAuth());
-        keduResDTO2.setTrDate(kedu.getTr_date());
-        keduResDTO2.setTotalHour(kedu.getTotal_hour());
-        keduResDTO2.setEmploymentRate(kedu.getEmployment_rate());
-        keduResDTO2.setPriceTotal(kedu.getPrice_total());
-        keduResDTO2.setSelfPayment(kedu.getSelf_payment());
-
-        return keduResDTO2;
     }
 
     @Transactional
@@ -102,4 +84,56 @@ public class KeduService2 {
             courseRepository.save(courseEntity);  // 강좌 저장
         }
     }
+
+    public List<AcademyResDTO2> findAllAcademy() {
+        List<AcademyEntity2> academy = academyRepository.findAll();
+        List<AcademyResDTO2> academyResDTO2List = new ArrayList<>();
+        for(AcademyEntity2 academyEntity2 : academy){
+            academyResDTO2List.add(convertEntityToAcademyResDto(academyEntity2));
+        }
+        return academyResDTO2List;
+    }
+
+    public List<RegionResDTO2> findAllRegion() {
+        List<String> region = repository.findDistinctCities();
+        List<RegionResDTO2> regionResDTO2List = new ArrayList<>();
+        for (String city : region){
+            RegionResDTO2 regionResDTO2 = new RegionResDTO2();
+            regionResDTO2.setCity(city);
+            regionResDTO2List.add(regionResDTO2);
+        }
+        return regionResDTO2List;
+    }
+
+    public AcademyResDTO2 convertEntityToAcademyResDto(AcademyEntity2 academy) {
+        AcademyResDTO2 academyResDTO2 = new AcademyResDTO2();
+
+        academyResDTO2.setAcademy_id(academy.getAcademyId());
+        academyResDTO2.setAcademy_name(academy.getAcademyName());
+        academyResDTO2.setRegion(academy.getRegion());
+
+        return academyResDTO2;
+    }
+    // 댓글 제외 DTO 변환 메서드
+    private KeduResDTO2 convertEntityToDtoWithoutComments(KeduEntity2 kedu) {
+        KeduResDTO2 keduResDTO2 = new KeduResDTO2();
+
+        // KeduEntity2에서 KeduResDTO2로 데이터 매핑
+        keduResDTO2.setCourseId(kedu.getCourse_id());
+        keduResDTO2.setAcademyName(kedu.getAcademy_name());
+        keduResDTO2.setCourseName(kedu.getCourse_name());
+        keduResDTO2.setStartDate(kedu.getStart_date());
+        keduResDTO2.setEndDate(kedu.getEnd_date());
+        keduResDTO2.setRegion(kedu.getRegion());
+        keduResDTO2.setAuth(kedu.getAuth());
+        keduResDTO2.setTrDate(kedu.getTr_date());
+        keduResDTO2.setTotalHour(kedu.getTotal_hour());
+        keduResDTO2.setEmploymentRate(kedu.getEmployment_rate());
+        keduResDTO2.setPriceTotal(kedu.getPrice_total());
+        keduResDTO2.setSelfPayment(kedu.getSelf_payment());
+
+        return keduResDTO2;
+    }
+
+
 }
