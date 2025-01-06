@@ -59,9 +59,22 @@ public class PaymentService {
     }
 
     // 각 멤버의 지불 내역을 fetch 해오기
-    public List<Payment> getPaymentsByMember(Integer memberId) {
-        log.info("Fetching payment history for member ID: {}", memberId);
-        return paymentRepository.findByMemberId(memberId);
+    public List<PaymentResponseDto> getPaymentsByMember(Integer memberId) {
+        List<Payment> payments = paymentRepository.findByMemberId(memberId);
+
+        return payments.stream()
+                .map(payment -> PaymentResponseDto.builder()
+                        .paymentId(payment.getPaymentId())
+                        .amount(payment.getAmount())
+                        .currency(payment.getCurrency())
+                        .provider(payment.getProvider())
+                        .transactionId(payment.getTransactionId())
+                        .status(PaymentResponseDto.Status.valueOf(payment.getStatus().toUpperCase()))
+                        .createdAt(payment.getCreatedAt().toString())
+                        .updatedAt(payment.getUpdatedAt().toString())
+                        .build()
+                )
+                .toList();
     }
 
     // 지불 상세 내역을 거래 ID (transaction Id)로 fetch 해오기

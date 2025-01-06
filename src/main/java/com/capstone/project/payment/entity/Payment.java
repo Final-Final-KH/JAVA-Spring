@@ -26,6 +26,9 @@ public class Payment {
     private BigDecimal amount;
 
     @Column(nullable = false)
+    private String currency; // Add currency field
+
+    @Column(nullable = false)
     private String status; // pending, completed, failed
 
     @Column(nullable = false)

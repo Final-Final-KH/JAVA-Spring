@@ -43,6 +43,9 @@ public class GooglePaymentProvider extends AbstractPaymentProvider {
     }
 
     @Override
+    // Map<String, Object> 또는 JSON과 유사한 페이로드를 사용
+    // 이는 Google의 API가 JSON 요청 본문을 기대하기 때문일 가능성이 높기 때문.
+    // 리디렉션 URL을 생략하고, 트랜잭션 ID와 결제 금액에 집중
     protected Object createPayload(PaymentRequestDto requestDto) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("amount", requestDto.getAmount());

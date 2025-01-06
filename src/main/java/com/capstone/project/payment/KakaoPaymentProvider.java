@@ -49,6 +49,10 @@ public class KakaoPaymentProvider extends AbstractPaymentProvider {
     }
 
     @Override
+    // createPayload 메서드는 각 제공자의 API에서 요구하는 구조와 일치해야 한다.
+    // Map<String, String> 페이로드를 사용.
+    // 이는 Kakao의 API가 폼-인코딩된 데이터 (form-encoded data)를 기대하기 때문일 가능성이 높기 때문.
+
     protected Object createPayload(PaymentRequestDto requestDto) {
         Map<String, String> payload = new HashMap<>();
         payload.put("cid", "TC0ONETIME"); // Kakao의 경우, cid ("TC0ONETIME")와 같은 필드는 테스트 환경에서 사용되는 플레이스홀더
@@ -58,6 +62,8 @@ public class KakaoPaymentProvider extends AbstractPaymentProvider {
         payload.put("quantity", String.valueOf(requestDto.getQuantity()));
         payload.put("total_amount", requestDto.getAmount().toString());
         payload.put("tax_free_amount", "0");
+        // 리디렉션 URL(approval_url, cancel_url, fail_url)을 포함.
+        // 이는 Kakao가 사용자 상호작용을 위해 리디렉션에 의존하기 때문
         payload.put("approval_url", requestDto.getApprovalUrl());
         payload.put("cancel_url", requestDto.getCancelUrl());
         payload.put("fail_url", requestDto.getFailUrl());
