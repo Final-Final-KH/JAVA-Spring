@@ -14,6 +14,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
 @Component
 public class CsvReader2 {
 
@@ -31,7 +32,7 @@ public class CsvReader2 {
 
         // 날짜 포맷 설정 (CSV 파일에서 읽은 날짜 포맷이 맞지 않을 경우 포맷을 설정)
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
-        
+
         // CSV 파일의 각 레코드에 대해 KeduEntity2 객체로 변환
         for (CSVRecord record : records) {
             KeduEntity2 course = new KeduEntity2();
@@ -45,7 +46,7 @@ public class CsvReader2 {
             course.setEnd_date(parseDate(record.get("end_date"), dateFormat));
             course.setRegion(record.get("region"));
             course.setAuth(record.get("auth"));
-            course.setTr_date(parseDate(record.get("tr_date"), dateFormat));
+            course.setTr_date(parseInt(record.get("tr_date")));
 
             // 숫자 데이터 매핑
             course.setTotal_hour(parseInt(record.get("total_hour")));
