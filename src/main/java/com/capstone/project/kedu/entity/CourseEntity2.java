@@ -20,18 +20,11 @@ public class CourseEntity2 {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long courseId;
 
-    @ManyToOne
-    @JoinColumn(name = "academy_id", nullable = false)
-    private AcademyEntity2 academy; // 강의와 관련된 기관
+    private String academy;
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "course_name")
     private String courseName; // 강의명
 
-    private String auth; // 인증 정보
-    private Date startDate;
-    private Date endDate;
-    private int totalHour;
-    private double priceTotal;
-    private double selfPayment;
+    private String region;
 
 }

@@ -9,5 +9,6 @@ import lombok.ToString;
 @Setter
 @ToString
 @NoArgsConstructor
-public class KeduReqDTO2 {
+public class AcademyReqDTO2 {
+    private String region;
 }
