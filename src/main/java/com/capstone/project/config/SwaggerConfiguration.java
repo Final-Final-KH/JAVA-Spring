@@ -25,7 +25,7 @@ import java.util.List;
 @Slf4j
 @Configuration
 @EnableSwagger2
-public class SwaggerConfig implements WebMvcConfigurer {
+public class SwaggerConfiguration implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
@@ -72,7 +72,4 @@ public class SwaggerConfig implements WebMvcConfigurer {
         authorizationScopes[0] = authorizationScope;
         return Arrays.asList(new SecurityReference("JWT", authorizationScopes));
     }
-
-
-
 }

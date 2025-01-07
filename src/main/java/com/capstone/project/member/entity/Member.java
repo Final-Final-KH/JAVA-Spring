@@ -1,8 +1,9 @@
 package com.capstone.project.member.entity;
 
-import lombok.*;
 
 import javax.persistence.*;
+import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -12,6 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
+@Builder
 public class Member {
 
     @Id
@@ -22,8 +24,8 @@ public class Member {
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(nullable = false)
-    private String password;
+    @Column(nullable = true)
+    private String password; // Password can be null for OAuth users
 
     @Column(nullable = false, length = 50)
     private String name;
@@ -31,28 +33,26 @@ public class Member {
     @Column(name = "phone_number", unique = true, length = 15)
     private String phoneNumber;
 
-    @Column(name = "registered_at", nullable = false, updatable = false)
-    private LocalDateTime registeredAt = LocalDateTime.now();
+    @Column(name = "provider", length = 50)
+    private String provider; // Google or Kakao
 
-    @Column(name = "image_path")
-    private String imagePath;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "subscription_level", nullable = false)
-    private SubscriptionLevel subscriptionLevel = SubscriptionLevel.FREE;
+    @Column(name = "provider_id", length = 255)
+    private String providerId; // Unique ID from provider
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role = Role.USER;
 
     @Column(name = "current_company", length = 255)
-    private String currentCompany; // The user's company name
+    private String currentCompany;
 
     @Column(name = "show_company", nullable = false)
-    private Boolean showCompany = true; // Whether to display the company name or not
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    private Boolean showCompany = true;
+    
+    
+    
+    private LocalDateTime registeredAt;
+    private LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
@@ -63,10 +63,6 @@ public class Member {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
-    }
-
-    public enum SubscriptionLevel {
-        FREE, PAID
     }
 
     public enum Role {
