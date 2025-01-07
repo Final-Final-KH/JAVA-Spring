@@ -46,11 +46,12 @@ public class Member {
     private Role role = Role.USER;
 
     @Column(name = "current_company", length = 255)
-    private String currentCompany;
-
-    @Column(name = "show_company", nullable = false)
     @Builder.Default
-    private Boolean showCompany = true;
+    private String currentCompany = "Unemployed";
+
+    @Column(name = "show_company")
+    @Builder.Default
+    private Boolean showCompany = false;
 
     @Column(nullable = false)
     @Builder.Default

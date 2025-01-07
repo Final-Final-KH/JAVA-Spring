@@ -46,8 +46,8 @@ public class AuthService {
                 .password(passwordEncoder.encode(requestDto.getPassword()))
                 .name(requestDto.getName())
                 .phoneNumber(requestDto.getPhoneNumber())
-                .currentCompany("Unemployed") // Default value
-                .showCompany(false)           // Default visibility
+                .currentCompany(requestDto.getCurrentCompany()) // Default value
+                .showCompany(requestDto.getShowCompany())           // Default visibility
                 .build();
 
         Member savedMember = memberRepository.save(member);
