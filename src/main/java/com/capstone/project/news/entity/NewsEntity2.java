@@ -22,7 +22,7 @@ public class NewsEntity2 {
     private String title;
 
     private String link;
-    
+
     @Lob
     private String content;
 
