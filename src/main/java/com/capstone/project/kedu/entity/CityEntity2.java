@@ -20,7 +20,8 @@ public class CityEntity2 {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long region_id;
 
-    private String region_name;
+    @Column(name = "region_name")  // DB 컬럼명은 그대로 두고
+    private String regionName;     // 필드명만 regionName으로 변경
 
     @OneToMany(mappedBy = "city", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<DistrictEntity2> districtEntity2 = new ArrayList<>();

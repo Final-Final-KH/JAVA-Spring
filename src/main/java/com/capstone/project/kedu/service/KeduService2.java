@@ -12,6 +12,7 @@ import com.capstone.project.kedu.repository.AcademyRepository2;
 import com.capstone.project.kedu.repository.CityRepository2;
 import com.capstone.project.kedu.repository.CourseRepository2;
 import com.capstone.project.kedu.repository.KeduRepository2;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
+@Slf4j
 @Service
 public class KeduService2 {
 
@@ -78,12 +79,12 @@ public class KeduService2 {
 
         for (String regionName : regions) {
             // 해당 지역이 이미 존재하는지 확인
-            List<CityEntity2> existRegion = cityRepository2.findByRegionName(regionName);
+            List<CityEntity2> existRegion = cityRepository2.findByRegionName(regionName);  // 메소드 이름 수정
 
             // 존재하지 않으면 새로운 데이터 추가
             if (existRegion.isEmpty()) {
                 CityEntity2 cityEntity2 = new CityEntity2();
-                cityEntity2.setRegion_name(regionName);  // 지역 이름을 설정
+                cityEntity2.setRegionName(regionName);  // 지역 이름을 설정
 
                 // 데이터 저장
                 cityRepository2.save(cityEntity2);
@@ -93,8 +94,6 @@ public class KeduService2 {
             }
         }
     }
-
-
 
     @Transactional
     public void saveCourse() {
@@ -143,17 +142,17 @@ public class KeduService2 {
         return regionResDTO2List;
     }
 
-//    public List<DistrictResDTO2> findByRegionDistrict() {
-//        List<String> district = repository.findByRegionDistrict();
-//        List<DistrictResDTO2> districtResDTO2List = new ArrayList<>();
-//
-//        for (String gu : district){
-//            DistrictResDTO2 districtResDTO2 = new DistrictResDTO2();
-//            districtResDTO2.setDistrict_name(gu);
-//            districtResDTO2List.add(districtResDTO2);
-//        }
-//        return districtResDTO2List;
-//    }
+    public List<DistrictResDTO2> findByRegionDistrict(String region) {
+        List<String> district = repository.findByRegionDistrict(region);
+        List<DistrictResDTO2> districtResDTO2List = new ArrayList<>();
+
+        for (String gu : district){
+            DistrictResDTO2 districtResDTO2 = new DistrictResDTO2();
+            districtResDTO2.setDistrict_name(gu);
+            districtResDTO2List.add(districtResDTO2);
+        }
+        return districtResDTO2List;
+    }
 
     public AcademyResDTO2 convertEntityToAcademyResDto(AcademyEntity2 academy) {
         AcademyResDTO2 academyResDTO2 = new AcademyResDTO2();

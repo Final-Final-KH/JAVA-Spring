@@ -49,12 +49,12 @@ public class KeduController2 {
         return resultMap;
     }
 
-//    @GetMapping("/district")
-//    public Map<String , Object> district(){
-//        Map<String, Object> resultMap = new HashMap<>();
-//        List<DistrictResDTO2> list = keduService2.findByRegionDistrict();
-//        resultMap.put("list", list);
-//        return resultMap;
-//    }
+    @GetMapping("/district")
+    public Map<String , Object> district(@RequestParam(value = "region_name") String region){
+        Map<String, Object> resultMap = new HashMap<>();
+        List<DistrictResDTO2> list = keduService2.findByRegionDistrict(region);
+        resultMap.put("list", list);
+        return resultMap;
+    }
 
 }
