@@ -1,9 +1,6 @@
 package com.capstone.project.kedu.service;
 
-import com.capstone.project.kedu.dto.AcademyResDTO2;
-import com.capstone.project.kedu.dto.DistrictResDTO2;
-import com.capstone.project.kedu.dto.KeduResDTO2;
-import com.capstone.project.kedu.dto.RegionResDTO2;
+import com.capstone.project.kedu.dto.*;
 import com.capstone.project.kedu.entity.AcademyEntity2;
 import com.capstone.project.kedu.entity.CityEntity2;
 import com.capstone.project.kedu.entity.CourseEntity2;
@@ -162,7 +159,24 @@ public class KeduService2 {
             academyResDTO2List.add(convertEntityToAcademyResDto(academyEntity2));
         }
         return academyResDTO2List;
+    }
 
+    public List<LectureResDTO2> findLecture(String region, String academy) {
+        List<CourseEntity2> courseEntity = courseRepository.findByAcademyAndRegion(academy, region);
+        List<LectureResDTO2> lectureResDTO2List = new ArrayList<>();
+        for(CourseEntity2 courseEntity2 : courseEntity) {
+            lectureResDTO2List.add(convertEntityToLectureResDto(courseEntity2));
+        }
+        return lectureResDTO2List;
+    }
+
+    public LectureResDTO2 convertEntityToLectureResDto(CourseEntity2 courseEntity){
+        LectureResDTO2 lectureResDTO2 = new LectureResDTO2();
+        lectureResDTO2.setCourse_name(courseEntity.getCourseName());
+        lectureResDTO2.setCourse_name(courseEntity.getCourseName());
+        lectureResDTO2.setRegion(courseEntity.getRegion());
+
+        return lectureResDTO2;
     }
 
     public AcademyResDTO2 convertEntityToAcademyResDto(AcademyEntity2 academy) {
@@ -194,7 +208,4 @@ public class KeduService2 {
 
         return keduResDTO2;
     }
-
-
-
 }

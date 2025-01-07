@@ -63,4 +63,12 @@ public class KeduController2 {
 
     }
 
+    @GetMapping("/lecture")
+    public Map<String, Object> lecture(@RequestParam(value = "region")String region, @RequestParam(value = "academy")String academy){
+        Map<String, Object> resultMap = new HashMap<>();
+        List<LectureResDTO2> list = keduService2.findLecture(region, academy);
+        resultMap.put("list", list);
+        return resultMap;
+    }
+
 }
