@@ -3,6 +3,7 @@ package com.capstone.project.payment;
 import com.capstone.project.payment.dto.request.PaymentRequestDto;
 import com.capstone.project.payment.dto.response.PaymentResponseDto;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import java.util.Map;
 
 @Component
 @Slf4j
+@Profile("!test")
 public class KakaoPaymentProvider extends AbstractPaymentProvider {
 
     private final String apiKey;

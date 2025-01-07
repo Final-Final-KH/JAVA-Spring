@@ -36,6 +36,7 @@ public class JwtFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response); // Pass the request to the next filter / 요청을 다음 필터로 전달
     }
 
+    // Authorization 헤더에서 토큰 추출
     private String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization"); // Get Authorization header / Authorization 헤더 가져오기
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
