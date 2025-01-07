@@ -34,4 +34,6 @@ public class RefreshToken {
     public boolean isExpired() {
         return expirationDate.isBefore(LocalDateTime.now());
     }
+
 }
+
