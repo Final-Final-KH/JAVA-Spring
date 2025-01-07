@@ -57,6 +57,8 @@ public class AuthService {
     public TokenDto login(LoginRequestDto loginDto) {
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword());
+        System.out.println(loginDto.getEmail());
+        System.out.println(loginDto.getPassword());
 
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
         return tokenProvider.generateTokenDto(authentication);

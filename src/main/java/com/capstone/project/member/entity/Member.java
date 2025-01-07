@@ -6,6 +6,7 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+@Builder
 @Entity
 @Table(name = "members")
 @Getter
@@ -13,7 +14,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-@Builder
 public class Member {
 
     @Id
@@ -41,24 +41,55 @@ public class Member {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @Builder.Default
     private Role role = Role.USER;
 
     @Column(name = "current_company", length = 255)
     private String currentCompany;
 
     @Column(name = "show_company", nullable = false)
+    @Builder.Default
     private Boolean showCompany = true;
-    
-    
-    
-    private LocalDateTime registeredAt;
-    private LocalDateTime updatedAt;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private LocalDateTime registeredAt = LocalDateTime.now(); // Registration timestamp / 등록 시간
+
+    @Column(nullable = false)
+    @Builder.Default
+    private LocalDateTime updatedAt = LocalDateTime.now(); // Last updated timestamp / 마지막 수정 시간
 
     @PrePersist
     protected void onCreate() {
         this.registeredAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
+    @Builder
+    public Member (String email, String password, String name, String phoneNumber, Role role, String currentCompany, boolean showCompany, String provider, String providerId) {
+        this.email= email;
+        this.password=password;
+        this.name=name;
+        this.phoneNumber=phoneNumber;
+        this.role=role;
+        this.currentCompany=currentCompany;
+        this.showCompany=showCompany;
+        this.provider=provider;
+        this.providerId=providerId;
+        this.registeredAt=LocalDateTime.now();
+        this.updatedAt=LocalDateTime.now();
+
+    }
+
+
+    public Member(Integer memberId) {
+        this.id = memberId; // Only initialize the ID / ID만 초기화
+    }
+
+    // Add a custom getter for `id` with the name `getMemberId` for compatibility with FeedService / FeedService와 호환성을 위한 `getMemberId` 추가
+    public Integer getMemberId() {
+        return this.id;
+    }
+
 
     @PreUpdate
     protected void onUpdate() {
