@@ -1,41 +1,37 @@
 package com.capstone.project.feed.entity;
 
-import com.capstone.project.member.entity.Member;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Table(name = "feeds")
 public class Feed {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer feedId; // Feed ID / 게시물 ID
+    private Integer feedId; // 피드 고유 ID
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
-    private Member member; // Member who posted / 게시물을 작성한 사용자
+    @Column(nullable = false)
+    private Integer memberId; // 작성자 ID
 
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String content; // Content of the feed / 게시물 내용
+    private String content; // 게시물 내용
 
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now(); // Created timestamp / 생성 시간
+    private LocalDateTime createdAt; // 생성 시간
+    private LocalDateTime updatedAt; // 마지막 수정 시간
+    private Integer likesCount; // 좋아요 수
 
-    @Column(nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now(); // Updated timestamp / 수정 시간
+    @ManyToOne
+    @JoinColumn(name = "reposted_from", foreignKey = @ForeignKey(name = "FK_reposted_from"))
+    private Feed repostedFrom; // 원본 피드
 
-    @Column(nullable = false)
-    private Integer likesCount = 0; // Number of likes / 좋아요 개수
-
-    // Constructor for initializing Feed with only feedId / feedId만 초기화하는 생성자
-    public Feed(Integer feedId) {
-        this.feedId = feedId; // Initialize the feedId / feedId를 초기화
-    }
+    @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FeedComment> comments; // 연결된 댓글 리스트
 }

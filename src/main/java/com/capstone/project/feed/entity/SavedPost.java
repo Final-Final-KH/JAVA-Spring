@@ -1,9 +1,6 @@
 package com.capstone.project.feed.entity;
 
-import com.capstone.project.member.entity.Member;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
@@ -12,19 +9,20 @@ import java.time.LocalDateTime;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Table(name = "saved_posts")
 public class SavedPost {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer savedPostId; // Saved Post ID / 저장된 게시물 ID
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false)
-    private Member member; // Member who saved the post / 게시물을 저장한 사용자
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "feed_id", nullable = false)
-    private Feed feed; // Saved feed / 저장된 게시물
+    private Integer savedPostId; // 저장된 게시물 고유 ID
 
     @Column(nullable = false)
-    private LocalDateTime savedAt = LocalDateTime.now(); // When the post was saved / 저장 시간
+    private Integer memberId; // 저장한 사용자 ID
+
+    @ManyToOne
+    @JoinColumn(name = "feed_id", foreignKey = @ForeignKey(name = "FK_feed_id"))
+    private Feed feed; // 저장된 피드
+
+    private LocalDateTime savedAt; // 저장된 시간
 }

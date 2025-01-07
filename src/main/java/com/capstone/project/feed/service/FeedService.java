@@ -1,74 +1,108 @@
 package com.capstone.project.feed.service;
 
+import com.capstone.project.feed.dto.request.FeedRequestDto;
+import com.capstone.project.feed.dto.response.CommentResponseDto;
 import com.capstone.project.feed.dto.response.FeedResponseDto;
-import com.capstone.project.feed.entity.Feed;
-import com.capstone.project.feed.entity.SavedPost;
-import com.capstone.project.feed.repository.FeedRepository;
-import com.capstone.project.feed.repository.SavedPostRepository;
-import com.capstone.project.member.entity.Member;
+import com.capstone.project.feed.entity.*;
+import com.capstone.project.feed.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class FeedService {
-
     private final FeedRepository feedRepository;
+    private final FeedCommentRepository feedCommentRepository;
     private final SavedPostRepository savedPostRepository;
 
-    // Edit a post / 게시물 수정
+    // 피드 생성
     @Transactional
-    public FeedResponseDto editPost(Integer feedId, Integer memberId, String newContent) {
-        Feed feed = feedRepository.findById(feedId)
-                .orElseThrow(() -> new IllegalArgumentException("Feed not found / 게시물을 찾을 수 없습니다."));
-
-        if (!feed.getMember().getId().equals(memberId)) {
-            throw new SecurityException("You do not have permission to edit this post / 이 게시물을 수정할 권한이 없습니다.");
-        }
-
-        feed.setContent(newContent);
-        feed.setUpdatedAt(LocalDateTime.now());
-        feedRepository.save(feed);
-
-        return new FeedResponseDto(
-                feed.getFeedId(),
-                feed.getMember().getId(),
-                feed.getContent(),
-                feed.getCreatedAt(),
-                feed.getUpdatedAt(),
-                feed.getLikesCount(),
-                null // For repostedFrom, if implemented later / 나중에 리포스트 기능 추가 시 변경
-        );
+    public FeedResponseDto createFeed(FeedRequestDto requestDto) {
+        Feed feed = Feed.builder()
+                .memberId(requestDto.getMemberId())
+                .content(requestDto.getContent())
+                .createdAt(java.time.LocalDateTime.now())
+                .updatedAt(java.time.LocalDateTime.now())
+                .likesCount(0)
+                .build();
+        Feed savedFeed = feedRepository.save(feed);
+        return mapToResponseDto(savedFeed);
     }
 
-    // Delete a post / 게시물 삭제
+    // 피드 수정
     @Transactional
-    public void deletePost(Integer feedId, Integer memberId) {
+    public FeedResponseDto editFeed(Integer feedId, FeedRequestDto requestDto) {
         Feed feed = feedRepository.findById(feedId)
-                .orElseThrow(() -> new IllegalArgumentException("Feed not found / 게시물을 찾을 수 없습니다."));
-
-        if (!feed.getMember().getId().equals(memberId)) {
-            throw new SecurityException("You do not have permission to delete this post / 이 게시물을 삭제할 권한이 없습니다.");
-        }
-
-        feedRepository.delete(feed);
+                .orElseThrow(() -> new IllegalArgumentException("Feed not found with ID: " + feedId));
+        feed.setContent(requestDto.getContent());
+        feed.setUpdatedAt(java.time.LocalDateTime.now());
+        return mapToResponseDto(feedRepository.save(feed));
     }
 
-    // Save a post / 게시물 저장
+    // 피드 삭제
     @Transactional
-    public void savePost(Integer memberId, Integer feedId) {
-        if (savedPostRepository.existsByMember_IdAndFeed_FeedId(memberId, feedId)) {
-            throw new IllegalStateException("Post is already saved / 이미 저장된 게시물입니다.");
-        }
+    public void deleteFeed(Integer feedId) {
+        feedRepository.deleteById(feedId);
+    }
 
-        SavedPost savedPost = new SavedPost();
-        savedPost.setMember(new Member(memberId)); // Assume constructor for Member with only ID / ID만 설정된 Member 생성자 사용
-        savedPost.setFeed(new Feed(feedId));       // Assume constructor for Feed with only ID / ID만 설정된 Feed 생성자 사용
-        savedPost.setSavedAt(LocalDateTime.now());
+    // 전체 피드 조회
+    @Transactional(readOnly = true)
+    public List<FeedResponseDto> getAllFeeds() {
+        return feedRepository.findAll()
+                .stream()
+                .map(this::mapToResponseDto)
+                .collect(Collectors.toList());
+    }
 
-        savedPostRepository.save(savedPost);
+    // 특정 피드 조회
+    @Transactional(readOnly = true)
+    public FeedResponseDto getFeedById(Integer feedId) {
+        Feed feed = feedRepository.findById(feedId)
+                .orElseThrow(() -> new IllegalArgumentException("Feed not found with ID: " + feedId));
+        return mapToResponseDto(feed);
+    }
+
+    // 댓글 조회
+    @Transactional(readOnly = true)
+    public List<CommentResponseDto> getCommentsByFeedId(Integer feedId) {
+        return feedCommentRepository.findAll()
+                .stream()
+                .filter(comment -> comment.getFeed().getFeedId().equals(feedId))
+                .map(comment -> CommentResponseDto.builder()
+                        .commentId(comment.getCommentId())
+                        .memberId(comment.getMemberId())
+                        .comment(comment.getComment())
+                        .createdAt(comment.getCreatedAt())
+                        .updatedAt(comment.getUpdatedAt())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    // Helper 메서드: Feed -> FeedResponseDto 변환
+    private FeedResponseDto mapToResponseDto(Feed feed) {
+        return FeedResponseDto.builder()
+                .feedId(feed.getFeedId())
+                .memberId(feed.getMemberId())
+                .content(feed.getContent())
+                .createdAt(feed.getCreatedAt())
+                .updatedAt(feed.getUpdatedAt())
+                .likesCount(feed.getLikesCount())
+                .repostedFrom(feed.getRepostedFrom() != null ? feed.getRepostedFrom().getFeedId() : null)
+                .repostedFromContent(feed.getRepostedFrom() != null ? feed.getRepostedFrom().getContent() : null)
+                .comments(feed.getComments()
+                        .stream()
+                        .map(comment -> CommentResponseDto.builder()
+                                .commentId(comment.getCommentId())
+                                .memberId(comment.getMemberId())
+                                .comment(comment.getComment())
+                                .createdAt(comment.getCreatedAt())
+                                .updatedAt(comment.getUpdatedAt())
+                                .build())
+                        .collect(Collectors.toList()))
+                .build();
     }
 }
