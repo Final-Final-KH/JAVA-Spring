@@ -1,9 +1,11 @@
 package com.capstone.project.member.entity;
 
-import lombok.*;
 
 import javax.persistence.*;
+import lombok.*;
+
 import java.time.LocalDateTime;
+
 
 @Entity
 @Table(name = "members")
@@ -12,43 +14,43 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
-@Builder
+@Builder // Adds the builder pattern to your entity
 public class Member {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "member_id")
-    private Integer id; // Primary key for members / 회원 고유 식별자
+    private Integer id;
 
     @Column(nullable = false, unique = true, length = 100)
-    private String email; // Member's email address / 회원 이메일 주소
+    private String email;
 
     @Column(nullable = true)
-    private String password; // Password for standard users (nullable for OAuth users) / 일반 사용자 비밀번호 (OAuth 사용자는 null 가능)
+    private String password; // Password can be null for OAuth users
 
     @Column(nullable = false, length = 50)
-    private String name; // Member's name / 회원 이름
+    private String name;
 
     @Column(name = "phone_number", unique = true, length = 15)
-    private String phoneNumber; // Member's phone number / 회원 전화번호
+    private String phoneNumber;
 
     @Column(name = "provider", length = 50)
-    private String provider; // OAuth provider (e.g., Google, Kakao) / OAuth 제공자 (Google, Kakao 등)
+    private String provider; // Google or Kakao
 
     @Column(name = "provider_id", length = 255)
-    private String providerId; // Unique provider ID from OAuth / OAuth 제공자의 고유 ID
+    private String providerId; // Unique ID from provider
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private Role role = Role.USER; // Role of the member (default: USER) / 회원 권한 (기본값: USER)
+    private Role role = Role.USER;
 
     @Column(name = "current_company", length = 255)
-    private String currentCompany; // Current company name / 현재 근무 중인 회사 이름
+    private String currentCompany;
 
     @Column(name = "show_company", nullable = false)
     @Builder.Default
-    private Boolean showCompany = true; // Whether to display the company / 회사 공개 여부
+    private Boolean showCompany = true;
 
     @Column(nullable = false)
     @Builder.Default
@@ -58,24 +60,48 @@ public class Member {
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now(); // Last updated timestamp / 마지막 수정 시간
 
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now(); // Automatically update `updatedAt` before saving / 저장 전 `updatedAt` 자동 업데이트
+    @PrePersist
+    protected void onCreate() {
+        this.registeredAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
+    @Builder
+    public Member (String email, String password, String name, String phoneNumber, Role role, String currentCompany, boolean showCompany, String provider, String providerId) {
+        this.email= email;
+        this.password=password;
+        this.name=name;
+        this.phoneNumber=phoneNumber;
+        this.role=role;
+        this.currentCompany=currentCompany;
+        this.showCompany=showCompany;
+        this.provider=provider;
+        this.providerId=providerId;
+        this.registeredAt=LocalDateTime.now();
+        this.updatedAt=LocalDateTime.now();
+
+    }
+
 
     public Member(Integer memberId) {
         this.id = memberId; // Only initialize the ID / ID만 초기화
     }
-
 
     // Add a custom getter for `id` with the name `getMemberId` for compatibility with FeedService / FeedService와 호환성을 위한 `getMemberId` 추가
     public Integer getMemberId() {
         return this.id;
     }
 
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public enum SubscriptionLevel {
+        FREE, PAID
+    }
+
     public enum Role {
         USER, ADMIN // User roles / 사용자 역할
     }
-
-
 }
