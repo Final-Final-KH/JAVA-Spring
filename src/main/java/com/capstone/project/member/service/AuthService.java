@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -56,6 +57,8 @@ public class AuthService {
     public TokenDto login(LoginRequestDto loginDto) {
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword());
+        System.out.println(loginDto.getEmail());
+        System.out.println(loginDto.getPassword());
 
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
         return tokenProvider.generateTokenDto(authentication);
@@ -65,5 +68,23 @@ public class AuthService {
     public String createAccessToken(String refreshToken) {
         Authentication authentication = tokenProvider.getAuthentication(refreshToken);
         return tokenProvider.generateAccessToken(authentication);
+    }
+
+    public TokenDto loginWithOAuth2(String provider, String providerId, String email, String name) {
+        Member member = memberRepository.findByProviderAndProviderId(provider, providerId)
+                .orElseGet(() -> {
+                    // Register new OAuth2 user
+                    Member newMember = Member.builder()
+                            .email(email)
+                            .name(name)
+                            .provider(provider)
+                            .providerId(providerId)
+                            .role(Member.Role.USER)
+                            .build();
+                    return memberRepository.save(newMember);
+                });
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(member.getEmail(), null, List.of());
+        return tokenProvider.generateTokenDto(authentication);
     }
 }
