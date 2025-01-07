@@ -88,4 +88,6 @@ public class AuthService {
         Authentication authentication = new UsernamePasswordAuthenticationToken(member.getEmail(), null, List.of());
         return tokenProvider.generateTokenDto(authentication);
     }
+
 }
+

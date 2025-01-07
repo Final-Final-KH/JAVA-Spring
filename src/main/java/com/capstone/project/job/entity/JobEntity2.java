@@ -5,9 +5,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 
 @Entity
 @Table(name = "job")
@@ -15,8 +13,9 @@ import javax.persistence.Table;
 @Setter
 @ToString
 @NoArgsConstructor
-public class JobEntity {
+public class JobEntity2 {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long job_list_id;
 
     private String company;
