@@ -40,7 +40,7 @@ public class AuthController {
     // Refresh token
     @PostMapping("/refresh")
     public ResponseEntity<String> refreshToken(@RequestBody String refreshToken) {
-        String newAccessToken = authService.refreshAccessToken(refreshToken);
+        String newAccessToken = authService.createAccessToken(refreshToken);
         return ResponseEntity.ok(newAccessToken);
     }
 }
