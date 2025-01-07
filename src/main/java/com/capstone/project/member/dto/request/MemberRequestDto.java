@@ -32,4 +32,5 @@ public class MemberRequestDto {
     public UsernamePasswordAuthenticationToken toAuthentication() {
         return new UsernamePasswordAuthenticationToken(email, password);
     }
+
 }
