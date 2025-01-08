@@ -13,4 +13,8 @@ import java.util.List;
 public interface KeduBoardRepository2 extends JpaRepository<KeduBoardEntity2, Long> {
 
     @Query("SELECT k FROM KeduBoardEntity2 k WHERE k.academyEntity2.academyId = :academyId AND k.courseEntity2.courseId = :courseId")
-    List<KeduBoardEntity2> findByAcademyIdAndCourseId(@Param("academyId") Long academyId, @Param("courseId") Long courseId);}
+    List<KeduBoardEntity2> findByAcademyIdAndCourseId(@Param("academyId") Long academyId, @Param("courseId") Long courseId);
+    void deleteById(Long memberId);
+}
+
+

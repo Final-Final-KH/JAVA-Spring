@@ -53,4 +53,17 @@ public class KeduBoardController2 {
         return ResponseEntity.ok(isSuccess);
     }
 
+    // 게시글 삭제
+    @PostMapping("/delete")
+    public ResponseEntity<Boolean> boardDelete(@RequestParam(value = "member_id") int member_id, @RequestParam(value = "id") Long id){
+        boolean isSuccess = keduBoardService2.deleteBoard(member_id, id);
+        return ResponseEntity.ok(isSuccess);
+    }
+
+    // 게시글 업데이트
+    @PostMapping("/update")
+    public ResponseEntity<Boolean> boardUpdate(@RequestBody KeduBoardUpdateReqDTO2 keduBoardUpdateReqDTO2){
+        boolean isSuccess = keduBoardService2.updateBoard(keduBoardUpdateReqDTO2);
+        return ResponseEntity.ok(isSuccess);
+    }
 }
