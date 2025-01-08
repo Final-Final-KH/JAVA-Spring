@@ -47,6 +47,7 @@ public class SwaggerConfiguration implements WebMvcConfigurer {
                 .securityContexts(Arrays.asList(securityContext()));
     }
 
+
     private ApiInfo apiInfo() {
         log.info("스웨거 apiInfo() 함수 호출 !!");
         return new ApiInfoBuilder()

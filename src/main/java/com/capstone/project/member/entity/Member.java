@@ -6,7 +6,7 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
-@Builder
+
 @Entity
 @Table(name = "members")
 @Getter
@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString
+@Builder // Adds the builder pattern to your entity
 public class Member {
 
     @Id
@@ -97,7 +98,11 @@ public class Member {
         this.updatedAt = LocalDateTime.now();
     }
 
+    public enum SubscriptionLevel {
+        FREE, PAID
+    }
+
     public enum Role {
-        USER, ADMIN
+        USER, ADMIN // User roles / 사용자 역할
     }
 }
