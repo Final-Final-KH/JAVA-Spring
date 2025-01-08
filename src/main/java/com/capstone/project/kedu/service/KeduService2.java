@@ -1,14 +1,14 @@
 package com.capstone.project.kedu.service;
 
-import com.capstone.project.kedu.dto.*;
-import com.capstone.project.kedu.entity.AcademyEntity2;
-import com.capstone.project.kedu.entity.CityEntity2;
-import com.capstone.project.kedu.entity.CourseEntity2;
-import com.capstone.project.kedu.entity.KeduEntity2;
-import com.capstone.project.kedu.repository.AcademyRepository2;
-import com.capstone.project.kedu.repository.CityRepository2;
-import com.capstone.project.kedu.repository.CourseRepository2;
-import com.capstone.project.kedu.repository.KeduRepository2;
+import com.capstone.project.kedu.dto.edu.*;
+import com.capstone.project.kedu.entity.edu.AcademyEntity2;
+import com.capstone.project.kedu.entity.edu.CityEntity2;
+import com.capstone.project.kedu.entity.edu.CourseEntity2;
+import com.capstone.project.kedu.entity.edu.KeduEntity2;
+import com.capstone.project.kedu.repository.edu.AcademyRepository2;
+import com.capstone.project.kedu.repository.edu.CityRepository2;
+import com.capstone.project.kedu.repository.edu.CourseRepository2;
+import com.capstone.project.kedu.repository.edu.KeduRepository2;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

@@ -1,7 +1,7 @@
 package com.capstone.project.kedu.service;
 
 import com.capstone.project.job.entity.JobEntity2;
-import com.capstone.project.kedu.entity.KeduEntity2;
+import com.capstone.project.kedu.entity.edu.KeduEntity2;
 import com.capstone.project.news.entity.NewsEntity2;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;

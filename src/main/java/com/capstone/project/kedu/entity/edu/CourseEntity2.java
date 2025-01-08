@@ -1,4 +1,4 @@
-package com.capstone.project.kedu.entity;
+package com.capstone.project.kedu.entity.edu;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -6,7 +6,8 @@ import lombok.Setter;
 import lombok.ToString;
 
 import javax.persistence.*;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "course")
@@ -18,6 +19,7 @@ public class CourseEntity2 {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "course_id")
     private Long courseId;
 
     private String academy;
@@ -26,5 +28,9 @@ public class CourseEntity2 {
     private String courseName; // 강의명
 
     private String region;
+
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true )
+    private List<MyCourseEntity2> myCourse = new ArrayList<>();
+
 
 }

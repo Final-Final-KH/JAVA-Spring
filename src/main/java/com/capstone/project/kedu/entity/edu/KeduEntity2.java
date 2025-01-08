@@ -1,4 +1,4 @@
-package com.capstone.project.kedu.entity;
+package com.capstone.project.kedu.entity.edu;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

@@ -2,9 +2,13 @@ package com.capstone.project.member.entity;
 
 
 import javax.persistence.*;
+
+import com.capstone.project.kedu.entity.board.KeduBoardEntity2;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Builder
 @Entity
@@ -59,11 +63,17 @@ public class Member {
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now(); // Last updated timestamp / 마지막 수정 시간
 
+
+
     @PrePersist
     protected void onCreate() {
         this.registeredAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<KeduBoardEntity2> boards = new ArrayList<>();
+
     @Builder
     public Member (String email, String password, String name, String phoneNumber, Role role, String currentCompany, boolean showCompany, String provider, String providerId) {
         this.email= email;

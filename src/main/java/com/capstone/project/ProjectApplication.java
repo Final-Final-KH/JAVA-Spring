@@ -2,9 +2,9 @@ package com.capstone.project;
 
 import com.capstone.project.job.entity.JobEntity2;
 import com.capstone.project.job.repository.JobRepository2;
-import com.capstone.project.kedu.entity.KeduEntity2;
-import com.capstone.project.kedu.repository.AcademyRepository2;
-import com.capstone.project.kedu.repository.KeduRepository2;
+import com.capstone.project.kedu.entity.edu.KeduEntity2;
+import com.capstone.project.kedu.repository.edu.AcademyRepository2;
+import com.capstone.project.kedu.repository.edu.KeduRepository2;
 import com.capstone.project.kedu.service.CsvReader2;
 import com.capstone.project.kedu.service.KeduService2;
 import com.capstone.project.news.entity.NewsEntity2;
