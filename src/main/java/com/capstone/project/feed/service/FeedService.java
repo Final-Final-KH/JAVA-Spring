@@ -1,10 +1,10 @@
 package com.capstone.project.feed.service;
 
 import com.capstone.project.feed.dto.request.FeedRequestDto;
-import com.capstone.project.feed.dto.response.CommentResponseDto;
 import com.capstone.project.feed.dto.response.FeedResponseDto;
-import com.capstone.project.feed.entity.*;
-import com.capstone.project.feed.repository.*;
+import com.capstone.project.feed.dto.response.CommentResponseDto;
+import com.capstone.project.feed.entity.Feed;
+import com.capstone.project.feed.repository.FeedRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,12 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+// 피드 서비스
 @Service
 @RequiredArgsConstructor
 public class FeedService {
     private final FeedRepository feedRepository;
-    private final FeedCommentRepository feedCommentRepository;
-    private final SavedPostRepository savedPostRepository;
 
     // 피드 생성
     @Transactional
@@ -66,22 +65,6 @@ public class FeedService {
         return mapToResponseDto(feed);
     }
 
-    // 댓글 조회
-    @Transactional(readOnly = true)
-    public List<CommentResponseDto> getCommentsByFeedId(Integer feedId) {
-        return feedCommentRepository.findAll()
-                .stream()
-                .filter(comment -> comment.getFeed().getFeedId().equals(feedId))
-                .map(comment -> CommentResponseDto.builder()
-                        .commentId(comment.getCommentId())
-                        .memberId(comment.getMemberId())
-                        .comment(comment.getComment())
-                        .createdAt(comment.getCreatedAt())
-                        .updatedAt(comment.getUpdatedAt())
-                        .build())
-                .collect(Collectors.toList());
-    }
-
     // Helper 메서드: Feed -> FeedResponseDto 변환
     private FeedResponseDto mapToResponseDto(Feed feed) {
         return FeedResponseDto.builder()
@@ -95,13 +78,7 @@ public class FeedService {
                 .repostedFromContent(feed.getRepostedFrom() != null ? feed.getRepostedFrom().getContent() : null)
                 .comments(feed.getComments()
                         .stream()
-                        .map(comment -> CommentResponseDto.builder()
-                                .commentId(comment.getCommentId())
-                                .memberId(comment.getMemberId())
-                                .comment(comment.getComment())
-                                .createdAt(comment.getCreatedAt())
-                                .updatedAt(comment.getUpdatedAt())
-                                .build())
+                        .map(CommentResponseDto::new)
                         .collect(Collectors.toList()))
                 .build();
     }

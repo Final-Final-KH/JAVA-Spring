@@ -4,6 +4,7 @@ import lombok.*;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -26,6 +27,7 @@ public class Feed {
 
     private LocalDateTime createdAt; // 생성 시간
     private LocalDateTime updatedAt; // 마지막 수정 시간
+
     private Integer likesCount; // 좋아요 수
 
     @ManyToOne
@@ -33,5 +35,6 @@ public class Feed {
     private Feed repostedFrom; // 원본 피드
 
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<FeedComment> comments; // 연결된 댓글 리스트
+    @Builder.Default
+    private List<FeedComment> comments = new ArrayList<>(); // 연결된 댓글 리스트
 }

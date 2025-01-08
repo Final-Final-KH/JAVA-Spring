@@ -21,7 +21,7 @@ public class SavedPost {
     private Integer memberId; // 저장한 사용자 ID
 
     @ManyToOne
-    @JoinColumn(name = "feed_id", foreignKey = @ForeignKey(name = "FK_feed_id"))
+    @JoinColumn(name = "feed_id", foreignKey = @ForeignKey(name = "FK_saved_post_feed_id"))
     private Feed feed; // 저장된 피드
 
     private LocalDateTime savedAt; // 저장된 시간
