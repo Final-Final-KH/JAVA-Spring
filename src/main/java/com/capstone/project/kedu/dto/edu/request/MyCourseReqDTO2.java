@@ -1,4 +1,4 @@
-package com.capstone.project.kedu.dto.edu;
+package com.capstone.project.kedu.dto.edu.request;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,7 +10,6 @@ import lombok.ToString;
 @ToString
 @NoArgsConstructor
 public class MyCourseReqDTO2 {
-    private Long list_id;
     private int member_id;
     private Long academy_id;
     private Long course_id;

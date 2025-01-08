@@ -1,6 +1,8 @@
 package com.capstone.project.kedu.service;
 
-import com.capstone.project.kedu.dto.edu.MyCourseReqDTO2;
+import com.capstone.project.kedu.dto.edu.request.MyCourseDeleteReqDTO2;
+import com.capstone.project.kedu.dto.edu.request.MyCourseReqDTO2;
+import com.capstone.project.kedu.dto.edu.response.MyCourseResDTO2;
 import com.capstone.project.kedu.entity.edu.AcademyEntity2;
 import com.capstone.project.kedu.entity.edu.CourseEntity2;
 import com.capstone.project.kedu.entity.edu.MyCourseEntity2;
@@ -13,6 +15,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -46,7 +51,7 @@ public class MyCourseService2 {
         }
     }
 
-    public boolean deleteMyCourse(MyCourseReqDTO2 myCourseReqDTO2) {
+    public boolean deleteMyCourse(MyCourseDeleteReqDTO2 myCourseReqDTO2) {
         try{
             MyCourseEntity2 myCourseEntity2 = myCourseRepository2.findById(myCourseReqDTO2.getList_id())
                     .orElseThrow(()-> new RuntimeException("해당 수강 기록이 존재 하지 않습니다."));
@@ -59,4 +64,27 @@ public class MyCourseService2 {
             return false;
         }
     }
+
+    public List<MyCourseResDTO2> seach_my_course(int memberId) {
+        List<MyCourseEntity2> myCourseEntity2 =  myCourseRepository2.findByMemberId(memberId);
+        return convertEntityToDto(myCourseEntity2);
+    }
+
+    public List<MyCourseResDTO2> convertEntityToDto(List<MyCourseEntity2> myCourseEntity){
+
+        List<MyCourseResDTO2> myCourseResDTO = new ArrayList<>();
+
+        for(MyCourseEntity2 myCourseEntity2 : myCourseEntity){
+            MyCourseResDTO2 myCourseResDTO2 = new MyCourseResDTO2();
+
+            myCourseResDTO2.setAcademy(myCourseEntity2.getAcademy());
+            myCourseResDTO2.setCourse(myCourseEntity2.getCourse());
+            myCourseResDTO2.setCourse_id(myCourseEntity2.getCourseEntity2().getCourseId());
+            myCourseResDTO2.setAcademy_id(myCourseEntity2.getAcademyEntity2().getAcademyId());
+            myCourseResDTO.add(myCourseResDTO2);
+        }
+
+        return myCourseResDTO;
+    }
+
 }
