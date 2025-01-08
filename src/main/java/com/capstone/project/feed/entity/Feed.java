@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+// 피드 엔티티
 @Entity
 @Getter
 @Setter
@@ -34,7 +35,18 @@ public class Feed {
     @JoinColumn(name = "reposted_from", foreignKey = @ForeignKey(name = "FK_reposted_from"))
     private Feed repostedFrom; // 원본 피드
 
+    @Column(name = "reposter_id", nullable = true)
+    private Integer reposterId; // 리포스트한 회원 ID
+
     @OneToMany(mappedBy = "feed", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<FeedComment> comments = new ArrayList<>(); // 연결된 댓글 리스트
+
+    @Column(name = "reposted_from_content", columnDefinition = "TEXT", nullable = true)
+    private String repostedFromContent; // 리포스트된 원본 피드 내용 (스냅샷)
+
+    @Transient
+    public boolean isRepost() {
+        return repostedFrom != null;
+    } // 리포스트 여부 계산
 }
