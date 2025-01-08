@@ -30,6 +30,8 @@ public class KeduBoardEntity2 {
     @Column(length = 1000)
     private String content; // 글 내용
 
+    private String user_id;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime regDate; // 게시글 등록 일자
 

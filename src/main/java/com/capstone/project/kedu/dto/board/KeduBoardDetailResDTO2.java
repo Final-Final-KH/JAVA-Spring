@@ -11,10 +11,11 @@ import java.time.LocalDateTime;
 @Setter
 @ToString
 @NoArgsConstructor
-public class KeduBoardResDTO2 {
+public class KeduBoardDetailResDTO2 {
     private Long id;
     private String title;
-    private String user_id;
+    private String content;
     private LocalDateTime regDate;
+    private String user_id;
 
 }

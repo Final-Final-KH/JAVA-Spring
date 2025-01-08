@@ -1,6 +1,6 @@
 package com.capstone.project.kedu.service;
 
-import com.capstone.project.kedu.dto.edu.*;
+import com.capstone.project.kedu.dto.edu.response.*;
 import com.capstone.project.kedu.entity.edu.AcademyEntity2;
 import com.capstone.project.kedu.entity.edu.CityEntity2;
 import com.capstone.project.kedu.entity.edu.CourseEntity2;

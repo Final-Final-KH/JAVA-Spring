@@ -1,4 +1,4 @@
-package com.capstone.project.kedu.dto.edu;
+package com.capstone.project.kedu.dto.board;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,6 +9,6 @@ import lombok.ToString;
 @Setter
 @ToString
 @NoArgsConstructor
-public class AcademyReqDTO2 {
-    private String region;
+public class KeduBoardDetailReqDTO2 {
+    private Long id;
 }

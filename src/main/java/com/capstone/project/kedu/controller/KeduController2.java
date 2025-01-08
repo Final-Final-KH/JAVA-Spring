@@ -1,6 +1,6 @@
 package com.capstone.project.kedu.controller;
 
-import com.capstone.project.kedu.dto.edu.*;
+import com.capstone.project.kedu.dto.edu.response.*;
 import com.capstone.project.kedu.service.KeduService2;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

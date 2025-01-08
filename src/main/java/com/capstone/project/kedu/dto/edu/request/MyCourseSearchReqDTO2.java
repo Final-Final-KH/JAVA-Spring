@@ -1,4 +1,4 @@
-package com.capstone.project.kedu.dto.edu;
+package com.capstone.project.kedu.dto.edu.request;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,8 +9,6 @@ import lombok.ToString;
 @Setter
 @ToString
 @NoArgsConstructor
-public class DistrictResDTO2 {
-    private Long district_id;
-    private String district_name;
-
+public class MyCourseSearchReqDTO2 {
+    private int member_id;
 }

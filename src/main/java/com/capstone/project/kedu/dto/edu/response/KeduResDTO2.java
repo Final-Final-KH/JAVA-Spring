@@ -1,4 +1,4 @@
-package com.capstone.project.kedu.dto.edu;
+package com.capstone.project.kedu.dto.edu.response;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
