@@ -1,4 +1,4 @@
-package com.capstone.project.kedu.entity;
+package com.capstone.project.kedu.entity.edu;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,7 +9,7 @@ import javax.persistence.*;
 import java.util.Date;
 
 @Entity
-@Table(name = "course")
+@Table(name = "kedu")
 @Getter
 @Setter
 @ToString
@@ -31,7 +31,7 @@ public class KeduEntity2 {
 
     private String auth;
 
-    private Date tr_date;
+    private int tr_date;
 
     private int total_hour;
 

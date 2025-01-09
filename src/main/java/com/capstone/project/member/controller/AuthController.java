@@ -5,6 +5,7 @@ import com.capstone.project.member.dto.request.LoginRequestDto;
 import com.capstone.project.member.dto.request.MemberRequestDto;
 import com.capstone.project.member.dto.response.MemberResponseDto;
 import com.capstone.project.member.service.AuthService;
+import com.capstone.project.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -12,20 +13,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 @Slf4j
 @CrossOrigin(origins = "http://localhost:3000")
 public class AuthController {
 
     private final AuthService authService;
-
-    // Check if the email is already registered
-    @GetMapping("/exists/{email}")
-    public ResponseEntity<Boolean> isEmailRegistered(@PathVariable String email) {
-        boolean exists = authService.isEmailRegistered(email);
-        return ResponseEntity.ok(exists);
-    }
+    private final MemberService memberService;
 
     // Register a new user
     @PostMapping("/signup")
@@ -42,7 +37,7 @@ public class AuthController {
         return ResponseEntity.ok(tokenDto);
     }
 
-    // Refresh access token
+    // Refresh token
     @PostMapping("/refresh")
     public ResponseEntity<String> refreshToken(@RequestBody String refreshToken) {
         String newAccessToken = authService.createAccessToken(refreshToken);
