@@ -90,7 +90,7 @@ public class KeduBoardService2 {
             }
 
             // 해당 게시물 삭제
-            keduBoardRepository2.deleteById(keduBoardEntity2.getId());
+            keduBoardRepository2.deleteById(id);
             return true;
 
         } catch (Exception e) {
