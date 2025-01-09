@@ -17,6 +17,7 @@ import javax.persistence.*;
 @NoArgsConstructor
 public class CourseCommentEntity2 {
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long course_comment_id;
 
     private String teacher;
