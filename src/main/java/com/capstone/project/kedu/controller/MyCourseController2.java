@@ -43,7 +43,7 @@ public class MyCourseController2 {
         return ResponseEntity.ok(isSuccess);
     }
     // member_id로 검색
-    @GetMapping("/search_my_course")
+    @PostMapping("/search_my_course")
     public Map<String, Object> search_my_course(@RequestBody MyCourseSearchReqDTO2 myCourseReqDTO2){
         Map<String , Object> resultMap = new HashMap<>();
         List<MyCourseResDTO2> list = myCourseService2.seach_my_course(myCourseReqDTO2.getMember_id());

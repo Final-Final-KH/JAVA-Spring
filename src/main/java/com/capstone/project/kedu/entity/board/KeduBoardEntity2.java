@@ -1,5 +1,6 @@
 package com.capstone.project.kedu.entity.board;
 
+import com.capstone.project.kedu.dto.board.KeduBoardCommentReqDTO2;
 import com.capstone.project.kedu.entity.edu.AcademyEntity2;
 import com.capstone.project.kedu.entity.edu.CourseEntity2;
 import com.capstone.project.member.entity.Member;
@@ -10,6 +11,8 @@ import lombok.ToString;
 
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "kedu_board")
@@ -51,5 +54,18 @@ public class KeduBoardEntity2 {
     @ManyToOne
     @JoinColumn(name = "course_id")
     private CourseEntity2 courseEntity2;
+
+    @OneToMany(mappedBy = "kedu_board", cascade = CascadeType.ALL, orphanRemoval = true) // 주인이 아님을 의미, 즉 객체를 참조만 함
+    private List<KeduBoardCommentEntity2> comments = new ArrayList<>();
+
+    public void addComment(KeduBoardCommentEntity2 keduBoardCommentEntity2){
+        comments.add(keduBoardCommentEntity2);
+        keduBoardCommentEntity2.setKedu_board(this);
+    }
+
+    public void removeComment(KeduBoardCommentEntity2 keduBoardCommentEntity2){
+        comments.remove(keduBoardCommentEntity2);
+        keduBoardCommentEntity2.setKedu_board(null);
+    }
 
 }
