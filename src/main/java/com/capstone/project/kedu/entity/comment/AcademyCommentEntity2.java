@@ -17,6 +17,7 @@ import javax.persistence.*;
 @NoArgsConstructor
 public class AcademyCommentEntity2 {
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long academy_comment_id;
 
     private boolean employee_outcome;
