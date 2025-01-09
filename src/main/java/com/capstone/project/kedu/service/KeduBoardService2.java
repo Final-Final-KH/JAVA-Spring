@@ -108,6 +108,33 @@ public class KeduBoardService2 {
             return false;
         }
     }
+    // 대댓글 삭제
+    public boolean deleteCommentComment(Long id, int memberId) {
+        try {
+            // 대댓글 확인
+            KeduBoardCommentsCommentsEntity2 keduBoardCommentsCommentsEntity2 = keduBoardCommentCommentRepository2.findById(id)
+                    .orElseThrow(() -> new RuntimeException("해당 대댓글이 존재하지 않습니다."));
+
+            // 대댓글 작성자 확인
+            if (!keduBoardCommentsCommentsEntity2.getMember().getMemberId().equals(memberId)) {
+                throw new RuntimeException("해당 대댓글은 본인의 대댓글만 삭제할 수 있습니다.");
+            }
+
+            // 대댓글이 속한 댓글을 가져옵니다.
+            KeduBoardCommentEntity2 keduBoardCommentEntity2 = keduBoardCommentsCommentsEntity2.getKedu_board_comment();
+
+            // 대댓글 삭제
+            keduBoardCommentEntity2.removeComment(keduBoardCommentsCommentsEntity2);
+
+            // 대댓글 삭제 후 댓글 엔티티를 다시 저장
+            keduBoardCommentCommentRepository2.delete(keduBoardCommentsCommentsEntity2);
+
+            return true;
+        } catch (Exception e) {
+            log.error("대댓글 삭제 실패 : {}", e.getMessage());
+            return false;
+        }
+    }
 
     // 댓글 삭제
     public boolean deleteComment(Long boardId, int memberId, Long commentId) {
@@ -160,6 +187,44 @@ public class KeduBoardService2 {
         }
     }
 
+    // 대댓글 수정
+    public boolean updateCommentComment(Long id, int memberId, KeduBoardCommentCommentReqDTO2 keduBoardCommentCommentReqDTO2) {
+        try {
+            // 게시글 확인
+            KeduBoardEntity2 keduBoardEntity2 = keduBoardRepository2.findById(keduBoardCommentCommentReqDTO2.getBoard_id())
+                    .orElseThrow(() -> new RuntimeException("게시글이 존재하지 않습니다."));
+
+            // 회원 확인
+            Member member = memberRepository.findById(memberId)
+                    .orElseThrow(() -> new RuntimeException("회원 정보가 일치하지 않습니다."));
+
+            // 댓글 확인
+            KeduBoardCommentEntity2 keduBoardCommentEntity2 = keduBoardCommentRepository2.findById(keduBoardCommentCommentReqDTO2.getComment_id())
+                    .orElseThrow(() -> new RuntimeException("해당 댓글이 존재하지 않습니다."));
+
+            // 대댓글 확인
+            KeduBoardCommentsCommentsEntity2 keduBoardCommentsCommentsEntity2 = keduBoardCommentCommentRepository2.findById(id)
+                    .orElseThrow(() -> new RuntimeException("해당 대댓글이 존재하지 않습니다."));
+
+            // 대댓글 수정
+            if (!keduBoardCommentsCommentsEntity2.getMember().getMemberId().equals(memberId)) {
+                throw new RuntimeException("해당 대댓글은 본인의 대댓글만 수정할 수 있습니다.");
+            }
+
+            // 대댓글 내용 수정
+            keduBoardCommentsCommentsEntity2.setContent(keduBoardCommentCommentReqDTO2.getContent());
+            keduBoardCommentsCommentsEntity2.setRegDate(LocalDateTime.now()); // 수정된 날짜로 변경 (선택사항)
+
+            // 대댓글 저장
+            keduBoardCommentCommentRepository2.save(keduBoardCommentsCommentsEntity2);
+
+            return true;
+        } catch (Exception e) {
+            log.error("대댓글 수정 실패 : {}", e.getMessage());
+            return false;
+        }
+    }
+
     // 댓글 수정 댓글 생성이랑 같음
     public boolean updateComment(Long boardId, KeduBoardCommentReqDTO2 keduBoardCommentReqDTO2, Long commentId) {
         try{
@@ -179,7 +244,7 @@ public class KeduBoardService2 {
             keduBoardRepository2.save(keduBoardEntity2);
             return true;
         }catch (Exception e) {
-            log.error("댓글 추가 실패 : {}",e.getMessage());
+            log.error("댓글 수정 실패 : {}",e.getMessage());
             return false;
         }
     }
@@ -300,8 +365,6 @@ public class KeduBoardService2 {
         }
     }
 
-
-
     private KeduBoardResDTO2 convertEntityToDto(KeduBoardEntity2 keduBoardEntity) {
         KeduBoardResDTO2 keduBoardResDTO2 = new KeduBoardResDTO2();
 
@@ -318,7 +381,6 @@ public class KeduBoardService2 {
         keduBoardDetailResDTO2.setRegDate(keduBoardEntity2.getRegDate());
         return keduBoardDetailResDTO2;
     }
-
 
 
 }
