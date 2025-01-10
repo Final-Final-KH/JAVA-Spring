@@ -1,25 +1,16 @@
-package com.capstone.project.kedu.entity.comment;
+package com.capstone.project.kedu.dto.comment;
 
-import com.capstone.project.kedu.entity.edu.CourseEntity2;
-import com.capstone.project.member.entity.Member;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import javax.persistence.*;
-
-@Entity
-@Table(name = "lecture_comments")
 @Getter
 @Setter
 @ToString
 @NoArgsConstructor
-public class CourseCommentEntity2 {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class CourseCommentResDTO2 {
     private Long course_comment_id;
-
 
     private boolean employee_outcome;
 
@@ -35,11 +26,7 @@ public class CourseCommentEntity2 {
 
     private int skillUp;  // 개인의 기술이 발전 했는지
 
-    @ManyToOne
-    @JoinColumn(name = "member_id")
-    private Member member;
+    private int member_id;
 
-    @ManyToOne
-    @JoinColumn(name = "course_id")
-    private CourseEntity2 courseEntity2;
+    private Long course_id;
 }

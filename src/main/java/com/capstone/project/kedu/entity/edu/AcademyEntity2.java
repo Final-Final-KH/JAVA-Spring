@@ -1,5 +1,6 @@
 package com.capstone.project.kedu.entity.edu;
 
+import com.capstone.project.kedu.entity.survey.SurveyEntity2;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -27,6 +28,9 @@ public class AcademyEntity2 {
     @Column(nullable = true)
     private String region; // 예: 서울 강남구
 
-    @OneToMany(mappedBy = "academy", cascade = CascadeType.ALL, orphanRemoval = true )
+    @OneToMany(mappedBy = "academyEntity2", cascade = CascadeType.ALL, orphanRemoval = true )
     private List<MyCourseEntity2> myCourse = new ArrayList<>();
+
+    @OneToMany(mappedBy = "academyEntity2", cascade = CascadeType.ALL, orphanRemoval = true )
+    private List<SurveyEntity2> survey = new ArrayList<>();
 }

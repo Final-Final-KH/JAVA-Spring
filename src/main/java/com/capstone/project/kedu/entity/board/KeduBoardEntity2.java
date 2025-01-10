@@ -22,7 +22,7 @@ import java.util.List;
 @NoArgsConstructor
 public class KeduBoardEntity2 {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "board_id") // 참조키는 해당 객체의 기본키여야 함
     private Long id;
 
