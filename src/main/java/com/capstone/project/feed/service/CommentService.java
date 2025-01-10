@@ -8,6 +8,7 @@ import com.capstone.project.feed.entity.CommentLike;
 import com.capstone.project.feed.repository.FeedCommentRepository;
 import com.capstone.project.feed.repository.CommentLikeRepository;
 import com.capstone.project.feed.repository.FeedRepository;
+import com.capstone.project.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class CommentService {
     private final FeedRepository feedRepository; // Feed 엔티티와 상호작용하는 리포지토리
     private final FeedCommentRepository feedCommentRepository; // FeedComment 엔티티와 상호작용하는 리포지토리
     private final CommentLikeRepository commentLikeRepository; // 댓글 좋아요 관련 리포지토리
+    private final MemberService memberService; // 멤버 서비스
 
     // 댓글 추가 또는 대댓글 추가
     public CommentResponseDto addComment(Integer feedId, CommentRequestDto requestDto, Integer parentCommentId) {
@@ -48,7 +50,15 @@ public class CommentService {
 
         feedCommentRepository.save(comment); // 댓글 저장
         log.info("Comment added successfully: {}", comment);
-        return new CommentResponseDto(comment); // 저장된 댓글 반환
+
+        // 작성자의 프로필 사진 URL 가져오기
+        String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
+
+        return new CommentResponseDto(
+                comment,
+                profilePictureUrl,
+                commentLikeRepository.countByComment_CommentId(comment.getCommentId()) // 좋아요 수 추가
+        ); // 저장된 댓글 반환
     }
 
     // 댓글 수정
@@ -60,15 +70,26 @@ public class CommentService {
         comment.setComment(requestDto.getComment()); // 댓글 내용 수정
         feedCommentRepository.save(comment); // 수정된 댓글 저장
         log.info("Comment edited successfully: {}", comment);
-        return new CommentResponseDto(comment); // 수정된 댓글 반환
+
+        // 작성자의 프로필 사진 URL 가져오기
+        String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
+
+        return new CommentResponseDto(
+                comment,
+                profilePictureUrl,
+                commentLikeRepository.countByComment_CommentId(comment.getCommentId()) // 좋아요 수 추가
+        ); // 수정된 댓글 반환
     }
 
     // 댓글 삭제
     public void deleteComment(Integer commentId) {
-        // 댓글 유효성 검증
+        // Delete associated likes first
+        commentLikeRepository.deleteByComment_CommentId(commentId);
+
+        // Then delete the comment
         FeedComment comment = feedCommentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found with ID: " + commentId));
-        feedCommentRepository.delete(comment); // 댓글 삭제
+        feedCommentRepository.delete(comment);
         log.info("Comment deleted successfully: {}", commentId);
     }
 
@@ -81,23 +102,45 @@ public class CommentService {
         // Feed에 연결된 모든 댓글 조회 (부모 댓글만)
         return feedCommentRepository.findByFeedAndParentCommentIsNull(feed)
                 .stream()
-                .map(CommentResponseDto::new) // FeedComment -> CommentResponseDto 변환
+                .map(comment -> {
+                    String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
+                    return new CommentResponseDto(
+                            comment,
+                            profilePictureUrl,
+                            commentLikeRepository.countByComment_CommentId(comment.getCommentId()) // 좋아요 수 추가
+                    );
+                }) // FeedComment -> CommentResponseDto 변환
                 .collect(Collectors.toList());
     }
 
-    // 특정 댓글 조회
-    public CommentResponseDto getCommentById(Integer commentId) {
+    // 특정 댓글 조회 (좋아요 수 포함)
+    public CommentResponseDto getCommentWithLikes(Integer commentId) {
         // 댓글 유효성 검증
         FeedComment comment = feedCommentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found with ID: " + commentId));
-        return new CommentResponseDto(comment); // 댓글 반환
+
+        // 작성자의 프로필 사진 URL 가져오기
+        String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
+
+        // 좋아요 수 가져오기
+        Long likesCount = commentLikeRepository.countByComment_CommentId(commentId);
+
+        return new CommentResponseDto(comment, profilePictureUrl, likesCount); // 댓글 반환
     }
 
     // 특정 회원의 모든 댓글 조회 (대댓글 포함, 중복 제거)
     public List<CommentResponseDto> getCommentsByMemberId(Integer memberId) {
         // 모든 댓글 조회
         List<CommentResponseDto> allComments = feedCommentRepository.findByMemberId(memberId).stream()
-                .map(comment -> new CommentResponseDto(comment, true)) // 대댓글 포함
+                .map(comment -> {
+                    String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
+                    return new CommentResponseDto(
+                            comment,
+                            profilePictureUrl,
+                            true,
+                            commentLikeRepository.countByComment_CommentId(comment.getCommentId()) // 좋아요 수 추가
+                    );
+                })
                 .collect(Collectors.toList());
 
         // 중복 제거: 대댓글에 포함된 댓글을 상위 레벨에서 제거
@@ -140,6 +183,18 @@ public class CommentService {
         log.info("Comment liked: commentId={}, memberId={}", commentId, memberId);
     }
 
+    // 댓글 좋아요 취소
+    public void unlikeComment(Integer commentId, Integer memberId) {
+        FeedComment comment = feedCommentRepository.findById(commentId)
+                .orElseThrow(() -> new EntityNotFoundException("Comment not found with ID: " + commentId));
+
+        CommentLike commentLike = commentLikeRepository.findByComment_CommentIdAndMemberId(commentId, memberId)
+                .orElseThrow(() -> new IllegalArgumentException("Like not found for the given comment and member"));
+
+        commentLikeRepository.delete(commentLike);
+        log.info("Comment unliked: commentId={}, memberId={}", commentId, memberId);
+    }
+
     // 특정 피드의 댓글 및 대댓글 조회
     public List<CommentResponseDto> getCommentsByFeedIdWithReplies(Integer feedId) {
         // Feed 유효성 검증
@@ -148,7 +203,15 @@ public class CommentService {
 
         // 부모 댓글만 반환 (parentComment가 null인 댓글)
         return feedCommentRepository.findByFeedAndParentCommentIsNull(feed).stream()
-                .map(comment -> new CommentResponseDto(comment, true)) // 대댓글 포함
+                .map(comment -> {
+                    String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
+                    return new CommentResponseDto(
+                            comment,
+                            profilePictureUrl,
+                            true,
+                            commentLikeRepository.countByComment_CommentId(comment.getCommentId()) // 좋아요 수 추가
+                    );
+                }) // 대댓글 포함
                 .collect(Collectors.toList());
     }
 }

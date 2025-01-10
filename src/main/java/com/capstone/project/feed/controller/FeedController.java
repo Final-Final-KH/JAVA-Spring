@@ -2,6 +2,7 @@ package com.capstone.project.feed.controller;
 
 import com.capstone.project.feed.dto.request.CommentRequestDto;
 import com.capstone.project.feed.dto.request.FeedRequestDto;
+import com.capstone.project.feed.dto.request.RepostRequestDto;
 import com.capstone.project.feed.dto.response.CommentResponseDto;
 import com.capstone.project.feed.dto.response.FeedResponseDto;
 import com.capstone.project.feed.service.CommentService;
@@ -26,10 +27,11 @@ public class FeedController {
     @PostMapping("/{originalFeedId}/repost")
     public ResponseEntity<FeedResponseDto> repostFeed(
             @PathVariable Integer originalFeedId, // 원본 피드 ID
-            @RequestParam Integer reposterId // 리포스터 ID
+            @RequestParam Integer reposterId,     // 리포스터 ID
+            @RequestBody RepostRequestDto requestDto // 리포스트 요청 데이터
     ) {
         log.info("Reposting feed with ID={} by reposterId={}", originalFeedId, reposterId);
-        return ResponseEntity.ok(feedService.repostFeed(originalFeedId, reposterId));
+        return ResponseEntity.ok(feedService.repostFeed(originalFeedId, reposterId, requestDto));
     }
 
     // 피드 생성
@@ -118,7 +120,8 @@ public class FeedController {
     @GetMapping("/comments/{commentId}")
     public ResponseEntity<CommentResponseDto> getCommentById(@PathVariable Integer commentId) {
         log.info("Fetching comment with ID: {}", commentId);
-        return ResponseEntity.ok(commentService.getCommentById(commentId));
+        // 댓글과 좋아요 수를 포함하여 반환
+        return ResponseEntity.ok(commentService.getCommentWithLikes(commentId));
     }
 
     // 특정 회원의 모든 댓글 조회 (대댓글 포함)
@@ -136,6 +139,17 @@ public class FeedController {
     ) {
         log.info("Liking commentId={} by memberId={}", commentId, memberId);
         commentService.likeComment(commentId, memberId);
+        return ResponseEntity.ok().build();
+    }
+
+    // 댓글 좋아요 취소
+    @DeleteMapping("/comments/{commentId}/like")
+    public ResponseEntity<Void> unlikeComment(
+            @PathVariable Integer commentId, // 좋아요를 취소할 댓글 ID
+            @RequestParam Integer memberId // 좋아요를 취소한 회원 ID
+    ) {
+        log.info("Unliking commentId={} by memberId={}", commentId, memberId);
+        commentService.unlikeComment(commentId, memberId);
         return ResponseEntity.ok().build();
     }
 

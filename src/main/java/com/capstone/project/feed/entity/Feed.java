@@ -45,6 +45,12 @@ public class Feed {
     @Column(name = "reposted_from_content", columnDefinition = "TEXT", nullable = true)
     private String repostedFromContent; // 리포스트된 원본 피드 내용 (스냅샷)
 
+    @Column(name = "repost_created_at", nullable = true)
+    private LocalDateTime repostCreatedAt; // 리포스트된 시간
+
+    @Column(name = "media_url", nullable = true)
+    private String mediaUrl; // 미디어 파일 URL (선택 사항)
+
     @Transient
     public boolean isRepost() {
         return repostedFrom != null;

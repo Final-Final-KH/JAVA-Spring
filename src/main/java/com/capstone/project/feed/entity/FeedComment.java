@@ -38,6 +38,9 @@ public class FeedComment {
     @Builder.Default
     private List<FeedComment> replies = new ArrayList<>(); // 대댓글 리스트
 
+    @OneToMany(mappedBy = "comment", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<CommentLike> likes = new ArrayList<>(); // 댓글 좋아요 리스트
 
     @Column(nullable = false, updatable = false)
     @org.hibernate.annotations.CreationTimestamp

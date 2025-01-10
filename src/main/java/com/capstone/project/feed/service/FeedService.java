@@ -1,29 +1,41 @@
 package com.capstone.project.feed.service;
 
 import com.capstone.project.feed.dto.request.FeedRequestDto;
+import com.capstone.project.feed.dto.request.RepostRequestDto;
 import com.capstone.project.feed.dto.response.FeedResponseDto;
 import com.capstone.project.feed.dto.response.CommentResponseDto;
+import com.capstone.project.feed.dto.response.MemberInfoDto;
 import com.capstone.project.feed.entity.Feed;
 import com.capstone.project.feed.entity.FeedComment;
 import com.capstone.project.feed.entity.FeedLike;
 import com.capstone.project.feed.entity.SavedPost;
+import com.capstone.project.feed.repository.CommentLikeRepository;
 import com.capstone.project.feed.repository.FeedLikeRepository;
 import com.capstone.project.feed.repository.FeedRepository;
 import com.capstone.project.feed.repository.SavedPostRepository;
+import com.capstone.project.member.dto.response.MemberResponseDto;
+import com.capstone.project.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityNotFoundException;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
 // 피드 서비스
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class FeedService {
     private final FeedRepository feedRepository; // 피드 리포지토리
     private final SavedPostRepository savedPostRepository; // 저장된 피드 리포지토리
     private final FeedLikeRepository feedLikeRepository; // 피드 좋아요 리포지토리
+    private final MemberService memberService; // 멤버 서비스
+    private final CommentLikeRepository commentLikeRepository; // 댓글 좋아요 리포지토리
+
 
     // 피드 생성
     @Transactional
@@ -31,10 +43,12 @@ public class FeedService {
         Feed feed = Feed.builder()
                 .memberId(requestDto.getMemberId())
                 .content(requestDto.getContent())
-                .createdAt(java.time.LocalDateTime.now())
-                .updatedAt(java.time.LocalDateTime.now())
+                .mediaUrl(requestDto.getMediaUrl()) // 미디어 URL 추가
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .likesCount(0)
                 .build();
+
         Feed savedFeed = feedRepository.save(feed);
         return mapToResponseDto(savedFeed);
     }
@@ -45,7 +59,7 @@ public class FeedService {
         Feed feed = feedRepository.findById(feedId)
                 .orElseThrow(() -> new IllegalArgumentException("Feed not found with ID: " + feedId));
         feed.setContent(requestDto.getContent());
-        feed.setUpdatedAt(java.time.LocalDateTime.now());
+        feed.setUpdatedAt(LocalDateTime.now());
         return mapToResponseDto(feedRepository.save(feed));
     }
 
@@ -57,22 +71,34 @@ public class FeedService {
 
     // 리포스트 생성
     @Transactional
-    public FeedResponseDto repostFeed(Integer originalFeedId, Integer reposterId) {
+    public FeedResponseDto repostFeed(Integer originalFeedId, Integer reposterId, RepostRequestDto requestDto) {
+        // 원본 피드를 조회합니다. 존재하지 않을 경우 예외를 발생시킵니다.
         Feed originalFeed = feedRepository.findById(originalFeedId)
                 .orElseThrow(() -> new IllegalArgumentException("Feed not found with ID: " + originalFeedId));
 
+        // 리포스트 내용이 요청 DTO에 제공되었는지 확인하고, 없다면 원본 피드 내용을 사용.
+        String repostContent = (requestDto.getContent() != null && !requestDto.getContent().isEmpty())
+                ? requestDto.getContent()
+                : originalFeed.getContent();
+
+        // 새로운 리포스트 피드 객체를 생성.
         Feed repost = Feed.builder()
-                .memberId(reposterId)
-                .content(originalFeed.getContent())
-                .repostedFrom(originalFeed)
-                .repostedFromContent(originalFeed.getContent())
-                .reposterId(reposterId)
-                .createdAt(java.time.LocalDateTime.now())
-                .updatedAt(java.time.LocalDateTime.now())
-                .likesCount(0)
+                .memberId(reposterId) // 리포스터(재게시하는 사용자) ID 설정
+                .content(repostContent) // 리포스트 내용 설정
+                .repostedFrom(originalFeed) // 원본 피드 참조
+                .repostedFromContent(originalFeed.getContent()) // 원본 피드의 내용 저장
+                .reposterId(reposterId) // 리포스터 ID 설정
+                .repostCreatedAt(LocalDateTime.now()) // 리포스트 생성 시간 설정
+                .mediaUrl(requestDto.getMediaUrl() != null ? requestDto.getMediaUrl() : originalFeed.getMediaUrl()) // 미디어 URL 설정 (없다면 원본 피드의 URL 사용)
+                .createdAt(LocalDateTime.now()) // 리포스트 생성 시간 설정
+                .updatedAt(LocalDateTime.now()) // 리포스트 업데이트 시간 설정
+                .likesCount(0) // 초기 좋아요 수는 0으로 설정
                 .build();
 
+        // 새롭게 생성된 리포스트 피드를 데이터베이스에 저장.
         feedRepository.save(repost);
+
+        // 저장된 리포스트 피드를 DTO로 변환하여 반환.
         return mapToResponseDto(repost);
     }
 
@@ -82,16 +108,15 @@ public class FeedService {
         return feedRepository.findAll()
                 .stream()
                 .map(feed -> {
-                    // Feed를 FeedResponseDto로 변환
                     FeedResponseDto feedResponse = mapToResponseDto(feed);
 
                     // 댓글 목록을 부모 댓글로 필터링하고 대댓글 포함하여 정리
                     List<CommentResponseDto> commentsWithReplies = feed.getComments().stream()
-                            .filter(comment -> comment.getParentComment() == null) // 부모 댓글만 처리
-                            .map(this::mapCommentWithReplies) // 대댓글 포함 매핑
+                            .filter(comment -> comment.getParentComment() == null)
+                            .map(this::mapCommentWithReplies)
                             .collect(Collectors.toList());
 
-                    feedResponse.setComments(commentsWithReplies); // 정리된 댓글 설정
+                    feedResponse.setComments(commentsWithReplies);
                     return feedResponse;
                 })
                 .collect(Collectors.toList());
@@ -100,52 +125,18 @@ public class FeedService {
     // 특정 피드 조회 (댓글 포함)
     @Transactional(readOnly = true)
     public FeedResponseDto getFeedById(Integer feedId) {
-        // 피드 조회 (예외 처리 포함)
         Feed feed = feedRepository.findById(feedId)
                 .orElseThrow(() -> new IllegalArgumentException("Feed not found with ID: " + feedId));
 
-        // FeedResponseDto 변환
         FeedResponseDto feedResponse = mapToResponseDto(feed);
 
-        // 댓글 목록을 부모 댓글로 필터링하고 대댓글 포함하여 정리
         List<CommentResponseDto> commentsWithReplies = feed.getComments().stream()
-                .filter(comment -> comment.getParentComment() == null) // 부모 댓글만 처리
-                .map(this::mapCommentWithReplies) // 대댓글 포함 매핑
+                .filter(comment -> comment.getParentComment() == null)
+                .map(this::mapCommentWithReplies)
                 .collect(Collectors.toList());
 
-        feedResponse.setComments(commentsWithReplies); // 정리된 댓글 설정
+        feedResponse.setComments(commentsWithReplies);
         return feedResponse;
-    }
-
-    // 대댓글 포함 댓글 매핑
-    private CommentResponseDto mapCommentWithReplies(FeedComment comment) {
-        // FeedComment -> CommentResponseDto 변환
-        CommentResponseDto commentResponse = new CommentResponseDto(comment);
-
-        // 대댓글 처리
-        List<CommentResponseDto> replies = comment.getReplies().stream()
-                .map(this::mapCommentWithReplies) // 재귀적으로 대댓글 매핑
-                .collect(Collectors.toList());
-
-        commentResponse.setReplies(replies); // 대댓글 설정
-        return commentResponse;
-    }
-
-    // Feed -> FeedResponseDto 변환
-    private FeedResponseDto mapToResponseDto(Feed feed) {
-        return FeedResponseDto.builder()
-                .feedId(feed.getFeedId())
-                .memberId(feed.getMemberId())
-                .content(feed.getContent())
-                .createdAt(feed.getCreatedAt())
-                .updatedAt(feed.getUpdatedAt())
-                .likesCount(feed.getLikesCount())
-                .repostedFrom(feed.getRepostedFrom() != null ? feed.getRepostedFrom().getFeedId() : null)
-                .repostedFromContent(feed.getRepostedFrom() != null ? feed.getRepostedFrom().getContent() : null)
-                .reposterId(feed.getReposterId())
-                .isRepost(feed.isRepost())
-                .comments(null) // 댓글은 이후 단계에서 설정
-                .build();
     }
 
     // 특정 회원의 저장된 게시물 조회
@@ -170,8 +161,10 @@ public class FeedService {
                             .repostedFrom(feed.getRepostedFrom() != null ? feed.getRepostedFrom().getFeedId() : null)
                             .repostedFromContent(feed.getRepostedFrom() != null ? feed.getRepostedFrom().getContent() : null)
                             .reposterId(feed.getReposterId())
-                            .isRepost(feed.isRepost())
+                            .repostCreatedAt(feed.getRepostCreatedAt())
+                            .mediaUrl(feed.getMediaUrl())
                             .comments(commentsWithReplies)
+                            .isRepost(feed.isRepost())
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -210,4 +203,91 @@ public class FeedService {
         feed.setLikesCount(feed.getLikesCount() - 1);
         feedRepository.save(feed);
     }
+
+    // Feed -> FeedResponseDto 변환
+    private FeedResponseDto mapToResponseDto(Feed feed) {
+        MemberInfoDto originalPoster = null;
+
+        // 리포스트일 경우, 원본 작성자의 정보를 가져옵니다.
+        if (feed.getRepostedFrom() != null) {
+            Feed originalFeed = feed.getRepostedFrom();
+            originalPoster = getMemberInfoById(originalFeed.getMemberId());
+        }
+
+        // 피드를 작성한 멤버의 프로필 정보를 가져옵니다.
+        MemberResponseDto memberResponse = memberService.getMemberProfile(feed.getMemberId());
+        String profilePictureUrl = memberResponse.getProfilePictureUrl(); // 프로필 사진 URL 가져오기
+
+        log.info("Mapping FeedResponseDto: feedId={}, memberId={}, profilePictureUrl={}, originalPoster={}",
+                feed.getFeedId(), feed.getMemberId(), profilePictureUrl, originalPoster);
+
+        // 피드에 포함된 댓글(대댓글 포함)을 매핑합니다.
+        List<CommentResponseDto> commentsWithReplies = feed.getComments().stream()
+                .filter(comment -> comment.getParentComment() == null) // 부모 댓글 필터링
+                .map(this::mapCommentWithReplies) // 댓글과 대댓글 매핑
+                .collect(Collectors.toList());
+
+        // FeedResponseDto 객체를 생성하여 반환합니다.
+        return FeedResponseDto.builder()
+                .feedId(feed.getFeedId()) // 피드 ID
+                .memberId(feed.getMemberId()) // 작성자 ID
+                .content(feed.getContent()) // 피드 내용
+                .createdAt(feed.getCreatedAt()) // 생성 시간
+                .updatedAt(feed.getUpdatedAt()) // 업데이트 시간
+                .likesCount(feed.getLikesCount()) // 좋아요 수
+                .repostedFrom(feed.getRepostedFrom() != null ? feed.getRepostedFrom().getFeedId() : null) // 리포스트된 피드 ID
+                .repostedFromContent(feed.getRepostedFrom() != null ? feed.getRepostedFrom().getContent() : null) // 원본 피드 내용
+                .reposterId(feed.getReposterId()) // 리포스터 ID
+                .repostCreatedAt(feed.getRepostCreatedAt()) // 리포스트 생성 시간
+                .mediaUrl(feed.getMediaUrl()) // 미디어 URL
+                .profilePictureUrl(profilePictureUrl) // 프로필 사진 URL 추가
+                .originalPoster(originalPoster) // 원본 작성자 정보
+                .comments(commentsWithReplies) // 댓글(대댓글 포함)
+                .isRepost(feed.isRepost()) // 리포스트 여부
+                .build();
+    }
+
+
+    // 멤버 정보 가져오기
+    private MemberInfoDto getMemberInfoById(Integer memberId) {
+        try {
+            MemberResponseDto memberResponse = memberService.getMemberProfile(memberId); // 멤버 프로필 호출
+            log.info("Fetching member info: memberId={}, profilePictureUrl={}",
+                    memberId, memberResponse.getProfilePictureUrl());
+            return MemberInfoDto.builder()
+                    .memberId(memberResponse.getMemberId())
+                    .name(memberResponse.getName())
+                    .profilePictureUrl(memberResponse.getProfilePictureUrl()) // 프로필 사진 URL 추가
+                    .build();
+        } catch (EntityNotFoundException e) {
+            return null; // 멤버를 찾지 못했을 경우 null 반환
+        }
+    }
+
+    // 댓글과 대댓글을 매핑하는 메서드
+    private CommentResponseDto mapCommentWithReplies(FeedComment comment) {
+        // Fetch the profile picture URL
+        String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
+        if (profilePictureUrl == null || profilePictureUrl.isEmpty()) {
+            profilePictureUrl = "https://firebasestorage.googleapis.com/v0/b/kh-react-firebase.firebasestorage.app/o/default-profile-picture-url.jpg?alt=media&token=16b39451-4ee9-4bdd-adc9-78b6cda4d4bb";
+        }
+
+        // Fetch the likes count for the comment
+        Long likesCount = commentLikeRepository.countByComment_CommentId(comment.getCommentId());
+
+        // Log information
+        log.info("Mapping commentId: {}, memberId: {}, profilePictureUrl: {}, likesCount: {}",
+                comment.getCommentId(), comment.getMemberId(), profilePictureUrl, likesCount);
+
+        // Map replies recursively
+        List<CommentResponseDto> replies = comment.getReplies().stream()
+                .map(this::mapCommentWithReplies)
+                .collect(Collectors.toList());
+
+        // Create and return the DTO
+        return new CommentResponseDto(comment, profilePictureUrl, true, likesCount).toBuilder()
+                .replies(replies)
+                .build();
+    }
+
 }
