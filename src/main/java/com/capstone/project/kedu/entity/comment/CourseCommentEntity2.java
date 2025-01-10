@@ -1,6 +1,6 @@
 package com.capstone.project.kedu.entity.comment;
 
-import com.capstone.project.kedu.entity.edu.AcademyEntity2;
+import com.capstone.project.kedu.entity.edu.CourseEntity2;
 import com.capstone.project.member.entity.Member;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -10,32 +10,31 @@ import lombok.ToString;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "academy_comments")
+@Table(name = "lecture_comments")
 @Getter
 @Setter
 @ToString
 @NoArgsConstructor
-public class AcademyCommentEntity2 {
+public class CourseCommentEntity2 {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long academy_comment_id;
+    private Long course_comment_id;
+
+    private String teacher;
+
+    private String lecture;
 
     private boolean employee_outcome;
 
-    private String comment;
+    private String facilities;
 
-    private String pros;
-
-    private String cons;
-
-    private int satisfaction;
+    private String contents; // 강의 주제에 대한 피드백
 
     @ManyToOne
     @JoinColumn(name = "member_id")
     private Member member;
 
     @ManyToOne
-    @JoinColumn(name = "academy_id")
-    private AcademyEntity2 academyEntity2;
-
+    @JoinColumn(name = "course_id")
+    private CourseEntity2 courseEntity2;
 }

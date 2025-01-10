@@ -28,7 +28,7 @@ public class KeduBoardController2 {
     }
 
     // 게시글 전체 조회  academy_id 와 course_id 필요
-    @GetMapping("/list")
+    @PostMapping("/list")
     public Map<String , Object> boardList(@RequestBody KeduBoardReqDTO2 keduBoardReqDTO2) {
         Map<String, Object> resultMap = new HashMap<>();
         List<KeduBoardResDTO2> list = keduBoardService2.board(keduBoardReqDTO2);
@@ -37,7 +37,7 @@ public class KeduBoardController2 {
     }
 
     // 게시글 상세 조회  id 로 조회
-    @GetMapping("/detail/{id}")
+    @PostMapping("/detail/{id}")
     public Map<String , Object> detail_board(@RequestBody KeduBoardDetailReqDTO2 keduBoardDetailReqDTO2){
         Map<String, Object> resultMap = new HashMap<>();
         KeduBoardDetailResDTO2 list = keduBoardService2.boardDetail(keduBoardDetailReqDTO2.getId());
@@ -53,4 +53,17 @@ public class KeduBoardController2 {
         return ResponseEntity.ok(isSuccess);
     }
 
+    // 게시글 삭제
+    @PostMapping("/delete")
+    public ResponseEntity<Boolean> boardDelete(@RequestParam(value = "member_id") int member_id, @RequestParam(value = "id") Long id){
+        boolean isSuccess = keduBoardService2.deleteBoard(member_id, id);
+        return ResponseEntity.ok(isSuccess);
+    }
+
+    // 게시글 업데이트
+    @PostMapping("/update")
+    public ResponseEntity<Boolean> boardUpdate(@RequestBody KeduBoardUpdateReqDTO2 keduBoardUpdateReqDTO2){
+        boolean isSuccess = keduBoardService2.updateBoard(keduBoardUpdateReqDTO2);
+        return ResponseEntity.ok(isSuccess);
+    }
 }

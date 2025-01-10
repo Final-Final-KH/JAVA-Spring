@@ -1,15 +1,12 @@
 package com.capstone.project.member.entity;
 
-
 import javax.persistence.*;
-
 import com.capstone.project.kedu.entity.board.KeduBoardEntity2;
 import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
 
 @Entity
 @Table(name = "members")
@@ -65,7 +62,8 @@ public class Member {
     @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now(); // Last updated timestamp / 마지막 수정 시간
 
-
+    @Column(name = "profile_picture_url", length = 255)
+    private String profilePictureUrl; // 프로필 사진 URL (새로운 필드 추가)
 
     @PrePersist
     protected void onCreate() {
@@ -77,21 +75,20 @@ public class Member {
     private List<KeduBoardEntity2> boards = new ArrayList<>();
 
     @Builder
-    public Member (String email, String password, String name, String phoneNumber, Role role, String currentCompany, boolean showCompany, String provider, String providerId) {
-        this.email= email;
-        this.password=password;
-        this.name=name;
-        this.phoneNumber=phoneNumber;
-        this.role=role;
-        this.currentCompany=currentCompany;
-        this.showCompany=showCompany;
-        this.provider=provider;
-        this.providerId=providerId;
-        this.registeredAt=LocalDateTime.now();
-        this.updatedAt=LocalDateTime.now();
-
+    public Member(String email, String password, String name, String phoneNumber, Role role, String currentCompany, boolean showCompany, String provider, String providerId, String profilePictureUrl) {
+        this.email = email;
+        this.password = password;
+        this.name = name;
+        this.phoneNumber = phoneNumber;
+        this.role = role;
+        this.currentCompany = currentCompany;
+        this.showCompany = showCompany;
+        this.provider = provider;
+        this.providerId = providerId;
+        this.profilePictureUrl = profilePictureUrl; // 프로필 사진 URL 초기화
+        this.registeredAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
-
 
     public Member(Integer memberId) {
         this.id = memberId; // Only initialize the ID / ID만 초기화
@@ -101,7 +98,6 @@ public class Member {
     public Integer getMemberId() {
         return this.id;
     }
-
 
     @PreUpdate
     protected void onUpdate() {
