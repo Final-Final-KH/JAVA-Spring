@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Table(name = "kedu_board_comment_comment")
 public class KeduBoardCommentsCommentsEntity2 {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long commentId; // comment_id
 
     @ManyToOne

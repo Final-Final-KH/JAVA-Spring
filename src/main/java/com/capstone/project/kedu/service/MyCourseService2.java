@@ -39,8 +39,8 @@ public class MyCourseService2 {
                     .orElseThrow(()->new RuntimeException("해당 학원이 존재 하지 않습니다."));
             MyCourseEntity2 myCourseEntity2 = new MyCourseEntity2();
             myCourseEntity2.setMember(member);
-            myCourseEntity2.setCourse(myCourseReqDTO2.getCourse());
-            myCourseEntity2.setAcademy(myCourseReqDTO2.getAcademy());
+            myCourseEntity2.setCourseEntity2(courseEntity2);
+            myCourseEntity2.setAcademyEntity2(academyEntity2);
             myCourseEntity2.setCourseEntity2(courseEntity2);
             myCourseEntity2.setAcademyEntity2(academyEntity2);
             myCourseRepository2.save(myCourseEntity2);
@@ -77,10 +77,8 @@ public class MyCourseService2 {
         for(MyCourseEntity2 myCourseEntity2 : myCourseEntity){
             MyCourseResDTO2 myCourseResDTO2 = new MyCourseResDTO2();
 
-            myCourseResDTO2.setAcademy(myCourseEntity2.getAcademy());
-            myCourseResDTO2.setCourse(myCourseEntity2.getCourse());
-            myCourseResDTO2.setCourse_id(myCourseEntity2.getCourseEntity2().getCourseId());
             myCourseResDTO2.setAcademy_id(myCourseEntity2.getAcademyEntity2().getAcademyId());
+            myCourseResDTO2.setCourse_id(myCourseEntity2.getCourseEntity2().getCourseId());
             myCourseResDTO.add(myCourseResDTO2);
         }
 

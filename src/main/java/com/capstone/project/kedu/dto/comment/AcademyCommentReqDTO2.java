@@ -13,8 +13,11 @@ public class AcademyCommentReqDTO2 {
     private Long academy_id;
     private boolean employee_outcome;
     private int member_id;
-    private String comment;
-    private String pros;
-    private String cons;
-    private int satisfaction;
+    private int job;
+    private int lecture;
+    private int facilities;
+    private int teacher;
+    private int books;
+    private int service;
+
 }
