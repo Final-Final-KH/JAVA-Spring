@@ -1,9 +1,12 @@
 package com.capstone.project.member.entity;
 
 import javax.persistence.*;
+import com.capstone.project.kedu.entity.board.KeduBoardEntity2;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "members")
@@ -67,6 +70,9 @@ public class Member {
         this.registeredAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<KeduBoardEntity2> boards = new ArrayList<>();
 
     @Builder
     public Member(String email, String password, String name, String phoneNumber, Role role, String currentCompany, boolean showCompany, String provider, String providerId, String profilePictureUrl) {

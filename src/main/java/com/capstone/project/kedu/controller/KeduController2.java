@@ -1,10 +1,9 @@
 package com.capstone.project.kedu.controller;
 
-import com.capstone.project.kedu.dto.*;
+import com.capstone.project.kedu.dto.edu.response.*;
 import com.capstone.project.kedu.service.KeduService2;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
