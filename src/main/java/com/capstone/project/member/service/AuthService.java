@@ -17,6 +17,8 @@ import org.springframework.stereotype.Service;
 
 import javax.persistence.EntityNotFoundException;
 import javax.transaction.Transactional;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -58,16 +60,38 @@ public class AuthService {
     public TokenDto login(LoginRequestDto loginDto) {
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword());
-        System.out.println(loginDto.getEmail());
-        System.out.println(loginDto.getPassword());
+        log.info("로그인 요청 - 이메일: {}", loginDto.getEmail());
 
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
-        return tokenProvider.generateTokenDto(authentication);
+
+        TokenDto loginToken = tokenProvider.generateTokenDto(authentication);
+
+        // 이메일을 사용해 Member를 데이터베이스에서 조회
+        Member member = memberRepository.findByEmail(loginDto.getEmail())
+                .orElseThrow(() -> new RuntimeException("회원 정보를 찾을 수 없습니다."));
+        try {
+            tokenProvider.saveRefreshToken(
+                    member,
+                    loginToken.getRefreshToken(),
+                    LocalDateTime.now(ZoneId.of("UTC")).plusDays(7) // UTC 시간대로 고정
+            );
+        } catch (Exception e) {
+            log.error("리프레시 토큰 저장 중 오류 발생: {}", e.getMessage(), e);
+            throw new RuntimeException("리프레시 토큰 저장에 실패했습니다.");
+        }
+        return loginToken;
     }
 
     // Refresh access token
     public String createAccessToken(String refreshToken) {
+        if (!tokenProvider.validateToken(refreshToken)) {
+            throw new IllegalArgumentException("유효하지 않은 리프레시 토큰입니다.");
+        }
+
+        // 리프레시 토큰으로부터 사용자 정보 추출
         Authentication authentication = tokenProvider.getAuthentication(refreshToken);
+
+        // 새 액세스 토큰 발급
         return tokenProvider.generateAccessToken(authentication);
     }
 

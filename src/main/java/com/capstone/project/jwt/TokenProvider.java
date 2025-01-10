@@ -85,13 +85,25 @@ public class TokenProvider {
     }
     // 리프레시 토큰 저장 메서드
     public void saveRefreshToken(Member member, String refreshToken, LocalDateTime expirationDate) {
-        RefreshToken refreshTokenEntity = RefreshToken.builder()
-                .member(member) // Member 객체를 사용하여 저장
-                .refreshToken(refreshToken) // 리프레시 토큰
-                .expirationDate(expirationDate) // LocalDateTime을 사용하여 만료일 설정
-                .build();
+        // 기존 리프레시 토큰 조회
+        RefreshToken existingRefreshToken = refreshTokenRepository.findByMember(member)
+                .orElse(null); // 없으면 null 반환
 
-        refreshTokenRepository.save(refreshTokenEntity);
+        if (existingRefreshToken != null) {
+            // 기존 리프레시 토큰이 있으면 갱신
+            existingRefreshToken.setRefreshToken(refreshToken);  // 리프레시 토큰 업데이트
+            existingRefreshToken.setExpirationDate(expirationDate);  // 만료일 업데이트
+            refreshTokenRepository.save(existingRefreshToken);  // 갱신된 리프레시 토큰 저장
+        } else {
+            // 기존 리프레시 토큰이 없으면 새로 생성하여 저장
+            RefreshToken refreshTokenEntity = RefreshToken.builder()
+                    .member(member)
+                    .refreshToken(refreshToken)
+                    .expirationDate(expirationDate)
+                    .build();
+
+            refreshTokenRepository.save(refreshTokenEntity);  // 새로 저장
+        }
     }
 
     public Authentication getAuthentication(String accessToken) {
