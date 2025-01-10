@@ -21,7 +21,13 @@ public class MemberService {
     public MemberResponseDto getMemberProfile(Integer memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new EntityNotFoundException("Member not found with ID: " + memberId));
-        return new MemberResponseDto(member);
+        String profilePictureUrl = member.getProfilePictureUrl();
+        if (profilePictureUrl == null || profilePictureUrl.isEmpty()) {
+            profilePictureUrl = "https://firebasestorage.googleapis.com/v0/b/kh-react-firebase.firebasestorage.app/o/default-profile-picture-url.jpg?alt=media&token=16b39451-4ee9-4bdd-adc9-78b6cda4d4bb";
+            // 디폴트 사진 값 -- 내가 올린 파이어 베이스에서 실험적 적용
+        }
+        return new MemberResponseDto(member.getId(), member.getEmail(), member.getName(),
+                member.getPhoneNumber(), member.getCurrentCompany(), member.getShowCompany(), profilePictureUrl);
     }
 
     // Update member profile
