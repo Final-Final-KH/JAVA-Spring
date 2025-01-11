@@ -13,17 +13,17 @@ import org.springframework.web.bind.annotation.*;
 public class ForumPostLikeController {
     private final ForumPostLikeService likeService;
 
-    // 게시글에 좋아요 추가
-    @PostMapping("/post")
-    public ResponseEntity<Void> likePost(@RequestBody ForumPostLikeRequestDto requestDto) {
-        likeService.likePost(requestDto.getMemberId(), requestDto.getPostId());
+    // 게시글 좋아요 토글
+    @PostMapping("/post/toggle")
+    public ResponseEntity<Void> togglePostLike(@RequestBody ForumPostLikeRequestDto requestDto) {
+        likeService.togglePostLike(requestDto.getMemberId(), requestDto.getPostId());
         return ResponseEntity.ok().build();
     }
 
-    // 댓글에 좋아요 추가
-    @PostMapping("/comment")
-    public ResponseEntity<Void> likeComment(@RequestBody ForumPostLikeRequestDto requestDto) {
-        likeService.likeComment(requestDto.getMemberId(), requestDto.getCommentId());
+    // 댓글 좋아요 토글
+    @PostMapping("/comment/toggle")
+    public ResponseEntity<Void> toggleCommentLike(@RequestBody ForumPostLikeRequestDto requestDto) {
+        likeService.toggleCommentLike(requestDto.getMemberId(), requestDto.getCommentId());
         return ResponseEntity.ok().build();
     }
 

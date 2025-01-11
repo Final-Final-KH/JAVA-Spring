@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j // 로그 기록을 위한 어노테이션 추가
@@ -28,26 +30,66 @@ public class ForumPostLikeService {
         return likeRepository.findLikeForCommentByMember(memberId, commentId).isPresent();
     }
 
-    // 게시글 좋아요 추가
+    // 게시글 좋아요 토글
     @Transactional
-    public void likePost(Integer memberId, Integer postId) {
-        log.info("Adding like for post ID: {} by member ID: {}", postId, memberId); // 게시글 좋아요 추가 로그
-        if (!hasLikedPost(memberId, postId)) {
+    public void togglePostLike(Integer memberId, Integer postId) {
+        log.info("Toggling like for post ID: {} by member ID: {}", postId, memberId);
+
+        Optional<ForumPostLike> existingLike = likeRepository.findLikeForPostByMember(memberId, postId);
+        if (existingLike.isPresent()) {
+            // 좋아요 취소
+            log.info("Removing like for post ID: {} by member ID: {}", postId, memberId);
+            likeRepository.delete(existingLike.get());
+        } else {
+            // 좋아요 추가
+            log.info("Adding like for post ID: {} by member ID: {}", postId, memberId);
             likeRepository.save(ForumPostLike.builder()
-                    .member(Member.builder().id(memberId).build()) // 좋아요를 누른 사용자
-                    .forumPost(ForumPost.builder().id(postId).build()) // 좋아요 대상 게시글
+                    .member(Member.builder().id(memberId).build())
+                    .forumPost(ForumPost.builder().id(postId).build())
                     .build());
         }
     }
 
-    // 댓글 좋아요 추가
+    // 댓글 좋아요 토글
+    @Transactional
+    public void toggleCommentLike(Integer memberId, Integer commentId) {
+        log.info("Toggling like for comment ID: {} by member ID: {}", commentId, memberId);
+
+        Optional<ForumPostLike> existingLike = likeRepository.findLikeForCommentByMember(memberId, commentId);
+        if (existingLike.isPresent()) {
+            // 좋아요 취소
+            log.info("Removing like for comment ID: {} by member ID: {}", commentId, memberId);
+            likeRepository.delete(existingLike.get());
+        } else {
+            // 좋아요 추가
+            log.info("Adding like for comment ID: {} by member ID: {}", commentId, memberId);
+            likeRepository.save(ForumPostLike.builder()
+                    .member(Member.builder().id(memberId).build())
+                    .forumPostComment(ForumPostComment.builder().id(commentId).build())
+                    .build());
+        }
+    }
+
+    // 게시글 좋아요 추가 (이전 기능 유지)
+    @Transactional
+    public void likePost(Integer memberId, Integer postId) {
+        log.info("Adding like for post ID: {} by member ID: {}", postId, memberId);
+        if (!hasLikedPost(memberId, postId)) {
+            likeRepository.save(ForumPostLike.builder()
+                    .member(Member.builder().id(memberId).build())
+                    .forumPost(ForumPost.builder().id(postId).build())
+                    .build());
+        }
+    }
+
+    // 댓글 좋아요 추가 (이전 기능 유지)
     @Transactional
     public void likeComment(Integer memberId, Integer commentId) {
-        log.info("Adding like for comment ID: {} by member ID: {}", commentId, memberId); // 댓글 좋아요 추가 로그
+        log.info("Adding like for comment ID: {} by member ID: {}", commentId, memberId);
         if (!hasLikedComment(memberId, commentId)) {
             likeRepository.save(ForumPostLike.builder()
-                    .member(Member.builder().id(memberId).build()) // 좋아요를 누른 사용자
-                    .forumPostComment(ForumPostComment.builder().id(commentId).build()) // 좋아요 대상 댓글
+                    .member(Member.builder().id(memberId).build())
+                    .forumPostComment(ForumPostComment.builder().id(commentId).build())
                     .build());
         }
     }

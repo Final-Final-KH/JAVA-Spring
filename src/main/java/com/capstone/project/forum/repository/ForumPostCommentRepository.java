@@ -11,6 +11,7 @@ import java.util.List;
 
 @Repository
 public interface ForumPostCommentRepository extends JpaRepository<ForumPostComment, Integer> {
+
     // 특정 게시글의 댓글을 최신 순으로 조회
     @Query("SELECT c FROM ForumPostComment c WHERE c.forumPost.id = :postId ORDER BY c.createdAt DESC")
     List<ForumPostComment> findCommentsByPostId(@Param("postId") Integer postId);
@@ -23,4 +24,9 @@ public interface ForumPostCommentRepository extends JpaRepository<ForumPostComme
     @Modifying
     @Query("UPDATE ForumPostComment c SET c.likesCount = c.likesCount + 1 WHERE c.id = :commentId")
     void incrementLikes(@Param("commentId") Integer commentId);
+
+    // 특정 게시글에 속한 모든 댓글 삭제
+    @Modifying
+    @Query("DELETE FROM ForumPostComment c WHERE c.forumPost.id = :postId")
+    void deleteByForumPostId(@Param("postId") Integer postId);
 }

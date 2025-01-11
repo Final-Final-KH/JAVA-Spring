@@ -5,6 +5,7 @@ import com.capstone.project.forum.dto.response.ForumPostResponseDto;
 import com.capstone.project.forum.dto.response.PaginationDto;
 import com.capstone.project.forum.entity.ForumPost;
 import com.capstone.project.forum.repository.ForumCategoryRepository;
+import com.capstone.project.forum.repository.ForumPostCommentRepository;
 import com.capstone.project.forum.repository.ForumPostRepository;
 import com.capstone.project.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +28,7 @@ public class ForumPostService {
     private final ForumPostRepository postRepository;
     private final MemberRepository memberRepository;
     private final ForumCategoryRepository categoryRepository;
+    private final ForumPostCommentRepository commentRepository;
 
     // 특정 카테고리에 속한 게시글 가져오기 (페이지네이션 및 Sticky 우선)
     public PaginationDto<ForumPostResponseDto> getPostsByCategory(Integer categoryId, int page, int size) {
@@ -93,7 +96,6 @@ public class ForumPostService {
         );
     }
 
-
     // 게시글 수정
     @Transactional
     public ForumPostResponseDto updatePost(Integer postId, ForumPostRequestDto requestDto) {
@@ -118,14 +120,25 @@ public class ForumPostService {
         );
     }
 
-    // 게시글 삭제
+    // 게시글 삭제 - 댓글 삭제 옵션 포함
     @Transactional
-    public void deletePost(Integer postId) {
-        log.info("Deleting post ID: {}", postId);
-        if (!postRepository.existsById(postId)) {
-            throw new IllegalArgumentException("Invalid post ID: " + postId);
+    public void deletePost(Integer postId, boolean cascadeComments) {
+        log.info("Deleting post ID: {}, cascade comments: {}", postId, cascadeComments);
+
+        ForumPost post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
+
+        if (cascadeComments) {
+            // 댓글 삭제
+            commentRepository.deleteByForumPostId(postId);
+            log.info("All comments for post ID: {} have been deleted.", postId);
+        } else {
+            // 게시글만 제거 표시
+            post.setTitle("[Deleted]");
+            post.setContent("This post has been removed.");
+            postRepository.save(post);
+            log.info("Post ID: {} marked as removed.", postId);
         }
-        postRepository.deleteById(postId);
     }
 
     // 특정 게시글 조회
@@ -150,5 +163,73 @@ public class ForumPostService {
     public void incrementViewCount(Integer postId) {
         log.info("Incrementing view count for post ID: {}", postId);
         postRepository.incrementViews(postId);
+    }
+
+    // 파일 업로드
+    @Transactional
+    public String uploadFile(Integer postId, MultipartFile file) {
+        log.info("Uploading file for post ID: {}", postId);
+
+        // 게시글 확인
+        ForumPost post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
+
+        // 파일 저장 로직 구현 (e.g., AWS S3, local storage)
+        String fileUrl = saveFile(file);
+
+        // 게시글에 파일 URL 추가 (파일 저장 로직 필요)
+        post.addFileUrl(fileUrl);
+        postRepository.save(post);
+
+        return fileUrl;
+    }
+
+    // 게시글 인용 (예시 이미지의 포맷 적용)
+    @Transactional
+    public ForumPostResponseDto quotePost(Integer quotingMemberId, Integer quotedPostId, String commentContent) {
+        log.info("Quoting post ID: {} by member ID: {}", quotedPostId, quotingMemberId);
+
+        ForumPost quotedPost = postRepository.findById(quotedPostId)
+                .orElseThrow(() -> new IllegalArgumentException("Quoted post not found"));
+
+        // 인용 내용 처리
+        String quotedText = String.format(
+                "<blockquote><strong>%s</strong> wrote:<br><em>%s</em></blockquote><p>%s</p>",
+                quotedPost.getMember().getName(),
+                quotedPost.getContent(),
+                commentContent
+        );
+
+        // 게시글 객체 생성
+        var member = memberRepository.findById(quotingMemberId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid quoting member ID"));
+
+        var quotedPostEntity = ForumPost.builder()
+                .title("Reply to: " + quotedPost.getTitle())
+                .content(quotedText)
+                .member(member)
+                .forumCategory(quotedPost.getForumCategory())
+                .build();
+
+        ForumPost savedPost = postRepository.save(quotedPostEntity);
+
+        return new ForumPostResponseDto(
+                savedPost.getId(),
+                savedPost.getTitle(),
+                savedPost.getContent(),
+                savedPost.getMember().getName(),
+                savedPost.getSticky(),
+                savedPost.getViewsCount(),
+                savedPost.getLikesCount(),
+                savedPost.getCreatedAt(),
+                savedPost.getUpdatedAt()
+        );
+    }
+
+    private String saveFile(MultipartFile file) {
+        // 파일 저장 로직 (로컬 저장, S3 업로드 등 구현 필요)
+        log.info("Saving file: {}", file.getOriginalFilename());
+        // 예시: 로컬 파일 저장 로직
+        return "http://localhost/files/" + file.getOriginalFilename();
     }
 }
