@@ -2,12 +2,15 @@ package com.capstone.project.forum.entity;
 
 import com.capstone.project.member.entity.Member;
 import lombok.*;
+
 import javax.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 포럼 댓글 Entity 클래스
- * 각 댓글에 대한 데이터를 저장
+ * 댓글 데이터를 관리
  */
 @Entity
 @Table(name = "forum_post_comments")
@@ -17,10 +20,11 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class ForumPostComment {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "forum_post_comment_id")
-    private Integer id; // 댓글 고유 ID
+    private Integer id; // 댓글 ID
 
     @ManyToOne
     @JoinColumn(name = "forum_post_id", nullable = false)
@@ -34,20 +38,48 @@ public class ForumPostComment {
     private String content; // 댓글 내용
 
     @Column(nullable = false)
+    @Builder.Default
     private Integer likesCount = 0; // 댓글 좋아요 수
 
     @Column(nullable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now(); // 생성 시간
 
     @Column(nullable = false)
+    @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now(); // 수정 시간
 
+    @Column(name = "removed_by")
+    private String removedBy; // 댓글 삭제자 정보 ("OP", "ADMIN", "SYSTEM")
+
+    /**
+     * 대댓글(답글) 구현을 위한 부모 댓글 참조
+     */
+    @ManyToOne
+    @JoinColumn(name = "parent_comment_id")
+    private ForumPostComment parentComment; // 부모 댓글
+
+    /**
+     * 대댓글(답글) 관리
+     */
+    @OneToMany(mappedBy = "parentComment", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ForumPostComment> childComments = new ArrayList<>(); // 자식 댓글 리스트
+
+    /**
+     * 엔티티 생성 이벤트 처리 메서드
+     * 생성 시간과 수정 시간을 현재 시간으로 설정
+     */
     @PrePersist
     private void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
+    /**
+     * 엔티티 업데이트 이벤트 처리 메서드
+     * 수정 시간을 현재 시간으로 설정
+     */
     @PreUpdate
     private void onUpdate() {
         this.updatedAt = LocalDateTime.now();

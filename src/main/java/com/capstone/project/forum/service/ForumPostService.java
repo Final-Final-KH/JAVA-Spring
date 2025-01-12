@@ -4,6 +4,7 @@ import com.capstone.project.forum.dto.request.ForumPostRequestDto;
 import com.capstone.project.forum.dto.response.ForumPostResponseDto;
 import com.capstone.project.forum.dto.response.PaginationDto;
 import com.capstone.project.forum.entity.ForumPost;
+import com.capstone.project.forum.entity.ForumPostComment;
 import com.capstone.project.forum.repository.ForumCategoryRepository;
 import com.capstone.project.forum.repository.ForumPostCommentRepository;
 import com.capstone.project.forum.repository.ForumPostRepository;
@@ -25,17 +26,25 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j // 로그 기록을 위한 어노테이션 추가
 public class ForumPostService {
-    private final ForumPostRepository postRepository;
-    private final MemberRepository memberRepository;
-    private final ForumCategoryRepository categoryRepository;
-    private final ForumPostCommentRepository commentRepository;
+    private final ForumPostRepository postRepository; // 게시글 관련 데이터베이스 접근
+    private final MemberRepository memberRepository; // 회원 데이터베이스 접근
+    private final ForumCategoryRepository categoryRepository; // 카테고리 데이터베이스 접근
+    private final ForumPostCommentRepository commentRepository; // 댓글 데이터베이스 접근
 
-    // 특정 카테고리에 속한 게시글 가져오기 (페이지네이션 및 Sticky 우선)
+    /**
+     * 특정 카테고리에 속한 게시글 가져오기 (페이지네이션 지원)
+     * @param categoryId 카테고리 ID
+     * @param page 페이지 번호
+     * @param size 페이지당 게시글 개수
+     * @return PaginationDto<ForumPostResponseDto>
+     */
     public PaginationDto<ForumPostResponseDto> getPostsByCategory(Integer categoryId, int page, int size) {
-        log.info("Fetching paginated posts for category ID: {}", categoryId); // 카테고리별 게시글 조회 로그
-        Pageable pageable = PageRequest.of(page, size);
-        Page<ForumPost> postPage = postRepository.findPostsByCategory(categoryId, pageable);
+        log.info("Fetching posts for category ID: {}, page: {}, size: {}", categoryId, page, size);
 
+        Pageable pageable = PageRequest.of(page, size); // 페이지 요청 객체 생성
+        Page<ForumPost> postPage = postRepository.findPostsByCategory(categoryId, pageable); // DB에서 게시글 조회
+
+        // 게시글 리스트를 DTO로 변환
         List<ForumPostResponseDto> postDtos = postPage.getContent()
                 .stream()
                 .map(post -> new ForumPostResponseDto(
@@ -49,40 +58,44 @@ public class ForumPostService {
                         post.getCreatedAt(),
                         post.getUpdatedAt()
                 ))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()); // Stream 결과를 리스트로 변환
 
-        return new PaginationDto<>(
-                postDtos,
-                postPage.getNumber(),
-                postPage.getTotalPages(),
-                postPage.getTotalElements()
-        );
+        return new PaginationDto<>(postDtos, postPage.getNumber(), postPage.getTotalPages(), postPage.getTotalElements());
     }
 
-    // 게시글 생성
+    /**
+     * 게시글 생성
+     * @param requestDto 게시글 생성 요청 DTO
+     * @return 생성된 게시글 응답 DTO
+     */
     @Transactional
     public ForumPostResponseDto createPost(ForumPostRequestDto requestDto) {
-        log.info("Creating new post for category ID: {} by member ID: {}", requestDto.getCategoryId(), requestDto.getMemberId());
+        log.info("Creating new post in category ID: {} by member ID: {}", requestDto.getCategoryId(), requestDto.getMemberId());
 
+        // 작성자 조회
         var member = memberRepository.findById(requestDto.getMemberId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid member ID: " + requestDto.getMemberId()));
 
-        // Retrieve ForumCategory entity by ID
+        // 카테고리 조회
         var category = categoryRepository.findById(requestDto.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid category ID: " + requestDto.getCategoryId()));
 
-        // Build the post object
+        // 게시글 엔티티 생성
         var post = ForumPost.builder()
                 .title(requestDto.getTitle())
                 .content(requestDto.getContent())
                 .sticky(requestDto.getSticky())
-                .viewsCount(0)
-                .likesCount(0)
-                .member(member) // Associate the post with the member
-                .forumCategory(category) // Associate the post with the category
+                .viewsCount(0) // 초기 조회수 0
+                .likesCount(0) // 초기 좋아요 수 0
+                .member(member) // 작성자 연결
+                .forumCategory(category) // 카테고리 연결
+                .createdAt(java.time.LocalDateTime.now()) // 생성 시간
+                .updatedAt(java.time.LocalDateTime.now()) // 수정 시간 초기화
                 .build();
 
-        ForumPost savedPost = postRepository.save(post);
+        ForumPost savedPost = postRepository.save(post); // DB에 저장
+
+        // 응답 DTO 생성 및 반환
         return new ForumPostResponseDto(
                 savedPost.getId(),
                 savedPost.getTitle(),
@@ -96,17 +109,29 @@ public class ForumPostService {
         );
     }
 
-    // 게시글 수정
+    /**
+     * 게시글 수정
+     * @param postId 수정할 게시글 ID
+     * @param requestDto 수정 요청 DTO
+     * @return 수정된 게시글 응답 DTO
+     */
     @Transactional
     public ForumPostResponseDto updatePost(Integer postId, ForumPostRequestDto requestDto) {
         log.info("Updating post ID: {}", postId);
+
+        // 게시글 조회
         ForumPost post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
+
+        // 게시글 내용 수정
         post.setTitle(requestDto.getTitle());
         post.setContent(requestDto.getContent());
         post.setSticky(requestDto.getSticky());
         post.setUpdatedAt(java.time.LocalDateTime.now());
-        ForumPost updatedPost = postRepository.save(post);
+
+        ForumPost updatedPost = postRepository.save(post); // 저장
+
+        // 응답 DTO 생성 및 반환
         return new ForumPostResponseDto(
                 updatedPost.getId(),
                 updatedPost.getTitle(),
@@ -120,28 +145,44 @@ public class ForumPostService {
         );
     }
 
-    // 게시글 삭제 - 댓글 삭제 옵션 포함
+    /**
+            * 게시글 삭제 (삭제 상태로 변경)
+     *
+             * @param postId         삭제할 게시글 ID
+     * @param cascadeComments 댓글도 함께 "삭제됨" 상태로 처리할지 여부
+     * @param removedBy      삭제자 정보 (예: "OP", "ADMIN")
+     */
     @Transactional
-    public void deletePost(Integer postId, boolean cascadeComments) {
-        log.info("Deleting post ID: {}, cascade comments: {}", postId, cascadeComments);
+    public void deletePost(Integer postId, boolean cascadeComments, String removedBy) {
+        log.info("Marking post ID: {} as removed by: {}", postId, removedBy);
 
+        // 삭제할 게시글 조회
         ForumPost post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
 
+        // 게시글을 삭제된 상태로 표시
+        post.setTitle("[Removed]");
+        post.setContent("This post has been removed.");
+        post.setRemovedBy(removedBy); // 삭제자 정보 저장
+        postRepository.save(post); // 변경사항 저장
+
         if (cascadeComments) {
-            // 댓글 삭제
-            commentRepository.deleteByForumPostId(postId);
-            log.info("All comments for post ID: {} have been deleted.", postId);
-        } else {
-            // 게시글만 제거 표시
-            post.setTitle("[Deleted]");
-            post.setContent("This post has been removed.");
-            postRepository.save(post);
-            log.info("Post ID: {} marked as removed.", postId);
+            // 해당 게시글에 연결된 모든 댓글을 삭제된 상태로 표시
+            List<ForumPostComment> comments = commentRepository.findCommentsByPostId(postId);
+            for (ForumPostComment comment : comments) {
+                comment.setContent("This comment is linked to a removed post.");
+                comment.setRemovedBy("SYSTEM"); // 시스템에 의해 처리된 것으로 설정
+                commentRepository.save(comment);
+            }
+            log.info("All comments for post ID: {} marked as removed.", postId);
         }
     }
 
-    // 특정 게시글 조회
+    /**
+     * 게시글 조회
+     * @param postId 게시글 ID
+     * @return Optional<ForumPostResponseDto>
+     */
     public Optional<ForumPostResponseDto> getPostDetails(Integer postId) {
         log.info("Fetching details for post ID: {}", postId);
         return postRepository.findById(postId)
@@ -158,33 +199,23 @@ public class ForumPostService {
                 ));
     }
 
-    // 게시글 조회수 증가
+    /**
+     * 게시글 조회수 증가
+     * @param postId 게시글 ID
+     */
     @Transactional
     public void incrementViewCount(Integer postId) {
         log.info("Incrementing view count for post ID: {}", postId);
         postRepository.incrementViews(postId);
     }
 
-    // 파일 업로드
-    @Transactional
-    public String uploadFile(Integer postId, MultipartFile file) {
-        log.info("Uploading file for post ID: {}", postId);
-
-        // 게시글 확인
-        ForumPost post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
-
-        // 파일 저장 로직 구현 (e.g., AWS S3, local storage)
-        String fileUrl = saveFile(file);
-
-        // 게시글에 파일 URL 추가 (파일 저장 로직 필요)
-        post.addFileUrl(fileUrl);
-        postRepository.save(post);
-
-        return fileUrl;
-    }
-
-    // 게시글 인용 (예시 이미지의 포맷 적용)
+    /**
+     * 게시글 인용
+     * @param quotingMemberId 인용하는 회원 ID
+     * @param quotedPostId 인용할 게시글 ID
+     * @param commentContent 추가 댓글 내용
+     * @return 생성된 인용 게시글의 응답 DTO
+     */
     @Transactional
     public ForumPostResponseDto quotePost(Integer quotingMemberId, Integer quotedPostId, String commentContent) {
         log.info("Quoting post ID: {} by member ID: {}", quotedPostId, quotingMemberId);
@@ -200,7 +231,7 @@ public class ForumPostService {
                 commentContent
         );
 
-        // 게시글 객체 생성
+        // 새로운 인용 게시글 생성
         var member = memberRepository.findById(quotingMemberId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid quoting member ID"));
 
@@ -209,10 +240,13 @@ public class ForumPostService {
                 .content(quotedText)
                 .member(member)
                 .forumCategory(quotedPost.getForumCategory())
+                .createdAt(java.time.LocalDateTime.now())
+                .updatedAt(java.time.LocalDateTime.now())
                 .build();
 
         ForumPost savedPost = postRepository.save(quotedPostEntity);
 
+        // 응답 DTO 생성 및 반환
         return new ForumPostResponseDto(
                 savedPost.getId(),
                 savedPost.getTitle(),
@@ -226,10 +260,13 @@ public class ForumPostService {
         );
     }
 
+    /**
+     * 파일 저장
+     * @param file 업로드할 파일
+     * @return 저장된 파일 URL
+     */
     private String saveFile(MultipartFile file) {
-        // 파일 저장 로직 (로컬 저장, S3 업로드 등 구현 필요)
         log.info("Saving file: {}", file.getOriginalFilename());
-        // 예시: 로컬 파일 저장 로직
-        return "http://localhost/files/" + file.getOriginalFilename();
+        return "http://localhost/files/" + file.getOriginalFilename(); // 로컬 저장 예제
     }
 }

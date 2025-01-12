@@ -20,71 +20,83 @@ import java.util.stream.Collectors;
 @Slf4j // 로그 기록을 위한 어노테이션 추가
 public class ForumPostCommentService {
 
-    private final ForumPostCommentRepository commentRepository;
+    private final ForumPostCommentRepository commentRepository; // 댓글 데이터베이스 접근 객체
 
-    // 특정 게시글에 속한 댓글 가져오기
+    /**
+     * 특정 게시글에 속한 댓글 가져오기
+     *
+     * @param postId 게시글 ID
+     * @return 댓글 리스트
+     */
     public List<ForumPostCommentResponseDto> getCommentsForPost(Integer postId) {
-        log.info("Fetching comments for post ID: {}", postId); // 게시글 댓글 조회 로그
-        return commentRepository.findCommentsByPostId(postId)
+        log.info("Fetching comments for post ID: {}", postId); // 로그 기록
+        return commentRepository.findCommentsByPostId(postId) // 게시글 ID로 댓글 조회
                 .stream()
                 .map(comment -> new ForumPostCommentResponseDto(
                         comment.getId(),
                         comment.getContent(),
-                        comment.getMember().getName(), // 댓글 작성자 이름
-                        comment.getLikesCount(),
-                        comment.getCreatedAt()
+                        comment.getMember().getName(), // 댓글 작성자 이름 반환
+                        comment.getLikesCount(), // 댓글 좋아요 수
+                        comment.getCreatedAt() // 댓글 생성 시간
                 ))
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()); // 결과를 리스트로 변환
     }
 
-    // 새로운 댓글 생성
+    /**
+     * 새로운 댓글 생성
+     *
+     * @param requestDto 댓글 생성 요청 데이터
+     * @return 생성된 댓글 정보
+     */
     @Transactional
     public ForumPostCommentResponseDto createComment(ForumPostCommentRequestDto requestDto) {
-        log.info("Creating new comment for post ID: {} by member ID: {}", requestDto.getPostId(), requestDto.getMemberId()); // 댓글 생성 로그
+        log.info("Creating new comment for post ID: {} by member ID: {}", requestDto.getPostId(), requestDto.getMemberId());
 
-        // 새로운 댓글 엔티티 생성
+        // 댓글 엔티티 생성
         ForumPostComment newComment = ForumPostComment.builder()
                 .forumPost(ForumPost.builder().id(requestDto.getPostId()).build()) // 게시글 ID 매핑
                 .member(Member.builder().id(requestDto.getMemberId()).build()) // 작성자 ID 매핑
-                .content(requestDto.getContent()) // 댓글 내용
-                .likesCount(0) // 초기 좋아요 수
-                .createdAt(LocalDateTime.now()) // 생성 시간
-                .updatedAt(LocalDateTime.now()) // 수정 시간 초기화
+                .content(requestDto.getContent()) // 댓글 내용 설정
+                .likesCount(0) // 초기 좋아요 수 0으로 설정
+                .createdAt(LocalDateTime.now()) // 현재 시간으로 생성 시간 설정
+                .updatedAt(LocalDateTime.now()) // 현재 시간으로 수정 시간 초기화
                 .build();
 
-        // 댓글 저장
-        ForumPostComment savedComment = commentRepository.save(newComment);
+        ForumPostComment savedComment = commentRepository.save(newComment); // 데이터베이스에 저장
 
-        // 저장된 댓글 정보를 DTO로 변환하여 반환
+        // DTO로 변환 후 반환
         return new ForumPostCommentResponseDto(
                 savedComment.getId(),
                 savedComment.getContent(),
-                savedComment.getMember().getName(), // 작성자 이름
+                savedComment.getMember().getName(),
                 savedComment.getLikesCount(),
                 savedComment.getCreatedAt()
         );
     }
 
-    // 댓글에 대한 답글 추가 (인용)
+    /**
+     * 댓글에 대한 답글 추가
+     *
+     * @param parentCommentId 부모 댓글 ID
+     * @param requestDto 답글 요청 데이터
+     * @return 생성된 답글 정보
+     */
     @Transactional
     public ForumPostCommentResponseDto replyToComment(Integer parentCommentId, ForumPostCommentRequestDto requestDto) {
         log.info("Replying to comment ID: {} by member ID: {}", parentCommentId, requestDto.getMemberId());
 
-        // 부모 댓글 가져오기
         ForumPostComment parentComment = commentRepository.findById(parentCommentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid parent comment ID: " + parentCommentId));
 
-        // 새로운 답글 내용 생성 (인용 포함)
         String quotedContent = String.format("%s said: \"%s\"\n\n%s",
-                parentComment.getMember().getName(),
-                parentComment.getContent(),
-                requestDto.getContent());
+                parentComment.getMember().getName(), // 부모 댓글 작성자 이름
+                parentComment.getContent(), // 부모 댓글 내용
+                requestDto.getContent()); // 답글 내용
 
-        // 답글 엔티티 생성
         ForumPostComment replyComment = ForumPostComment.builder()
                 .forumPost(parentComment.getForumPost()) // 동일한 게시글 참조
-                .member(Member.builder().id(requestDto.getMemberId()).build())
-                .content(quotedContent)
+                .member(Member.builder().id(requestDto.getMemberId()).build()) // 작성자 ID 매핑
+                .content(quotedContent) // 인용된 내용 설정
                 .likesCount(0)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
@@ -101,25 +113,26 @@ public class ForumPostCommentService {
         );
     }
 
-    // 게시글(OP)에 대한 답글 추가 (인용)
+    /**
+     * 게시글(OP)에 대한 답글 추가
+     *
+     * @param postId 게시글 ID
+     * @param requestDto 답글 요청 데이터
+     * @return 생성된 답글 정보
+     */
     @Transactional
     public ForumPostCommentResponseDto replyToPost(Integer postId, ForumPostCommentRequestDto requestDto) {
         log.info("Replying to post ID: {} by member ID: {}", postId, requestDto.getMemberId());
 
-        // OP 게시글 가져오기
-        ForumPost forumPost = ForumPost.builder().id(postId).build(); // 게시글 ID 매핑 (예: DB 접근 최소화)
-
-        // 새로운 답글 내용 생성 (인용 포함)
         String quotedContent = String.format("%s (OP) said: \"%s\"\n\n%s",
-                requestDto.getOpAuthorName(), // OP 작성자 이름 (필요 시 추가)
-                requestDto.getOpContent(),   // OP 내용 (클라이언트 요청으로 전달)
-                requestDto.getContent());   // 답글 내용
+                requestDto.getOpAuthorName(), // OP 작성자 이름
+                requestDto.getOpContent(), // OP 내용
+                requestDto.getContent()); // 답글 내용
 
-        // 답글 엔티티 생성
         ForumPostComment replyComment = ForumPostComment.builder()
-                .forumPost(forumPost)
-                .member(Member.builder().id(requestDto.getMemberId()).build())
-                .content(quotedContent)
+                .forumPost(ForumPost.builder().id(postId).build()) // 게시글 ID 매핑
+                .member(Member.builder().id(requestDto.getMemberId()).build()) // 작성자 ID 매핑
+                .content(quotedContent) // 답글 내용 설정
                 .likesCount(0)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
@@ -136,22 +149,24 @@ public class ForumPostCommentService {
         );
     }
 
-    // 댓글 좋아요 수 증가
-    @Transactional
-    public void incrementCommentLikes(Integer commentId) {
-        log.info("Incrementing likes for comment ID: {}", commentId); // 댓글 좋아요 증가 로그
-        commentRepository.incrementLikes(commentId);
-    }
-
-    // 댓글 수정
+    /**
+     * 댓글 수정
+     *
+     * @param commentId 수정할 댓글 ID
+     * @param newContent 새로운 댓글 내용
+     * @return 수정된 댓글 정보
+     */
     @Transactional
     public ForumPostCommentResponseDto updateComment(Integer commentId, String newContent) {
         log.info("Updating comment ID: {}", commentId);
+
         ForumPostComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
-        comment.setContent(newContent);
-        comment.setUpdatedAt(LocalDateTime.now());
-        ForumPostComment updatedComment = commentRepository.save(comment);
+
+        comment.setContent(newContent); // 새로운 내용으로 업데이트
+        comment.setUpdatedAt(LocalDateTime.now()); // 수정 시간 갱신
+        ForumPostComment updatedComment = commentRepository.save(comment); // 저장
+
         return new ForumPostCommentResponseDto(
                 updatedComment.getId(),
                 updatedComment.getContent(),
@@ -161,13 +176,38 @@ public class ForumPostCommentService {
         );
     }
 
-    // 댓글 삭제
+    /**
+     * 댓글 삭제
+     *
+     * @param commentId 삭제할 댓글 ID
+     */
     @Transactional
-    public void deleteComment(Integer commentId) {
-        log.info("Deleting comment ID: {}", commentId);
-        if (!commentRepository.existsById(commentId)) {
-            throw new IllegalArgumentException("Invalid comment ID: " + commentId);
+    public void deleteComment(Integer commentId, String removedBy) {
+        log.info("Marking comment ID: {} as removed by: {}", commentId, removedBy);
+
+        ForumPostComment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
+
+        // Update comment fields to indicate it's removed
+        comment.setContent("[Removed]");
+        comment.setRemovedBy(removedBy); // Add removedBy field to indicate who removed it
+        commentRepository.save(comment);
+
+        // Update associated replies (if any)
+        List<ForumPostComment> replies = commentRepository.findRepliesByParentCommentId(commentId);
+        for (ForumPostComment reply : replies) {
+            reply.setContent("This reply is linked to a removed comment.");
+            reply.setRemovedBy("SYSTEM");
+            commentRepository.save(reply);
         }
-        commentRepository.deleteById(commentId);
+        log.info("All replies for comment ID: {} marked as removed.", commentId);
+    }
+
+
+    // 댓글 좋아요 수 증가
+    @Transactional
+    public void incrementCommentLikes(Integer commentId) {
+        log.info("Incrementing likes for comment ID: {}", commentId); // 댓글 좋아요 증가 로그
+        commentRepository.incrementLikes(commentId);
     }
 }
