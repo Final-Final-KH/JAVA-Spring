@@ -6,6 +6,7 @@ import com.capstone.project.forum.entity.ForumPost;
 import com.capstone.project.forum.entity.ForumPostComment;
 import com.capstone.project.forum.repository.ForumPostCommentRepository;
 import com.capstone.project.member.entity.Member;
+import com.capstone.project.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
 public class ForumPostCommentService {
 
     private final ForumPostCommentRepository commentRepository; // 댓글 데이터베이스 접근 객체
+    private final MemberRepository memberRepository;
 
     /**
      * 특정 게시글에 속한 댓글 가져오기
@@ -55,7 +57,7 @@ public class ForumPostCommentService {
         // 댓글 엔티티 생성
         ForumPostComment newComment = ForumPostComment.builder()
                 .forumPost(ForumPost.builder().id(requestDto.getPostId()).build()) // 게시글 ID 매핑
-                .member(Member.builder().id(requestDto.getMemberId()).build()) // 작성자 ID 매핑
+                .member(Member.builder().id(requestDto.getMemberId()).build()) // 작성자 ID 매핑 (엔티티 간략화)
                 .content(requestDto.getContent()) // 댓글 내용 설정
                 .likesCount(0) // 초기 좋아요 수 0으로 설정
                 .createdAt(LocalDateTime.now()) // 현재 시간으로 생성 시간 설정
@@ -64,15 +66,20 @@ public class ForumPostCommentService {
 
         ForumPostComment savedComment = commentRepository.save(newComment); // 데이터베이스에 저장
 
-        // DTO로 변환 후 반환
+        // 작성자의 이름을 포함한 응답을 생성하기 위해 작성자 엔티티를 다시 로드
+        Member commentAuthor = memberRepository.findById(requestDto.getMemberId())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid member ID: " + requestDto.getMemberId())); // 작성자 ID 유효성 검사
+
+        // 생성된 댓글 정보를 DTO로 변환 후 반환
         return new ForumPostCommentResponseDto(
-                savedComment.getId(),
-                savedComment.getContent(),
-                savedComment.getMember().getName(),
-                savedComment.getLikesCount(),
-                savedComment.getCreatedAt()
+                savedComment.getId(), // 댓글 ID
+                savedComment.getContent(), // 댓글 내용
+                commentAuthor.getName(), // 작성자 이름 추가
+                savedComment.getLikesCount(), // 댓글 좋아요 수
+                savedComment.getCreatedAt() // 댓글 생성 시간
         );
     }
+
 
     /**
      * 댓글에 대한 답글 추가
@@ -88,6 +95,10 @@ public class ForumPostCommentService {
         ForumPostComment parentComment = commentRepository.findById(parentCommentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid parent comment ID: " + parentCommentId));
 
+        // Retrieve the member's full details
+        Member replyAuthor = memberRepository.findById(requestDto.getMemberId())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid member ID: " + requestDto.getMemberId()));
+
         String quotedContent = String.format("%s said: \"%s\"\n\n%s",
                 parentComment.getMember().getName(), // 부모 댓글 작성자 이름
                 parentComment.getContent(), // 부모 댓글 내용
@@ -95,7 +106,7 @@ public class ForumPostCommentService {
 
         ForumPostComment replyComment = ForumPostComment.builder()
                 .forumPost(parentComment.getForumPost()) // 동일한 게시글 참조
-                .member(Member.builder().id(requestDto.getMemberId()).build()) // 작성자 ID 매핑
+                .member(replyAuthor) // Use the retrieved member entity
                 .content(quotedContent) // 인용된 내용 설정
                 .likesCount(0)
                 .createdAt(LocalDateTime.now())
@@ -107,11 +118,12 @@ public class ForumPostCommentService {
         return new ForumPostCommentResponseDto(
                 savedReply.getId(),
                 savedReply.getContent(),
-                savedReply.getMember().getName(),
+                replyAuthor.getName(), // Explicitly set the author's name from the retrieved Member
                 savedReply.getLikesCount(),
                 savedReply.getCreatedAt()
         );
     }
+
 
     /**
      * 게시글(OP)에 대한 답글 추가

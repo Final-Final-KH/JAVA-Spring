@@ -23,7 +23,7 @@ public class ForumPostController {
      * 특정 카테고리의 게시글 가져오기 (페이지네이션)
      *
      * @param categoryId 카테고리 ID
-     * @param page 페이지 번호
+     * @param page 페이지 번호 (1부터 시작)
      * @param size 페이지 크기
      * @return 게시글 목록 (페이지네이션 포함)
      */
@@ -33,7 +33,11 @@ public class ForumPostController {
             @RequestParam int page,
             @RequestParam int size
     ) {
-        return ResponseEntity.ok(postService.getPostsByCategory(categoryId, page, size)); // Service 메서드 호출
+        // page 값을 0 기반으로 변환 (1부터 시작하는 페이지를 0 기반으로 변경)
+        int zeroBasedPage = page > 0 ? page - 1 : 0;
+
+        // 서비스 메서드 호출 (변환된 page 값 사용)
+        return ResponseEntity.ok(postService.getPostsByCategory(categoryId, zeroBasedPage, size));
     }
 
     /**
@@ -52,15 +56,85 @@ public class ForumPostController {
      *
      * @param id 수정할 게시글 ID
      * @param requestDto 수정 요청 데이터
+     * @param loggedInMemberId 현재 로그인된 사용자 ID
+     * @param isAdmin 현재 사용자가 관리자 여부
      * @return 수정된 게시글 정보
      */
     @PutMapping("/{id}")
     public ResponseEntity<ForumPostResponseDto> editPost(
             @PathVariable Integer id,
-            @RequestBody ForumPostRequestDto requestDto
+            @RequestBody ForumPostRequestDto requestDto,
+            @RequestParam Integer loggedInMemberId,
+            @RequestParam boolean isAdmin
     ) {
-        return ResponseEntity.ok(postService.updatePost(id, requestDto)); // 수정 메서드 호출
+        return ResponseEntity.ok(postService.updatePost(id, requestDto, loggedInMemberId, isAdmin)); // 수정 메서드 호출
     }
+
+    /**
+     * 게시글 삭제
+     * @param id 삭제할 게시글 ID
+     * @param loggedInMemberId 요청 사용자 ID
+     * @param isAdmin 관리자 여부
+     * @return 성공 상태
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePost(
+            @PathVariable Integer id,
+            @RequestParam Integer loggedInMemberId,
+            @RequestParam boolean isAdmin
+    ) {
+        postService.deletePost(id, loggedInMemberId, isAdmin);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 게시글 복구
+     * @param id 복구할 게시글 ID
+     * @return 성공 상태
+     */
+    @PostMapping("/{id}/restore")
+    public ResponseEntity<Void> restorePost(@PathVariable Integer id) {
+        postService.undeletePost(id);
+        return ResponseEntity.ok().build();
+    }
+
+    // canEditPost와 canDeletePost는 수정 및 삭제 권한을 사전에 확인하는 API
+    // 이는 프론트엔드가 수정/삭제 요청 전에 해당 사용자의 권한을 확인하기 위해 사용
+    // 데이터 수정 및 삭제 작업 (updatePost, deletePost)에서는 여전히 권한을 검증하지만, 이 메서드는 권한 확인 전용
+    /**
+     * 게시글 수정 여부 확인 (API 추가)
+     *
+     * @param id 게시글 ID
+     * @param loggedInMemberId 요청 사용자 ID
+     * @return 게시글 수정 권한이 있는지 여부
+     */
+    @GetMapping("/{id}/can-edit")
+    public ResponseEntity<Boolean> canEditPost(
+            @PathVariable Integer id,
+            @RequestParam Integer loggedInMemberId
+    ) {
+        // Service 계층에서 수정 권한 확인
+        boolean canEdit = postService.canEditPost(id, loggedInMemberId);
+        return ResponseEntity.ok(canEdit);
+    }
+
+    /**
+     * 게시글 삭제 여부 확인 (API 추가)
+     *
+     * @param id 게시글 ID
+     * @param loggedInMemberId 요청 사용자 ID
+     * @return 게시글 삭제 권한이 있는지 여부
+     */
+    @GetMapping("/{id}/can-delete")
+    public ResponseEntity<Boolean> canDeletePost(
+            @PathVariable Integer id,
+            @RequestParam Integer loggedInMemberId
+    ) {
+        // Service 계층에서 삭제 권한 확인
+        boolean canDelete = postService.canDeletePost(id, loggedInMemberId);
+        return ResponseEntity.ok(canDelete);
+    }
+
 
     /**
      * 특정 게시글 조회
@@ -87,22 +161,6 @@ public class ForumPostController {
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * 게시글 삭제
-     *
-     * @param id 게시글 ID
-     * @param cascadeComments 댓글 포함 삭제 여부
-     * @return 성공 상태
-     */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePost(
-            @PathVariable Integer id,
-            @RequestParam(defaultValue = "false") boolean cascadeComments,
-            @RequestParam(defaultValue = "OP") String removedBy // Default is "OP"
-    ) {
-        postService.deletePost(id, cascadeComments, removedBy);
-        return ResponseEntity.ok().build();
-    }
 
 
     /**
@@ -121,4 +179,6 @@ public class ForumPostController {
     ) {
         return ResponseEntity.ok(postService.quotePost(quotingMemberId, quotedPostId, commentContent)); // 인용 메서드 호출
     }
+
+
 }

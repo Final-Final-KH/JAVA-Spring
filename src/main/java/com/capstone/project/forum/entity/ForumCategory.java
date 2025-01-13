@@ -30,12 +30,15 @@ public class ForumCategory {
     private String description; // 카테고리 설명
 
     @Column(nullable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now(); // 생성 시간
 
     @Column(nullable = false)
+    @Builder.Default
     private LocalDateTime updatedAt = LocalDateTime.now(); // 수정 시간
 
     @OneToMany(mappedBy = "forumCategory", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     private List<ForumPost> posts = new ArrayList<>(); // 카테고리에 속한 포스트 리스트
 
     @PrePersist

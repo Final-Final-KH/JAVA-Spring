@@ -35,6 +35,7 @@ public class ForumPostLike {
     private ForumPostComment forumPostComment; // 좋아요를 받은 댓글
 
     @Column(nullable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now(); // 생성 시간
 
     @PrePersist

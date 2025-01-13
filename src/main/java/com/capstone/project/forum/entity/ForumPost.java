@@ -100,4 +100,13 @@ public class ForumPost {
     private void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
+    /**
+     * 작성자 이름 반환 메서드
+     *
+     * @return 작성자 이름
+     */
+    public String getAuthorName() {
+        return this.member != null ? this.member.getName() : "Unknown"; // 작성자 이름 반환, 없으면 Unknown
+    }
 }
