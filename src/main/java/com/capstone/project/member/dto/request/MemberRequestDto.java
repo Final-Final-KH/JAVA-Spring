@@ -24,7 +24,7 @@ public class MemberRequestDto {
                 .password(passwordEncoder.encode(password))
                 .name(name)
                 .phoneNumber(phoneNumber)
-                .currentCompany(currentCompany)
+                .currentCompany(currentCompany == null || currentCompany.isEmpty() ? null : currentCompany)
                 .showCompany(showCompany)
                 .role(Member.Role.USER)
                 .build();

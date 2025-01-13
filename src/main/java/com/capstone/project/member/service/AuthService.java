@@ -73,7 +73,7 @@ public class AuthService {
             tokenProvider.saveRefreshToken(
                     member,
                     loginToken.getRefreshToken(),
-                    LocalDateTime.now(ZoneId.of("UTC")).plusDays(7) // UTC 시간대로 고정
+                    LocalDateTime.now(ZoneId.of("Asia/Seoul")).plusDays(7) // 한국 시간대로 저장
             );
         } catch (Exception e) {
             log.error("리프레시 토큰 저장 중 오류 발생: {}", e.getMessage(), e);
