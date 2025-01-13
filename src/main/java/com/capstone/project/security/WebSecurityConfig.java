@@ -54,7 +54,6 @@ public class WebSecurityConfig implements WebMvcConfigurer {
                 .antMatchers("/api/auth/**").permitAll()
                 .antMatchers("/api/**").permitAll()
                 .antMatchers("/news").permitAll()
-                .antMatchers("/**").permitAll()  // 모든 경로에 대한 모든 HTTP 메서드에 대해 접근 허용
                 .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .antMatchers("/favicon.ico","/manifest.json").permitAll()
                 .anyRequest().authenticated()
