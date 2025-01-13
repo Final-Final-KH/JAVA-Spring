@@ -2,6 +2,7 @@ package com.capstone.project.kedu.service;
 
 import com.capstone.project.kedu.dto.edu.request.MyCourseDeleteReqDTO2;
 import com.capstone.project.kedu.dto.edu.request.MyCourseReqDTO2;
+import com.capstone.project.kedu.dto.edu.response.MyAcademyResDTO2;
 import com.capstone.project.kedu.dto.edu.response.MyCourseResDTO2;
 import com.capstone.project.kedu.entity.edu.AcademyEntity2;
 import com.capstone.project.kedu.entity.edu.CourseEntity2;
@@ -65,10 +66,34 @@ public class MyCourseService2 {
         }
     }
 
-    public List<MyCourseResDTO2> seach_my_course(int memberId) {
+    // 나의 강의 조회
+    public List<MyCourseResDTO2> search_my_course(int memberId) {
         List<MyCourseEntity2> myCourseEntity2 =  myCourseRepository2.findByMemberId(memberId);
         return convertEntityToDto(myCourseEntity2);
     }
+
+    // 나의 학원 조회
+    public List<MyAcademyResDTO2> myAcademy(int memberId) {
+        List<MyCourseEntity2> myCourseEntity2s = myCourseRepository2.findByMemberId(memberId);
+        System.out.println("myCourseEntity2s size: " + myCourseEntity2s.size());  // 로그 추가
+        return convertAcademyEntityToDto(myCourseEntity2s);
+    }
+
+
+    private List<MyAcademyResDTO2> convertAcademyEntityToDto(List<MyCourseEntity2> myCourseEntity2s) {
+        List<MyAcademyResDTO2> myAcademyResDTO2s = new ArrayList<>();
+        for (MyCourseEntity2 myCourseEntity2 : myCourseEntity2s) {
+            MyAcademyResDTO2 myAcademyResDTO2 = new MyAcademyResDTO2();
+            myAcademyResDTO2.setMember_id(myCourseEntity2.getMember().getMemberId());
+            myAcademyResDTO2.setAcademy(myCourseEntity2.getAcademyEntity2().getAcademyName());
+            myAcademyResDTO2.setAcademy_id(myCourseEntity2.getAcademyEntity2().getAcademyId());
+
+            // List에 객체 추가
+            myAcademyResDTO2s.add(myAcademyResDTO2);
+        }
+        return myAcademyResDTO2s;
+    }
+
 
     public List<MyCourseResDTO2> convertEntityToDto(List<MyCourseEntity2> myCourseEntity){
 
@@ -84,5 +109,6 @@ public class MyCourseService2 {
 
         return myCourseResDTO;
     }
+
 
 }

@@ -1,5 +1,6 @@
 package com.capstone.project.kedu.service;
 
+import com.capstone.project.kedu.dto.board.KeduBoardResDTO2;
 import com.capstone.project.kedu.dto.comment.CourseCommentReqDTO2;
 import com.capstone.project.kedu.dto.comment.CourseCommentResDTO2;
 import com.capstone.project.kedu.entity.comment.CourseCommentEntity2;
@@ -51,7 +52,15 @@ public class CourseCommentService2 {
             return false;
         }
     }
-
+    public List<CourseCommentResDTO2> myCourseComment(int memberId) {
+        List<CourseCommentEntity2> courseCommentEntity2s =
+                courseCommentRepository2.findByMemberId(memberId);
+        List<CourseCommentResDTO2>courseCommentResDTO2List = new ArrayList<>();
+        for(CourseCommentEntity2 courseCommentEntity2 : courseCommentEntity2s){
+            courseCommentResDTO2List.add(convertEntityToDTO(courseCommentEntity2));
+        }
+        return courseCommentResDTO2List;
+    }
     public List<CourseCommentResDTO2> list(long courseId) {
         List<CourseCommentEntity2> courseCommentEntity2s =
                 courseCommentRepository2.findAllByCourseEntity2_CourseId(courseId);
@@ -119,4 +128,6 @@ public class CourseCommentService2 {
         courseCommentResDTO2.setEmployee_outcome(courseCommentEntity2.isEmployee_outcome());
         return courseCommentResDTO2;
     }
+
+
 }

@@ -389,7 +389,15 @@ public class KeduBoardService2 {
             return null;
         }
     }
-
+    // 마이 페이지 작성한 게시물 조회
+    public List<KeduBoardResDTO2> myBoard(int memberId) {
+        List<KeduBoardEntity2> boards = keduBoardRepository2.findByMemberId(memberId);
+        List<KeduBoardResDTO2> boardResDTO2List = new ArrayList<>();
+        for (KeduBoardEntity2 keduBoardEntity2 : boards) {
+            boardResDTO2List.add(convertEntityToDto(keduBoardEntity2));
+        }
+        return boardResDTO2List;
+    }
     private KeduBoardResDTO2 convertEntityToDto(KeduBoardEntity2 keduBoardEntity) {
         KeduBoardResDTO2 keduBoardResDTO2 = new KeduBoardResDTO2();
 
@@ -406,6 +414,7 @@ public class KeduBoardService2 {
         keduBoardDetailResDTO2.setRegDate(keduBoardEntity2.getRegDate());
         return keduBoardDetailResDTO2;
     }
+
 
 
 }
