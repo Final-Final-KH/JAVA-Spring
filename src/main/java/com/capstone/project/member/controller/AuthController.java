@@ -4,7 +4,6 @@ import com.capstone.project.member.dto.TokenDto;
 import com.capstone.project.member.dto.request.LoginRequestDto;
 import com.capstone.project.member.dto.request.MemberRequestDto;
 import com.capstone.project.member.dto.response.MemberResponseDto;
-import com.capstone.project.member.entity.Member;
 import com.capstone.project.member.service.AuthService;
 import com.capstone.project.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
