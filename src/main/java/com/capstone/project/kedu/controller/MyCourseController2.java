@@ -38,6 +38,12 @@ public class MyCourseController2 {
         boolean isSuccess = myCourseService2.addMyCourse(myCourseReqDTO2);
         return ResponseEntity.ok(isSuccess);
     }
+    // 나의 학원 등록하기
+    @PostMapping("/add_my_academy")
+    public ResponseEntity<Boolean> add_my_academy(@RequestBody MyCourseReqDTO2 myCourseReqDTO2){
+        boolean isSuccess = myCourseService2.addMyAcademy(myCourseReqDTO2);
+        return ResponseEntity.ok(isSuccess);
+    }
     // course_id와 member_id로 삭제
     @PostMapping("/delete_my_course")
     public ResponseEntity<Boolean> delete_my_course(@RequestBody MyCourseDeleteReqDTO2 myCourseReqDTO2){

@@ -17,4 +17,6 @@ public interface MyCourseRepository2 extends JpaRepository<MyCourseEntity2, Long
     void deleteByMemberIdAndListId(Long listId, Integer memberId);  // memberId는 Integer로 변경
 
     List<MyCourseEntity2> findByMemberId(int memberId);
+
+    MyCourseEntity2 findByMember_IdAndAcademyEntity2_AcademyId(int memberId, Long academyId);
 }
