@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface CourseCommentRepository2 extends JpaRepository<CourseCommentEntity2, Long> {
     List<CourseCommentEntity2> findAllByCourseEntity2_CourseId(long courseId);
+
+    List<CourseCommentEntity2> findByMemberId(int memberId);
 }

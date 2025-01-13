@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface AcademyCommentRepository2 extends JpaRepository<AcademyCommentEntity2, Long> {
     List<AcademyCommentEntity2> findByAcademyEntity2AcademyId(Long id);
+
+    List<AcademyCommentEntity2> findByMemberId(int memberId);
 }

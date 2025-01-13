@@ -55,6 +55,7 @@ public class KeduController2 {
 
     @GetMapping("/academy_list")
     public Map<String , Object> academy(@RequestParam(value = "region") String region){
+        log.info("지역 정보를 잘 가져오는지 : {}", region);
         Map<String, Object> resultMap = new HashMap<>();
         List<AcademyResDTO2> list = keduService2.findAcadey(region);
         resultMap.put("list", list);

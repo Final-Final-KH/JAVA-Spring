@@ -14,9 +14,7 @@ import org.springframework.stereotype.Service;
 import javax.persistence.EntityNotFoundException;
 import javax.transaction.Transactional;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -55,7 +53,16 @@ public class AcademyCommentService2 {
             return false;
         }
     }
-
+    // 나의 학원 코멘트
+    public List<AcademyCommentResDTO2> myAcademyComment(int memberId) {
+        List<AcademyCommentEntity2> academyCommentEntity2s = academyCommentRepository2.findByMemberId(memberId);
+        List<AcademyCommentResDTO2> academyCommentResDTO2s = new ArrayList<>();
+        for(AcademyCommentEntity2 academyCommentEntity2 : academyCommentEntity2s){
+            academyCommentResDTO2s.add(convertEntityToDto(academyCommentEntity2));
+        }
+        return academyCommentResDTO2s;
+    }
+    // 학원 코멘트 리스트
     public List<AcademyCommentResDTO2> list(Long id) {
         List<AcademyCommentEntity2> academyCommentEntity2 = academyCommentRepository2.findByAcademyEntity2AcademyId(id);
         List<AcademyCommentResDTO2> academyCommentResDTO2s = new ArrayList<>();
@@ -132,7 +139,4 @@ public class AcademyCommentService2 {
         academyCommentResDTO2.setMember_id(academyCommentEntity.getMember().getMemberId());
         return academyCommentResDTO2;
     }
-
-
-
 }
