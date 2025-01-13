@@ -50,7 +50,7 @@ public class MyCourseService2 {
     public boolean addMyCourse(MyCourseReqDTO2 myCourseReqDTO2) {
         try{
             MyCourseEntity2 myCourseEntity2 = myCourseRepository2
-                    .findMemberIdAndAcademyId(myCourseReqDTO2.getMember_id(),myCourseReqDTO2.getAcademy_id());
+                    .findByMember_IdAndAcademyEntity2_AcademyId(myCourseReqDTO2.getMember_id(),myCourseReqDTO2.getAcademy_id());
             Member member = memberRepository.findById(myCourseReqDTO2.getMember_id())
                     .orElseThrow(()-> new RuntimeException("해당 회원이 존재하지 않습니다."));
             CourseEntity2 courseEntity2 = courseRepository2.findById(myCourseReqDTO2
