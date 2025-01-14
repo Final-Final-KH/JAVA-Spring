@@ -37,9 +37,11 @@ public class ForumPostCommentService {
                 .map(comment -> new ForumPostCommentResponseDto(
                         comment.getId(),
                         comment.getContent(),
-                        comment.getMember().getName(), // 댓글 작성자 이름 반환
-                        comment.getLikesCount(), // 댓글 좋아요 수
-                        comment.getCreatedAt() // 댓글 생성 시간
+                        comment.getMember().getName(), // 작성자 이름 반환
+                        comment.getLikesCount(), // 좋아요 수
+                        comment.getHidden(), // 숨김 여부
+                        comment.getRemovedBy(), // 삭제자 정보
+                        comment.getCreatedAt() // 생성 시간
                 ))
                 .collect(Collectors.toList()); // 결과를 리스트로 변환
     }
@@ -57,26 +59,28 @@ public class ForumPostCommentService {
         // 댓글 엔티티 생성
         ForumPostComment newComment = ForumPostComment.builder()
                 .forumPost(ForumPost.builder().id(requestDto.getPostId()).build()) // 게시글 ID 매핑
-                .member(Member.builder().id(requestDto.getMemberId()).build()) // 작성자 ID 매핑 (엔티티 간략화)
-                .content(requestDto.getContent()) // 댓글 내용 설정
-                .likesCount(0) // 초기 좋아요 수 0으로 설정
-                .createdAt(LocalDateTime.now()) // 현재 시간으로 생성 시간 설정
-                .updatedAt(LocalDateTime.now()) // 현재 시간으로 수정 시간 초기화
+                .member(Member.builder().id(requestDto.getMemberId()).build()) // 작성자 ID 매핑
+                .content(requestDto.getContent()) // 댓글 내용
+                .likesCount(0) // 좋아요 수 초기화
+                .hidden(false) // 숨김 상태 초기화
+                .createdAt(LocalDateTime.now()) // 생성 시간 설정
+                .updatedAt(LocalDateTime.now()) // 수정 시간 초기화
                 .build();
 
         ForumPostComment savedComment = commentRepository.save(newComment); // 데이터베이스에 저장
 
-        // 작성자의 이름을 포함한 응답을 생성하기 위해 작성자 엔티티를 다시 로드
+        // 작성자의 이름을 가져오기 위해 작성자 정보를 다시 조회
         Member commentAuthor = memberRepository.findById(requestDto.getMemberId())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid member ID: " + requestDto.getMemberId())); // 작성자 ID 유효성 검사
+                .orElseThrow(() -> new IllegalArgumentException("Invalid member ID: " + requestDto.getMemberId()));
 
-        // 생성된 댓글 정보를 DTO로 변환 후 반환
         return new ForumPostCommentResponseDto(
-                savedComment.getId(), // 댓글 ID
-                savedComment.getContent(), // 댓글 내용
-                commentAuthor.getName(), // 작성자 이름 추가
-                savedComment.getLikesCount(), // 댓글 좋아요 수
-                savedComment.getCreatedAt() // 댓글 생성 시간
+                savedComment.getId(),
+                savedComment.getContent(),
+                commentAuthor.getName(),
+                savedComment.getLikesCount(),
+                savedComment.getHidden(),
+                savedComment.getRemovedBy(),
+                savedComment.getCreatedAt()
         );
     }
 
@@ -95,7 +99,6 @@ public class ForumPostCommentService {
         ForumPostComment parentComment = commentRepository.findById(parentCommentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid parent comment ID: " + parentCommentId));
 
-        // Retrieve the member's full details
         Member replyAuthor = memberRepository.findById(requestDto.getMemberId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid member ID: " + requestDto.getMemberId()));
 
@@ -105,10 +108,11 @@ public class ForumPostCommentService {
                 requestDto.getContent()); // 답글 내용
 
         ForumPostComment replyComment = ForumPostComment.builder()
-                .forumPost(parentComment.getForumPost()) // 동일한 게시글 참조
-                .member(replyAuthor) // Use the retrieved member entity
-                .content(quotedContent) // 인용된 내용 설정
+                .forumPost(parentComment.getForumPost())
+                .member(replyAuthor)
+                .content(quotedContent)
                 .likesCount(0)
+                .hidden(false)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -118,8 +122,10 @@ public class ForumPostCommentService {
         return new ForumPostCommentResponseDto(
                 savedReply.getId(),
                 savedReply.getContent(),
-                replyAuthor.getName(), // Explicitly set the author's name from the retrieved Member
+                replyAuthor.getName(),
                 savedReply.getLikesCount(),
+                savedReply.getHidden(),
+                savedReply.getRemovedBy(),
                 savedReply.getCreatedAt()
         );
     }
@@ -146,6 +152,7 @@ public class ForumPostCommentService {
                 .member(Member.builder().id(requestDto.getMemberId()).build()) // 작성자 ID 매핑
                 .content(quotedContent) // 답글 내용 설정
                 .likesCount(0)
+                .hidden(false) // 기본 숨김 상태
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -157,9 +164,12 @@ public class ForumPostCommentService {
                 savedReply.getContent(),
                 savedReply.getMember().getName(),
                 savedReply.getLikesCount(),
+                savedReply.getHidden(),
+                savedReply.getRemovedBy(),
                 savedReply.getCreatedAt()
         );
     }
+
 
     /**
      * 댓글 수정
@@ -184,6 +194,8 @@ public class ForumPostCommentService {
                 updatedComment.getContent(),
                 updatedComment.getMember().getName(),
                 updatedComment.getLikesCount(),
+                updatedComment.getHidden(),
+                updatedComment.getRemovedBy(),
                 updatedComment.getCreatedAt()
         );
     }
@@ -246,9 +258,9 @@ public class ForumPostCommentService {
         ForumPostComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
 
-        comment.setHidden(false); // 숨김 상태 해제
+        comment.setHidden(false);
         commentRepository.save(comment);
-        log.info("Comment ID: {} restored from hidden.", commentId);
+        log.info("Comment ID: {} has been restored.", commentId);
     }
 
     /**
