@@ -2,11 +2,16 @@ package com.capstone.project.forum.service;
 
 import com.capstone.project.forum.dto.request.ForumPostCommentRequestDto;
 import com.capstone.project.forum.dto.response.ForumPostCommentResponseDto;
+import com.capstone.project.forum.entity.CommentReport;
 import com.capstone.project.forum.entity.ForumPost;
 import com.capstone.project.forum.entity.ForumPostComment;
+import com.capstone.project.forum.entity.ForumPostCommentHistory;
+import com.capstone.project.forum.repository.CommentReportRepository;
+import com.capstone.project.forum.repository.ForumPostCommentHistoryRepository;
 import com.capstone.project.forum.repository.ForumPostCommentRepository;
 import com.capstone.project.member.entity.Member;
 import com.capstone.project.member.repository.MemberRepository;
+import com.capstone.project.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +28,11 @@ public class ForumPostCommentService {
 
     private final ForumPostCommentRepository commentRepository; // 댓글 데이터베이스 접근 객체
     private final MemberRepository memberRepository;
+    private final CommentReportRepository commentReportRepository;
+    private final MemberService memberService;
+    private final ForumPostCommentHistoryRepository commentHistoryRepository;
+
+    private static final int REPORT_THRESHOLD = 10; // 신고 누적 기준값
 
     /**
      * 특정 게시글에 속한 댓글 가져오기
@@ -182,9 +192,16 @@ public class ForumPostCommentService {
     public ForumPostCommentResponseDto updateComment(Integer commentId, String newContent) {
         log.info("Updating comment ID: {}", commentId);
 
+        // 댓글 조회
         ForumPostComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
 
+        // 숨김 또는 삭제된 댓글 검증
+        if (comment.getHidden() || "[Removed]".equals(comment.getContent())) {
+            throw new IllegalStateException("Cannot edit a hidden or removed comment. Please let ADMIN restore it first.");
+        }
+
+        // 댓글 수정
         comment.setContent(newContent); // 새로운 내용으로 업데이트
         comment.setUpdatedAt(LocalDateTime.now()); // 수정 시간 갱신
         ForumPostComment updatedComment = commentRepository.save(comment); // 저장
@@ -201,31 +218,84 @@ public class ForumPostCommentService {
     }
 
     /**
-     * 댓글 삭제
+     * 댓글 삭제 (히스토리 생성 포함)
      *
      * @param commentId 삭제할 댓글 ID
+     * @param loggedInMemberId 요청 사용자 ID
      */
     @Transactional
-    public void deleteComment(Integer commentId, String removedBy) {
-        log.info("Marking comment ID: {} as removed by: {}", commentId, removedBy);
+    public void deleteComment(Integer commentId, Integer loggedInMemberId) {
+        log.info("Deleting comment ID: {} by member ID: {}", commentId, loggedInMemberId);
 
         ForumPostComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
 
-        // Update comment fields to indicate it's removed
+        boolean isAdmin = memberService.isAdmin(loggedInMemberId);
+        if (!comment.getMember().getId().equals(loggedInMemberId) && !isAdmin) {
+            throw new IllegalArgumentException("You are not allowed to delete this comment.");
+        }
+
+        // 댓글 히스토리 저장
+        ForumPostCommentHistory history = ForumPostCommentHistory.builder()
+                .commentId(comment.getId())
+                .content(comment.getContent())
+                .authorName(comment.getMember().getName())
+                .deletedAt(LocalDateTime.now())
+                .build();
+        commentHistoryRepository.save(history);
+
+        // 댓글 삭제 처리
         comment.setContent("[Removed]");
-        comment.setRemovedBy(removedBy); // Add removedBy field to indicate who removed it
+        comment.setHidden(true); // 숨김 상태로 전환
         commentRepository.save(comment);
 
-        // Update associated replies (if any)
-        List<ForumPostComment> replies = commentRepository.findRepliesByParentCommentId(commentId);
-        for (ForumPostComment reply : replies) {
-            reply.setContent("This reply is linked to a removed comment.");
-            reply.setRemovedBy("SYSTEM");
-            commentRepository.save(reply);
-        }
-        log.info("All replies for comment ID: {} marked as removed.", commentId);
+        log.info("Comment ID: {} deleted and history recorded.", commentId);
     }
+
+    /**
+     * 댓글 신고
+     *
+     * @param commentId 신고 대상 댓글 ID
+     * @param reporterId 신고자 ID
+     * @param reason 신고 사유
+     */
+    @Transactional
+    public void reportComment(Integer commentId, Integer reporterId, String reason) {
+        log.info("Reporting comment ID: {} by reporter ID: {}", commentId, reporterId);
+
+        // 댓글 조회
+        ForumPostComment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
+
+        // 중복 신고 방지
+        boolean alreadyReported = commentReportRepository.existsByCommentIdAndReporterId(commentId, reporterId);
+        if (alreadyReported) {
+            throw new IllegalArgumentException("You have already reported this comment.");
+        }
+
+        // 신고 엔티티 생성 및 저장
+        CommentReport report = CommentReport.builder()
+                .forumPostComment(comment)
+                .member(memberRepository.findById(reporterId)
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid reporter ID: " + reporterId)))
+                .reason(reason)
+                .createdAt(LocalDateTime.now())
+                .build();
+        commentReportRepository.save(report);
+
+        // 신고 누적 확인 및 댓글 숨김 처리
+        long reportCount = commentReportRepository.countByCommentId(commentId);
+        log.info("Comment ID: {} has {} reports.", commentId, reportCount);
+
+        if (reportCount >= REPORT_THRESHOLD) {
+            comment.setHidden(true);
+            commentRepository.save(comment);
+            log.info("Comment ID: {} has been hidden due to exceeding report threshold.", commentId);
+        }
+    }
+
+
+
 
     /**
      * 댓글 숨김 처리
@@ -246,8 +316,8 @@ public class ForumPostCommentService {
     }
 
     /**
-     * 댓글 복구 처리
-     * 숨김 처리된 댓글을 복구
+     * 댓글 복구
+     * 삭제된 댓글을 삭제 이력을 사용하여 복구합니다.
      *
      * @param commentId 복구할 댓글 ID
      */
@@ -255,13 +325,28 @@ public class ForumPostCommentService {
     public void restoreComment(Integer commentId) {
         log.info("Restoring comment ID: {}", commentId);
 
+        // 댓글 조회
         ForumPostComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
 
-        comment.setHidden(false);
-        commentRepository.save(comment);
-        log.info("Comment ID: {} has been restored.", commentId);
+        // 삭제된 상태 확인
+        if (!"[Removed]".equals(comment.getContent())) {
+            throw new IllegalStateException("The comment is not in a deleted state.");
+        }
+
+        // 삭제 이력 조회 (최신 데이터만 가져오기)
+        ForumPostCommentHistory history = commentHistoryRepository.findTopByCommentIdOrderByDeletedAtDesc(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("No history found for comment ID: " + commentId));
+
+        // 댓글 복구
+        comment.setContent(history.getContent()); // 내용 복구
+        comment.setHidden(false); // 숨김 해제
+        comment.setRemovedBy(null); // 삭제자 정보 초기화
+        commentRepository.save(comment); // 데이터베이스에 저장
+
+        log.info("Comment ID: {} successfully restored.", commentId);
     }
+
 
     /**
      * 댓글 삭제 취소 (복구)
@@ -286,7 +371,17 @@ public class ForumPostCommentService {
         }
     }
 
-
+    /**
+     * 특정 댓글의 삭제 히스토리 가져오기
+     *
+     * @param commentId 댓글 ID
+     * @return 삭제 히스토리 리스트
+     */
+    @Transactional(readOnly = true)
+    public List<ForumPostCommentHistory> getCommentHistory(Integer commentId) {
+        log.info("Fetching history for comment ID: {}", commentId);
+        return commentHistoryRepository.findAllByCommentId(commentId);
+    }
 
 
     // 댓글 좋아요 수 증가
