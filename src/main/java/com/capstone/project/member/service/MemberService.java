@@ -90,4 +90,15 @@ public class MemberService {
 
         memberRepository.delete(member);
     }
+
+    /**
+     * 사용자 ID를 반환 (getMemberId 메서드 추가)
+     *
+     * @return Integer 사용자 ID
+     */
+    public boolean isAdmin(Integer memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid member ID: " + memberId));
+        return member.getRole() == Member.Role.ADMIN;
+    }
 }

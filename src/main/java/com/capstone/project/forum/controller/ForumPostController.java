@@ -72,18 +72,22 @@ public class ForumPostController {
 
     /**
      * 게시글 삭제
+     * 게시글과 댓글 삭제 여부는 cascadeComments 플래그에 따라 결정됩니다.
+     *
      * @param id 삭제할 게시글 ID
      * @param loggedInMemberId 요청 사용자 ID
-     * @param isAdmin 관리자 여부
+     * @param cascadeComments 댓글 삭제 여부를 결정하는 플래그
+     * @param removedBy 삭제를 수행한 사용자 정보 (ADMIN 또는 작성자 이름)
      * @return 성공 상태
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePost(
             @PathVariable Integer id,
             @RequestParam Integer loggedInMemberId,
-            @RequestParam boolean isAdmin
+            @RequestParam boolean cascadeComments,
+            @RequestParam String removedBy
     ) {
-        postService.deletePost(id, loggedInMemberId, isAdmin);
+        postService.deletePost(id, loggedInMemberId, cascadeComments, removedBy);
         return ResponseEntity.ok().build();
     }
 
@@ -205,6 +209,22 @@ public class ForumPostController {
         return ResponseEntity.ok(postService.quotePost(quotingMemberId, quotedPostId, commentContent)); // 인용 메서드 호출
     }
 
-
+    /**
+     * 게시글 신고 처리
+     *
+     * @param postId 신고할 게시글 ID
+     * @param reporterId 신고자 ID
+     * @param reason 신고 이유
+     * @return 성공 상태
+     */
+    @PostMapping("/{postId}/report")
+    public ResponseEntity<Void> reportPost(
+            @PathVariable Integer postId,
+            @RequestParam Integer reporterId,
+            @RequestBody String reason
+    ) {
+        postService.reportPost(postId, reporterId, reason);
+        return ResponseEntity.ok().build();
+    }
 
 }

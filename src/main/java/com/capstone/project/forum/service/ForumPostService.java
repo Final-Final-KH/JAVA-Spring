@@ -3,14 +3,10 @@ package com.capstone.project.forum.service;
 import com.capstone.project.forum.dto.request.ForumPostRequestDto;
 import com.capstone.project.forum.dto.response.ForumPostResponseDto;
 import com.capstone.project.forum.dto.response.PaginationDto;
-import com.capstone.project.forum.entity.ForumPost;
-import com.capstone.project.forum.entity.ForumPostComment;
-import com.capstone.project.forum.entity.ForumPostHistory;
-import com.capstone.project.forum.repository.ForumCategoryRepository;
-import com.capstone.project.forum.repository.ForumPostCommentRepository;
-import com.capstone.project.forum.repository.ForumPostHistoryRepository;
-import com.capstone.project.forum.repository.ForumPostRepository;
+import com.capstone.project.forum.entity.*;
+import com.capstone.project.forum.repository.*;
 import com.capstone.project.member.repository.MemberRepository;
+import com.capstone.project.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -34,16 +30,15 @@ public class ForumPostService {
     private final ForumPostRepository postRepository; // 게시글 관련 데이터베이스 접근
     private final MemberRepository memberRepository; // 회원 데이터베이스 접근
     private final ForumCategoryRepository categoryRepository; // 카테고리 데이터베이스 접근
+    private final ForumPostRepository forumPostRepository;
     private final ForumPostCommentRepository commentRepository; // 댓글 데이터베이스 접근
+    private final ForumPostCommentHistoryRepository commentHistoryRepository;
     private final ForumPostHistoryRepository historyRepository; // 삭제 이력 관련 데이터베이스 접근
+    private final PostReportRepository postReportRepository;
+    private final MemberService memberService;
 
-    /**
-     * 특정 카테고리에 속한 게시글 가져오기 (페이지네이션 지원)
-     * @param categoryId 카테고리 ID
-     * @param page 페이지 번호
-     * @param size 페이지당 게시글 개수
-     * @return PaginationDto<ForumPostResponseDto>
-     */
+    private static final int REPORT_THRESHOLD = 10; // 신고 누적 기준값
+
     /**
      * 특정 카테고리에 속한 게시글을 페이지네이션하여 가져오는 메서드
      *
@@ -145,6 +140,11 @@ public class ForumPostService {
         var post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
 
+        // 숨김 또는 삭제된 게시글 검증
+        if (post.getHidden()) {
+            throw new IllegalStateException("Cannot edit a hidden or removed post. Please let ADMIN restore it first.");
+        }
+
         // 권한 검증
         if (!post.getMember().getId().equals(loggedInMemberId) && !isAdmin) {
             throw new AccessDeniedException("You are not allowed to edit this post.");
@@ -178,63 +178,130 @@ public class ForumPostService {
 
     /**
      * 게시글 숨김 처리
+     *
+     * @param postId 숨길 게시글 ID
      */
     @Transactional
     public void hidePost(Integer postId) {
         log.info("Hiding post ID: {}", postId);
-        postRepository.updateHiddenStatus(postId, true);
+        ForumPost post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
+        post.setHidden(true);
+        postRepository.save(post);
+        log.info("Post ID: {} has been marked as hidden.", postId);
     }
 
     /**
-     * 숨김된 게시글 복구
+     * 게시글 복구
+     * 삭제된 게시글을 삭제 이력을 사용하여 복구
+     *
+     * @param postId 복구할 게시글 ID
      */
     @Transactional
     public void restorePost(Integer postId) {
         log.info("Restoring post ID: {}", postId);
-        postRepository.updateHiddenStatus(postId, false);
+
+        // 게시글 조회
+        ForumPost post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
+
+        // 삭제된 상태 확인
+        if (!"[Deleted]".equals(post.getTitle())) {
+            throw new IllegalStateException("The post is not in a deleted state.");
+        }
+
+        // 삭제 이력 조회
+        ForumPostHistory history = historyRepository.findTopByPostIdOrderByDeletedAtDesc(postId)
+                .orElseThrow(() -> new IllegalArgumentException("No history found for post ID: " + postId));
+
+        // 게시글 복구
+        post.setTitle(history.getTitle()); // 제목 복구
+        post.setContent(history.getContent()); // 내용 복구
+        post.setHidden(false); // 숨김 해제
+        post.setRemovedBy(null); // 삭제자 정보 초기화
+        postRepository.save(post); // 저장
+
+        log.info("Post ID: {} successfully restored.", postId);
     }
+
 
 
     /**
      * 게시글 삭제
-     * 실제 데이터를 삭제하지 않고 삭제 상태로 표시하며, 삭제 이력을 저장
+     * 게시글과 해당 게시글의 댓글을 삭제 상태로 표시하며, 삭제 이력을 기록합니다.
+     * 댓글 삭제는 cascadeComments 플래그에 따라 조건적으로 수행됩니다.
      *
      * @param postId         삭제할 게시글 ID
-     * @param loggedInMemberId 삭제 요청 사용자 ID
-     * @param isAdmin        관리자 여부
+     * @param loggedInMemberId 삭제 요청을 보낸 사용자 ID
+     * @param cascadeComments 댓글을 삭제할지 여부를 결정하는 플래그
+     * @param removedBy      삭제를 수행한 사용자 정보 (ADMIN 또는 작성자 이름)
+     * @throws IllegalArgumentException 유효하지 않은 게시글 ID 또는 권한이 없는 사용자일 경우 예외 발생
+     * @throws AccessDeniedException    삭제 권한이 없는 사용자가 요청할 경우 예외 발생
      */
     @Transactional
-    public void deletePost(Integer postId, Integer loggedInMemberId, boolean isAdmin) {
-        log.info("Deleting post ID: {} by member ID: {}, isAdmin: {}", postId, loggedInMemberId, isAdmin);
+    public void deletePost(Integer postId, Integer loggedInMemberId, boolean cascadeComments, String removedBy) {
+        log.info("Deleting post ID: {} by member ID: {}", postId, loggedInMemberId);
 
-        // 게시글 조회
-        var post = postRepository.findById(postId)
+        // 1. 게시글 조회
+        ForumPost post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
 
-        // 권한 검증
+        // 2. 삭제 권한 확인
+        boolean isAdmin = memberService.isAdmin(loggedInMemberId);
         if (!post.getMember().getId().equals(loggedInMemberId) && !isAdmin) {
             throw new AccessDeniedException("You are not allowed to delete this post.");
         }
 
-        // 삭제 이력 생성 및 저장
-        var history = ForumPostHistory.builder()
-                .postId(post.getId())
-                .title(post.getTitle())
-                .content(post.getContent())
-                .authorName(post.getMember().getName())
-                .deletedAt(LocalDateTime.now())
-                .fileUrls(post.getFileUrls()) // 파일 URL 저장
-                .build();
-        historyRepository.save(history);
+        // 3. cascadeComments 플래그에 따라 댓글 처리
+        if (cascadeComments) {
+            // 댓글 백업 및 삭제
+            for (ForumPostComment comment : post.getComments()) {
+                ForumPostCommentHistory history = ForumPostCommentHistory.builder()
+                        .commentId(comment.getId()) // 댓글 ID
+                        .content(comment.getContent()) // 댓글 내용
+                        .authorName(comment.getMember().getName()) // 작성자 이름
+                        .deletedAt(LocalDateTime.now()) // 삭제 시간
+                        .build();
+                commentHistoryRepository.save(history); // 댓글 이력 저장
+                commentRepository.delete(comment); // 댓글 삭제
+                log.info("Comment ID: {} deleted and backed up to history.", comment.getId());
+            }
+        } else {
+            // 댓글 백업만 수행 (삭제하지 않음)
+            for (ForumPostComment comment : post.getComments()) {
+                ForumPostCommentHistory history = ForumPostCommentHistory.builder()
+                        .commentId(comment.getId()) // 댓글 ID
+                        .content(comment.getContent()) // 댓글 내용
+                        .authorName(comment.getMember().getName()) // 작성자 이름
+                        .deletedAt(LocalDateTime.now()) // 삭제 시간
+                        .build();
+                commentHistoryRepository.save(history); // 댓글 이력 저장
+                log.info("Comment ID: {} backed up to history without deletion.", comment.getId());
+            }
+        }
 
-        // 게시글 삭제 상태로 업데이트
-        post.setTitle("[Deleted]"); // 제목 삭제 처리
-        post.setContent("This post has been deleted."); // 내용 삭제 처리
-        post.setFileUrls(new ArrayList<>()); // 첨부 파일 삭제 처리
-        post.setHidden(true); // 숨김 상태로 설정
-        post.setRemovedBy(isAdmin ? "ADMIN" : "OP"); // 삭제자 정보 설정
-        postRepository.save(post);
+        // 4. 게시글 삭제 이력 저장
+        ForumPostHistory postHistory = ForumPostHistory.builder()
+                .postId(post.getId()) // 게시글 ID
+                .title(post.getTitle()) // 삭제 전 게시글 제목
+                .content(post.getContent()) // 삭제 전 게시글 내용
+                .authorName(post.getMember().getName()) // 작성자 이름
+                .deletedAt(LocalDateTime.now()) // 삭제 시간
+                .build();
+        historyRepository.save(postHistory); // 게시글 이력 저장
+        log.info("Post ID: {} backed up to history.", postId);
+
+        // 5. 게시글 상태를 삭제됨으로 업데이트
+        post.setTitle("[Deleted]"); // 제목을 "[Deleted]"로 변경
+        post.setContent("This post has been deleted."); // 내용을 삭제됨으로 표시
+        post.setRemovedBy(isAdmin ? "ADMIN" : post.getMember().getName()); // 삭제자 정보 설정
+        post.setHidden(true); // 게시글 숨김 처리
+        postRepository.save(post); // 업데이트된 게시글 저장
+
+        log.info("Post ID: {} marked as deleted.", postId);
     }
+
+
 
 
     /**
@@ -405,6 +472,47 @@ public class ForumPostService {
                 .createdAt(savedPost.getCreatedAt())
                 .updatedAt(savedPost.getUpdatedAt())
                 .build();
+    }
+
+    /**
+     * 게시글 신고 처리
+     *
+     * @param postId 신고 대상 게시글 ID
+     * @param reporterId 신고자 ID
+     * @param reason 신고 사유
+     */
+    @Transactional
+    public void reportPost(Integer postId, Integer reporterId, String reason) {
+        log.info("Reporting post ID: {} by reporter ID: {}", postId, reporterId);
+
+        // 게시글 존재 여부 확인
+        ForumPost post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
+
+        // 중복 신고 방지
+        boolean alreadyReported = postReportRepository.existsByPostIdAndReporterId(postId, reporterId);
+        if (alreadyReported) {
+            throw new IllegalArgumentException("You have already reported this post.");
+        }
+
+        // 신고 엔티티 생성 및 저장
+        PostReport report = PostReport.builder()
+                .forumPost(post)
+                .reporterId(reporterId)
+                .reason(reason)
+                .createdAt(LocalDateTime.now())
+                .build();
+        postReportRepository.save(report);
+
+        // 신고 누적 확인 및 게시글 숨김 처리
+        long reportCount = postReportRepository.countByPostId(postId);
+        log.info("Post ID: {} has {} reports.", postId, reportCount);
+
+        if (reportCount >= REPORT_THRESHOLD) {
+            post.setHidden(true); // 신고 임계값 초과 시 게시글 숨김 처리
+            postRepository.save(post);
+            log.info("Post ID: {} has been hidden due to exceeding report threshold.", postId);
+        }
     }
 
 
