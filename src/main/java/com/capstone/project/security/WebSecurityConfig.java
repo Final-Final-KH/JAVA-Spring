@@ -48,7 +48,8 @@ public class WebSecurityConfig implements WebMvcConfigurer {
     @Bean // SecurityFilterChain 객체를 Bean으로 등록
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-
+                .cors()
+                .and()
                 .httpBasic()
                 .and()
                 .csrf().disable()
@@ -65,6 +66,7 @@ public class WebSecurityConfig implements WebMvcConfigurer {
                 .antMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .antMatchers("/api/auth/**").permitAll()
                 .antMatchers("/api/**").permitAll()
+//                .antMatchers("/api/news").authenticated() 로그인 검증시키고 싶으면 해당 주소에 authenticated() 적용
                 .antMatchers("/news").permitAll()
                 .antMatchers("/course/**", "/lecture/**","/edu/**").permitAll()// 로그인하여 인증된 사용자만
                 .antMatchers("/admin/**").hasRole("ADMIN")

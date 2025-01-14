@@ -1,6 +1,7 @@
-package com.capstone.project.jwt;
+package com.capstone.project.security;
 
 
+import com.capstone.project.jwt.TokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -24,7 +25,10 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        log.error("JwtFilter called: {}", request);
+        log.error("JWTFilter header called: {}", request.getHeader("Authorization"));
         String jwt = resolveToken(request); // 헤더에서 JWT 추출
+        log.error("Extracted JWT: {}", jwt);
         if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
             Authentication authentication = tokenProvider.getAuthentication(jwt);
             SecurityContextHolder.getContext().setAuthentication(authentication); // 인증 객체 설정

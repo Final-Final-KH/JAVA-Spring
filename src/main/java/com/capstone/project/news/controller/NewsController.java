@@ -3,6 +3,8 @@ package com.capstone.project.news.controller;
 import com.capstone.project.news.model.NewsResponse;
 import com.capstone.project.news.service.NewsService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,7 +23,7 @@ public class NewsController {
             @RequestParam(defaultValue = "IT") String category,
             @RequestParam(required = false) String search,
             @RequestParam(defaultValue = "1") int page) {
-        log.error(search);
-        return newsService.getNews(category, search, page);
+        Object newsData = newsService.getNews(category, search, page);
+        return ResponseEntity.ok(newsData);
     }
 }
