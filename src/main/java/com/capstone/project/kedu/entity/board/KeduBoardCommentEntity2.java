@@ -23,7 +23,7 @@ import java.util.List;
 @Table(name = "kedu_board_comment")
 public class KeduBoardCommentEntity2 {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "board_comment_id")
     private Long board_comment_id; // comment_id
 

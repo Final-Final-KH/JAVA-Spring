@@ -62,8 +62,9 @@ public class KeduBoardController2 {
 
     // 게시글 업데이트
     @PostMapping("/update")
-    public ResponseEntity<Boolean> boardUpdate(@RequestBody KeduBoardUpdateReqDTO2 keduBoardUpdateReqDTO2){
-        boolean isSuccess = keduBoardService2.updateBoard(keduBoardUpdateReqDTO2);
+    public ResponseEntity<Boolean> boardUpdate(@RequestBody KeduBoardUpdateReqDTO2 keduBoardUpdateReqDTO2,
+                                               @RequestParam(value = "member_id")int memberId){
+        boolean isSuccess = keduBoardService2.updateBoard(keduBoardUpdateReqDTO2,memberId);
         return ResponseEntity.ok(isSuccess);
     }
 }

@@ -1,7 +1,16 @@
 package com.capstone.project.member.entity;
 
 import javax.persistence.*;
+
+import com.capstone.project.kedu.entity.board.KeduBoardCommentEntity2;
+import com.capstone.project.kedu.entity.board.KeduBoardCommentsCommentsEntity2;
+
 import com.capstone.project.kedu.entity.board.KeduBoardEntity2;
+import com.capstone.project.kedu.entity.comment.AcademyCommentEntity2;
+import com.capstone.project.kedu.entity.comment.CourseCommentEntity2;
+import com.capstone.project.kedu.entity.edu.MyCourseEntity2;
+import com.capstone.project.kedu.entity.mypage.SkillHubEntity2;
+import com.capstone.project.kedu.entity.survey.SurveyEntity2;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -73,6 +82,27 @@ public class Member {
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<KeduBoardEntity2> boards = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true )
+    private List<SurveyEntity2> survey = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true )
+    private List<MyCourseEntity2> myCourse = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true )
+    private List<KeduBoardCommentEntity2> keduBoardCommentEntity2 = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true )
+    private List<KeduBoardCommentsCommentsEntity2> keduBoardCommentsCommentsEntity2 = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true )
+    private List<AcademyCommentEntity2> academyCommentEntity2 = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true )
+    private List<CourseCommentEntity2> courseCommentEntity2 = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true )
+    private List<SkillHubEntity2> skillHubEntity2 = new ArrayList<>();
 
     @Builder
     public Member(String email, String password, String name, String phoneNumber, Role role, String currentCompany, boolean showCompany, String provider, String providerId, String profilePictureUrl) {

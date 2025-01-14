@@ -17,18 +17,23 @@ import javax.persistence.*;
 @NoArgsConstructor
 public class CourseCommentEntity2 {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long course_comment_id;
 
-    private String teacher;
-
-    private String lecture;
 
     private boolean employee_outcome;
 
-    private String facilities;
+    private int job; // 실무적이었는지
 
-    private String contents; // 강의 주제에 대한 피드백
+    private int lecture; // 강의는 좋았는지
+
+    private int teacher; // 강사님에 대한 점수
+
+    private int books; // 교재는 도움이 되었는지
+
+    private int newTech; // 취업 전망과 일치하였는지
+
+    private int skillUp;  // 개인의 기술이 발전 했는지
 
     @ManyToOne
     @JoinColumn(name = "member_id")
