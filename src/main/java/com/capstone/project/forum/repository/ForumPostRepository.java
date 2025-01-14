@@ -23,6 +23,43 @@ public interface ForumPostRepository extends JpaRepository<ForumPost, Integer> {
     @Query("SELECT p FROM ForumPost p WHERE p.member.id = :memberId")
     List<ForumPost> findPostsByMember(@Param("memberId") Integer memberId);
 
+    /**
+     * 특정 카테고리에 속한 게시글 조회 (숨김된 게시글 제외)
+     *
+     * @param categoryId 카테고리 ID
+     * @return 게시글 리스트
+     */
+    @Query("SELECT p FROM ForumPost p WHERE p.forumCategory.id = :categoryId AND p.hidden = false ORDER BY p.createdAt DESC")
+    List<ForumPost> findVisiblePostsByCategory(@Param("categoryId") Integer categoryId);
+
+    /**
+     * 숨김 상태인 게시글 조회 (관리자용)
+     *
+     * @return 숨김된 게시글 리스트
+     */
+    @Query("SELECT p FROM ForumPost p WHERE p.hidden = true ORDER BY p.createdAt DESC")
+    List<ForumPost> findHiddenPosts();
+
+    /**
+     * 게시글의 숨김 상태 업데이트
+     *
+     * @param postId 게시글 ID
+     * @param hidden 숨김 여부
+     */
+    @Modifying
+    @Query("UPDATE ForumPost p SET p.hidden = :hidden WHERE p.id = :postId")
+    void updateHiddenStatus(@Param("postId") Integer postId, @Param("hidden") boolean hidden);
+
+    /**
+     * 게시글 삭제 상태 업데이트
+     *
+     * @param postId 게시글 ID
+     * @param removedBy 삭제자 정보
+     */
+    @Modifying
+    @Query("UPDATE ForumPost p SET p.removedBy = :removedBy, p.content = '[Removed]' WHERE p.id = :postId")
+    void markPostAsRemoved(@Param("postId") Integer postId, @Param("removedBy") String removedBy);
+
     // 게시글 조회수 증가
     @Modifying
     @Query("UPDATE ForumPost p SET p.viewsCount = p.viewsCount + 1 WHERE p.id = :postId")

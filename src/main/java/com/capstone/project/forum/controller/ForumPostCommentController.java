@@ -47,18 +47,54 @@ public class ForumPostCommentController {
     /**
      * 댓글 수정
      *
-     * @param id 수정할 댓글 ID
-     * @param requestDto 수정 요청 데이터
-     * @return 수정된 댓글 정보
+     * @param commentId 수정할 댓글 ID
+     * @param newContent 새로운 댓글 내용
+     * @return 수정된 댓글 정보 (DTO 형태)
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<ForumPostCommentResponseDto> editComment(
-            @PathVariable Integer id,
-            @RequestBody ForumPostCommentRequestDto requestDto
-    ) {
-        // Service 호출로 댓글 수정
-        return ResponseEntity.ok(commentService.updateComment(id, requestDto.getContent())); // 요청에서 내용만 전달
+    @PutMapping("/{commentId}")
+    public ResponseEntity<ForumPostCommentResponseDto> updateComment(
+            @PathVariable Integer commentId,
+            @RequestBody String newContent) {
+        return ResponseEntity.ok(commentService.updateComment(commentId, newContent));
     }
+
+    /**
+     * 댓글 숨김 처리
+     *
+     * @param commentId 숨길 댓글 ID
+     * @return 성공 상태
+     */
+    @PostMapping("/{commentId}/hide")
+    public ResponseEntity<Void> hideComment(@PathVariable Integer commentId) {
+        commentService.hideComment(commentId); // 댓글 숨김 처리
+        return ResponseEntity.ok().build(); // 성공 상태 반환
+    }
+
+    /**
+     * 숨겨진 댓글 복구
+     *
+     * @param commentId 복구할 댓글 ID
+     * @return 성공 상태
+     */
+    @PostMapping("/{commentId}/restore")
+    public ResponseEntity<Void> restoreComment(@PathVariable Integer commentId) {
+        commentService.restoreComment(commentId); // 댓글 복구
+        return ResponseEntity.ok().build(); // 성공 상태 반환
+    }
+
+    /**
+     * 삭제된 댓글 복구
+     *
+     * @param commentId 복구할 댓글 ID
+     * @return 성공 상태
+     */
+    @PostMapping("/{commentId}/undelete")
+    public ResponseEntity<Void> undeleteComment(@PathVariable Integer commentId) {
+        commentService.undeleteComment(commentId); // 삭제 취소 호출
+        return ResponseEntity.ok().build();
+    }
+
+
 
     /**
      * 댓글 삭제
@@ -107,4 +143,6 @@ public class ForumPostCommentController {
         // Service 호출로 게시글(OP)에 대한 답글 생성
         return ResponseEntity.ok(commentService.replyToPost(postId, requestDto));
     }
+
+
 }

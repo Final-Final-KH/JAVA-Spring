@@ -58,6 +58,10 @@ public class ForumPost {
 
     @Column(nullable = false)
     @Builder.Default
+    private Boolean hidden = false; // 숨김 여부 (신고 누적 시 설정)
+
+    @Column(nullable = false)
+    @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now(); // 생성 시간
 
     @Column(nullable = false)

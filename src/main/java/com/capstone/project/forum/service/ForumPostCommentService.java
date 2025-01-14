@@ -215,6 +215,67 @@ public class ForumPostCommentService {
         log.info("All replies for comment ID: {} marked as removed.", commentId);
     }
 
+    /**
+     * 댓글 숨김 처리
+     * 특정 댓글을 숨김 상태로 설정
+     *
+     * @param commentId 숨길 댓글 ID
+     */
+    @Transactional
+    public void hideComment(Integer commentId) {
+        log.info("Hiding comment ID: {}", commentId);
+
+        ForumPostComment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
+
+        comment.setHidden(true); // 숨김 상태로 설정
+        commentRepository.save(comment);
+        log.info("Comment ID: {} marked as hidden.", commentId);
+    }
+
+    /**
+     * 댓글 복구 처리
+     * 숨김 처리된 댓글을 복구
+     *
+     * @param commentId 복구할 댓글 ID
+     */
+    @Transactional
+    public void restoreComment(Integer commentId) {
+        log.info("Restoring comment ID: {}", commentId);
+
+        ForumPostComment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
+
+        comment.setHidden(false); // 숨김 상태 해제
+        commentRepository.save(comment);
+        log.info("Comment ID: {} restored from hidden.", commentId);
+    }
+
+    /**
+     * 댓글 삭제 취소 (복구)
+     * 삭제된 댓글을 원래 상태로 복원
+     *
+     * @param commentId 복구할 댓글 ID
+     */
+    @Transactional
+    public void undeleteComment(Integer commentId) {
+        log.info("Undeleting comment ID: {}", commentId);
+
+        ForumPostComment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
+
+        if ("[Removed]".equals(comment.getContent())) {
+            comment.setContent("This comment has been restored."); // 원래 내용 복구 (임시 메시지)
+            comment.setRemovedBy(null); // 삭제자 정보 초기화
+            commentRepository.save(comment);
+            log.info("Comment ID: {} has been undeleted.", commentId);
+        } else {
+            log.warn("Comment ID: {} is not in a deleted state.", commentId);
+        }
+    }
+
+
+
 
     // 댓글 좋아요 수 증가
     @Transactional

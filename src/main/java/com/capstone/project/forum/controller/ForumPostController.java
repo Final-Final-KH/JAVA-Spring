@@ -88,14 +88,39 @@ public class ForumPostController {
     }
 
     /**
-     * 게시글 복구
-     * @param id 복구할 게시글 ID
+     * 게시글 숨김 처리
+     *
+     * @param postId 숨길 게시글 ID
      * @return 성공 상태
      */
-    @PostMapping("/{id}/restore")
-    public ResponseEntity<Void> restorePost(@PathVariable Integer id) {
-        postService.undeletePost(id);
-        return ResponseEntity.ok().build();
+    @PostMapping("/{postId}/hide")
+    public ResponseEntity<Void> hidePost(@PathVariable Integer postId) {
+        postService.hidePost(postId); // 게시글 숨김 처리
+        return ResponseEntity.ok().build(); // 성공 상태 반환
+    }
+
+    /**
+     * 숨겨진 게시글 복구
+     *
+     * @param postId 복구할 게시글 ID
+     * @return 성공 상태
+     */
+    @PostMapping("/{postId}/restore")
+    public ResponseEntity<Void> restorePost(@PathVariable Integer postId) {
+        postService.restorePost(postId); // 게시글 복구
+        return ResponseEntity.ok().build(); // 성공 상태 반환
+    }
+
+    /**
+     * 삭제된 게시글 복구
+     *
+     * @param postId 복구할 게시글 ID
+     * @return 성공 상태
+     */
+    @PostMapping("/{postId}/undelete")
+    public ResponseEntity<Void> undeletePost(@PathVariable Integer postId) {
+        postService.undeletePost(postId); // 삭제된 게시글 복구
+        return ResponseEntity.ok().build(); // 성공 상태 반환
     }
 
     // canEditPost와 canDeletePost는 수정 및 삭제 권한을 사전에 확인하는 API
@@ -179,6 +204,7 @@ public class ForumPostController {
     ) {
         return ResponseEntity.ok(postService.quotePost(quotingMemberId, quotedPostId, commentContent)); // 인용 메서드 호출
     }
+
 
 
 }
