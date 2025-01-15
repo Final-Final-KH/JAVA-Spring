@@ -303,32 +303,32 @@ public class ForumPostService {
 
 
 
-
-    /**
-     * 게시글 복구
-     * 저장된 이력 데이터를 사용하여 삭제된 게시글을 복구
-     *
-     * @param postId 복구할 게시글 ID
-     */
-    @Transactional
-    public void undeletePost(Integer postId) {
-        log.info("Restoring post ID: {}", postId);
-
-        // 삭제 이력 조회
-        ForumPostHistory history = historyRepository.findByPostId(postId)
-                .orElseThrow(() -> new IllegalArgumentException("No history found for post ID: " + postId));
-
-        // 게시글 복구
-        ForumPost post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
-        post.setTitle(history.getTitle());
-        post.setContent(history.getContent());
-        post.setFileUrls(history.getFileUrls()); // 파일 URL 복구
-        postRepository.save(post);
-
-        // 복구 완료 후 삭제 이력 제거
-        historyRepository.delete(history);
-    }
+//    기능 중복 같기에 일단 주석처리. restorePost로 충분하다고 판단되면 추후 삭제.
+//    /**
+//     * 게시글 복구
+//     * 저장된 이력 데이터를 사용하여 삭제된 게시글을 복구
+//     *
+//     * @param postId 복구할 게시글 ID
+//     */
+//    @Transactional
+//    public void undeletePost(Integer postId) {
+//        log.info("Restoring post ID: {}", postId);
+//
+//        // 삭제 이력 조회
+//        ForumPostHistory history = historyRepository.findByPostId(postId)
+//                .orElseThrow(() -> new IllegalArgumentException("No history found for post ID: " + postId));
+//
+//        // 게시글 복구
+//        ForumPost post = postRepository.findById(postId)
+//                .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
+//        post.setTitle(history.getTitle());
+//        post.setContent(history.getContent());
+//        post.setFileUrls(history.getFileUrls()); // 파일 URL 복구
+//        postRepository.save(post);
+//
+//        // 복구 완료 후 삭제 이력 제거
+//        historyRepository.delete(history);
+//    }
 
 
     // canEditPost와 canDeletePost는 수정 및 삭제 권한을 사전에 확인하는 API

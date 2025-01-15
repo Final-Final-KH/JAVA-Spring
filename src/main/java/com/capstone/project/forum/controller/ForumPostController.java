@@ -115,17 +115,18 @@ public class ForumPostController {
         return ResponseEntity.ok().build(); // 성공 상태 반환
     }
 
-    /**
-     * 삭제된 게시글 복구
-     *
-     * @param postId 복구할 게시글 ID
-     * @return 성공 상태
-     */
-    @PostMapping("/{postId}/undelete")
-    public ResponseEntity<Void> undeletePost(@PathVariable Integer postId) {
-        postService.undeletePost(postId); // 삭제된 게시글 복구
-        return ResponseEntity.ok().build(); // 성공 상태 반환
-    }
+    // 서비스 레이어에서 undeletePost를 주석처리 했음. restorePost로 역할이 충분하기에 추후 확정되면 삭제.
+//    /**
+//     * 삭제된 게시글 복구
+//     *
+//     * @param postId 복구할 게시글 ID
+//     * @return 성공 상태
+//     */
+//    @PostMapping("/{postId}/undelete")
+//    public ResponseEntity<Void> undeletePost(@PathVariable Integer postId) {
+//        postService.undeletePost(postId); // 삭제된 게시글 복구
+//        return ResponseEntity.ok().build(); // 성공 상태 반환
+//    }
 
     // canEditPost와 canDeletePost는 수정 및 삭제 권한을 사전에 확인하는 API
     // 이는 프론트엔드가 수정/삭제 요청 전에 해당 사용자의 권한을 확인하기 위해 사용
@@ -226,5 +227,7 @@ public class ForumPostController {
         postService.reportPost(postId, reporterId, reason);
         return ResponseEntity.ok().build();
     }
+
+
 
 }
