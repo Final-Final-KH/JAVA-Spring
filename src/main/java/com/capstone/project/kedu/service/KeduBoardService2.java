@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,22 +67,34 @@ public class KeduBoardService2 {
     }
 
     // 게시글 업데이트
-    public boolean updateBoard(KeduBoardUpdateReqDTO2 keduBoardUpdateReqDTO2) {
-        try{
+    @Transactional
+    public boolean updateBoard(KeduBoardUpdateReqDTO2 keduBoardUpdateReqDTO2, int memberId) {
+        try {
+            // 게시글 조회
             KeduBoardEntity2 keduBoardEntity2 = keduBoardRepository2.findById(keduBoardUpdateReqDTO2.getId())
-                    .orElseThrow(()-> new RuntimeException("해당 게시물이 존재 하지 않습니다."));
-            KeduBoardEntity2 keduBoardEntity = new KeduBoardEntity2();
-            keduBoardEntity2.setId(keduBoardEntity2.getId());
+                    .orElseThrow(() -> new RuntimeException("해당 게시물이 존재하지 않습니다."));
+
+            // 게시글 작성자 확인
+            if (!keduBoardEntity2.getMember().getMemberId().equals(memberId)) {
+                throw new RuntimeException("게시글 수정 권한이 없습니다.");
+            }
+
+            // 게시글 수정
             keduBoardEntity2.setTitle(keduBoardUpdateReqDTO2.getTitle());
             keduBoardEntity2.setContent(keduBoardUpdateReqDTO2.getContent());
-            keduBoardEntity2.setRegDate(keduBoardUpdateReqDTO2.getRegDate());
+
+            // regDate는 수정하지 않음 (수정이 필요한 경우 수정 가능)
+            // keduBoardEntity2.setRegDate(keduBoardUpdateReqDTO2.getRegDate()); // regDate 수정 X
+
+            // 게시글 저장
             keduBoardRepository2.save(keduBoardEntity2);
             return true;
-        }catch (Exception e) {
-            log.error("게시글 정보 수정 : {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("게시글 정보 수정 실패 : {}", e.getMessage());
             return false;
         }
     }
+
 
     // 게시판 삭제
     public boolean deleteBoard(int memberId, Long id) {
@@ -225,29 +238,41 @@ public class KeduBoardService2 {
         }
     }
 
-    // 댓글 수정 댓글 생성이랑 같음
+    // 댓글 수정
+    @Transactional
     public boolean updateComment(Long boardId, KeduBoardCommentReqDTO2 keduBoardCommentReqDTO2, Long commentId) {
-        try{
+        try {
+            // 게시글 조회
             KeduBoardEntity2 keduBoardEntity2 = keduBoardRepository2.findById(boardId)
-                    .orElseThrow(()-> new RuntimeException("게시글이 존재 하지 않습니다."));
-            Member member = memberRepository.findById(keduBoardCommentReqDTO2.getMember_id())
-                    .orElseThrow(()-> new RuntimeException("회원 정보가 존재하지 않습니다."));
-            KeduBoardCommentEntity2 keduBoardCommentEntity2 = keduBoardCommentRepository2.findById(commentId)
-                    .orElseThrow(()-> new RuntimeException("해당 댓글이 존재 하지 않습니다."));
+                    .orElseThrow(() -> new RuntimeException("게시글이 존재하지 않습니다."));
 
-            KeduBoardCommentEntity2 keduBoardCommentEntity3 = new KeduBoardCommentEntity2();
-            keduBoardCommentEntity3.setBoard_comment_id(keduBoardCommentEntity2.getBoard_comment_id());
-            keduBoardCommentEntity3.setContent(keduBoardCommentReqDTO2.getContent());
-            keduBoardCommentEntity3.setMember(member);
-            keduBoardCommentEntity3.setKedu_board(keduBoardEntity2);
-            keduBoardEntity2.addComment(keduBoardCommentEntity3);
-            keduBoardRepository2.save(keduBoardEntity2);
+            // 회원 조회
+            Member member = memberRepository.findById(keduBoardCommentReqDTO2.getMember_id())
+                    .orElseThrow(() -> new RuntimeException("회원 정보가 존재하지 않습니다."));
+
+            // 댓글 조회
+            KeduBoardCommentEntity2 keduBoardCommentEntity2 = keduBoardCommentRepository2.findById(commentId)
+                    .orElseThrow(() -> new RuntimeException("해당 댓글이 존재하지 않습니다."));
+
+            // 댓글 작성자 확인
+            if (!keduBoardCommentEntity2.getMember().getMemberId().equals(keduBoardCommentReqDTO2.getMember_id())) {
+                throw new RuntimeException("댓글 수정 권한이 없습니다.");
+            }
+
+            // 댓글 수정
+            keduBoardCommentEntity2.setContent(keduBoardCommentReqDTO2.getContent());
+            keduBoardCommentEntity2.setMember(member);  // 필요시 수정된 회원 정보 설정
+
+            // 댓글 저장 (게시글 저장 필요없음)
+            keduBoardCommentRepository2.save(keduBoardCommentEntity2);
+
             return true;
-        }catch (Exception e) {
-            log.error("댓글 수정 실패 : {}",e.getMessage());
+        } catch (Exception e) {
+            log.error("댓글 수정 실패 : {}", e.getMessage());
             return false;
         }
     }
+
 
     // 대댓글 추가
     public boolean addCommentComment(KeduBoardCommentCommentReqDTO2 keduBoardCommentCommentReqDTO2) {
@@ -364,7 +389,15 @@ public class KeduBoardService2 {
             return null;
         }
     }
-
+    // 마이 페이지 작성한 게시물 조회
+    public List<KeduBoardResDTO2> myBoard(int memberId) {
+        List<KeduBoardEntity2> boards = keduBoardRepository2.findByMemberId(memberId);
+        List<KeduBoardResDTO2> boardResDTO2List = new ArrayList<>();
+        for (KeduBoardEntity2 keduBoardEntity2 : boards) {
+            boardResDTO2List.add(convertEntityToDto(keduBoardEntity2));
+        }
+        return boardResDTO2List;
+    }
     private KeduBoardResDTO2 convertEntityToDto(KeduBoardEntity2 keduBoardEntity) {
         KeduBoardResDTO2 keduBoardResDTO2 = new KeduBoardResDTO2();
 
@@ -381,6 +414,7 @@ public class KeduBoardService2 {
         keduBoardDetailResDTO2.setRegDate(keduBoardEntity2.getRegDate());
         return keduBoardDetailResDTO2;
     }
+
 
 
 }

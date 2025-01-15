@@ -25,4 +25,26 @@ public class AcademyCommentController {
         boolean isSuccess = academyCommentService2.create(academyCommentReqDTO2);
         return ResponseEntity.ok(isSuccess);
     }
+
+    @PostMapping("/list")
+    public Map<String, Object> list (@RequestParam(value = "academy_id") Long id){
+        Map<String, Object> resultMap = new HashMap<>();
+        List<AcademyCommentResDTO2> list = academyCommentService2.list(id);
+        resultMap.put("list", list);
+        return resultMap;
+    }
+
+    @PostMapping("/update")
+    public ResponseEntity<Boolean> update (@RequestBody AcademyCommentReqDTO2 academyCommentReqDTO2,
+                                           @RequestParam(value = "academy_comment_id") Long id){
+        boolean isSuccess = academyCommentService2.update(academyCommentReqDTO2,id);
+        return ResponseEntity.ok(isSuccess);
+    }
+
+    @PostMapping("/delete")
+    public ResponseEntity<Boolean> delete(@RequestParam(value = "academy_comment_id") Long comment_id,
+                                          @RequestParam(value = "member_id") int memberId){
+        boolean isSuccess = academyCommentService2.delete(comment_id, memberId);
+        return ResponseEntity.ok(isSuccess);
+    }
 }

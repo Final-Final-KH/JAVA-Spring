@@ -2,6 +2,7 @@ package com.capstone.project.kedu.service;
 
 import com.capstone.project.kedu.dto.edu.request.MyCourseDeleteReqDTO2;
 import com.capstone.project.kedu.dto.edu.request.MyCourseReqDTO2;
+import com.capstone.project.kedu.dto.edu.response.MyAcademyResDTO2;
 import com.capstone.project.kedu.dto.edu.response.MyCourseResDTO2;
 import com.capstone.project.kedu.entity.edu.AcademyEntity2;
 import com.capstone.project.kedu.entity.edu.CourseEntity2;
@@ -27,20 +28,36 @@ public class MyCourseService2 {
     private final CourseRepository2 courseRepository2;
     private final AcademyRepository2 academyRepository2;
     private final MyCourseRepository2 myCourseRepository2;
-    
+    @Transactional
+    public boolean addMyAcademy(MyCourseReqDTO2 myCourseReqDTO2) {
+        try{
+            Member member = memberRepository.findById(myCourseReqDTO2.getMember_id())
+                    .orElseThrow(()-> new RuntimeException("해당 회원이 존재하지 않습니다."));
+            AcademyEntity2 academyEntity2 = academyRepository2.findById(myCourseReqDTO2.getAcademy_id())
+                    .orElseThrow(()-> new RuntimeException("해당 학원이 존재하지 않습니다."));
+            MyCourseEntity2 myCourseEntity2 = new MyCourseEntity2();
+            myCourseEntity2.setMember(member);
+            myCourseEntity2.setAcademyEntity2(academyEntity2);
+            myCourseRepository2.save(myCourseEntity2);
+            return true;
+        } catch (Exception e ){
+            log.error("나의 학원 목록 등록 실패 : {}", e.getMessage());
+            return false;
+        }
+    }
+    // 수강 목록은 오히려 update가 되어야 할수도 있음
     @Transactional
     public boolean addMyCourse(MyCourseReqDTO2 myCourseReqDTO2) {
         try{
+            MyCourseEntity2 myCourseEntity2 = myCourseRepository2
+                    .findByMember_IdAndAcademyEntity2_AcademyId(myCourseReqDTO2.getMember_id(),myCourseReqDTO2.getAcademy_id());
             Member member = memberRepository.findById(myCourseReqDTO2.getMember_id())
                     .orElseThrow(()-> new RuntimeException("해당 회원이 존재하지 않습니다."));
             CourseEntity2 courseEntity2 = courseRepository2.findById(myCourseReqDTO2
                     .getCourse_id()).orElseThrow(()->new RuntimeException("해당 강의가 존재 하지 않습니다."));
             AcademyEntity2 academyEntity2 = academyRepository2.findById(myCourseReqDTO2.getAcademy_id())
                     .orElseThrow(()->new RuntimeException("해당 학원이 존재 하지 않습니다."));
-            MyCourseEntity2 myCourseEntity2 = new MyCourseEntity2();
             myCourseEntity2.setMember(member);
-            myCourseEntity2.setCourse(myCourseReqDTO2.getCourse());
-            myCourseEntity2.setAcademy(myCourseReqDTO2.getAcademy());
             myCourseEntity2.setCourseEntity2(courseEntity2);
             myCourseEntity2.setAcademyEntity2(academyEntity2);
             myCourseRepository2.save(myCourseEntity2);
@@ -65,10 +82,33 @@ public class MyCourseService2 {
         }
     }
 
-    public List<MyCourseResDTO2> seach_my_course(int memberId) {
+    // 나의 강의 조회
+    public List<MyCourseResDTO2> search_my_course(int memberId) {
         List<MyCourseEntity2> myCourseEntity2 =  myCourseRepository2.findByMemberId(memberId);
         return convertEntityToDto(myCourseEntity2);
     }
+
+    // 나의 학원 조회
+    public List<MyAcademyResDTO2> myAcademy(int memberId) {
+        List<MyCourseEntity2> myCourseEntity2s = myCourseRepository2.findByMemberId(memberId);
+        System.out.println("myCourseEntity2s size: " + myCourseEntity2s.size());  // 로그 추가
+        return convertAcademyEntityToDto(myCourseEntity2s);
+    }
+
+    private List<MyAcademyResDTO2> convertAcademyEntityToDto(List<MyCourseEntity2> myCourseEntity2s) {
+        List<MyAcademyResDTO2> myAcademyResDTO2s = new ArrayList<>();
+        for (MyCourseEntity2 myCourseEntity2 : myCourseEntity2s) {
+            MyAcademyResDTO2 myAcademyResDTO2 = new MyAcademyResDTO2();
+            myAcademyResDTO2.setMember_id(myCourseEntity2.getMember().getMemberId());
+            myAcademyResDTO2.setAcademy(myCourseEntity2.getAcademyEntity2().getAcademyName());
+            myAcademyResDTO2.setAcademy_id(myCourseEntity2.getAcademyEntity2().getAcademyId());
+
+            // List에 객체 추가
+            myAcademyResDTO2s.add(myAcademyResDTO2);
+        }
+        return myAcademyResDTO2s;
+    }
+
 
     public List<MyCourseResDTO2> convertEntityToDto(List<MyCourseEntity2> myCourseEntity){
 
@@ -77,14 +117,11 @@ public class MyCourseService2 {
         for(MyCourseEntity2 myCourseEntity2 : myCourseEntity){
             MyCourseResDTO2 myCourseResDTO2 = new MyCourseResDTO2();
 
-            myCourseResDTO2.setAcademy(myCourseEntity2.getAcademy());
-            myCourseResDTO2.setCourse(myCourseEntity2.getCourse());
-            myCourseResDTO2.setCourse_id(myCourseEntity2.getCourseEntity2().getCourseId());
             myCourseResDTO2.setAcademy_id(myCourseEntity2.getAcademyEntity2().getAcademyId());
+            myCourseResDTO2.setCourse_id(myCourseEntity2.getCourseEntity2().getCourseId());
             myCourseResDTO.add(myCourseResDTO2);
         }
 
         return myCourseResDTO;
     }
-
 }

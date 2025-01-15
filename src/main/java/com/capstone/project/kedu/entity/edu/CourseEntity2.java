@@ -1,5 +1,6 @@
 package com.capstone.project.kedu.entity.edu;
 
+import com.capstone.project.kedu.entity.survey.SurveyEntity2;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -29,8 +30,9 @@ public class CourseEntity2 {
 
     private String region;
 
-    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true )
+    @OneToMany(mappedBy = "courseEntity2", cascade = CascadeType.ALL, orphanRemoval = true )
     private List<MyCourseEntity2> myCourse = new ArrayList<>();
 
-
+    @OneToMany(mappedBy = "courseEntity2", cascade = CascadeType.ALL, orphanRemoval = true )
+    private List<SurveyEntity2> survey = new ArrayList<>();
 }

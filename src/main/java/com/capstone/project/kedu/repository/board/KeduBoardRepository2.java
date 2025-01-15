@@ -18,6 +18,8 @@ public interface KeduBoardRepository2 extends JpaRepository<KeduBoardEntity2, Lo
     @Modifying
     @Query("DELETE FROM KeduBoardEntity2 k WHERE k.id = :id AND k.member.id = :memberId")
     void deleteByIdAndMemberId(@Param("id") Long id, @Param("memberId") int memberId);
+
+    List<KeduBoardEntity2> findByMemberId(int memberId);
 }
 
 

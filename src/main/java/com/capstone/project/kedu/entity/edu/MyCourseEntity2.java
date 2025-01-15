@@ -16,12 +16,12 @@ import javax.persistence.*;
 @NoArgsConstructor
 public class MyCourseEntity2 {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long list_id;
 
-    private String academy;
+    private String academy_name;
 
-    private String course;
+    private String course_name;
 
     @ManyToOne
     @JoinColumn(name = "academy_id")
