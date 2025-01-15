@@ -71,7 +71,8 @@ public class MyCourseController2 {
     public ResponseEntity<Boolean> check_academy(
             @RequestParam(value = "academy_id") Long academyId,
             @RequestParam(value = "member_id") int memberId) {
-
+        log.info("체크 시 아카데미 아이디 : {}", academyId);
+        log.info("체크 시 멤버 아이디 : {}", memberId);
         boolean isSuccess = myCourseService2.check_academy(academyId, memberId);
         return ResponseEntity.ok(!isSuccess);
     }
