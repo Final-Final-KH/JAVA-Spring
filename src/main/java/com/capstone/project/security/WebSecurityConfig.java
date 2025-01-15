@@ -68,7 +68,10 @@ public class WebSecurityConfig implements WebMvcConfigurer {
                 .antMatchers("/api/**").permitAll()
 //                .antMatchers("/api/news").authenticated() 로그인 검증시키고 싶으면 해당 주소에 authenticated() 적용
                 .antMatchers("/news").permitAll()
-                .antMatchers("/course/**", "/lecture/**","/edu/**").permitAll()// 로그인하여 인증된 사용자만
+                .antMatchers("/course/**",
+                        "/academy_comment/**","/my_page/**", "/auth/**","/my_course/**",
+                        "/course_comment/**","/board_comment_comment/**","/board_comment/**",
+                        "/kedu_board/**","/survey/**").permitAll()// 로그인하여 인증된 사용자만 되도록 추후 변경
                 .antMatchers("/admin/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .antMatchers("/favicon.ico","/manifest.json").permitAll()
