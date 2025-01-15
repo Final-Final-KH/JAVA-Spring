@@ -31,6 +31,7 @@ public class Member {
     @Column(name = "member_id")
     private Integer id; // 회원 ID
 
+
     @Column(nullable = false, unique = true, length = 100)
     private String email; // 이메일 (로그인 ID)
 

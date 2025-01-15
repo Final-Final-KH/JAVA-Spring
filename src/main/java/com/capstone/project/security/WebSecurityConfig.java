@@ -74,7 +74,7 @@ public class WebSecurityConfig implements WebMvcConfigurer {
                         "/kedu_board/**","/survey/**").permitAll()// 로그인하여 인증된 사용자만 되도록 추후 변경
                 .antMatchers("/admin/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .antMatchers("/favicon.ico","/manifest.json").permitAll()
+                .antMatchers("/favicon.ico", "/manifest.json").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .apply(new JwtSecurityConfig(tokenProvider));
