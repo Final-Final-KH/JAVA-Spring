@@ -184,9 +184,29 @@ public class ForumPostCommentService {
     /**
      * 댓글 수정
      *
+     * 주어진 댓글 ID를 사용하여 댓글을 조회하고, 숨김 또는 삭제된 상태가 아닌 경우
+     * 새로운 내용으로 업데이트합니다. 업데이트 후 수정된 댓글 정보를 반환.
+     *
+     * <p><b>처리 절차:</b></p>
+     * <ol>
+     *     <li>댓글 ID로 댓글 조회</li>
+     *     <li>숨김 또는 삭제된 상태인지 확인</li>
+     *     <li>댓글 내용을 새로운 내용으로 업데이트</li>
+     *     <li>수정된 시간(updatedAt) 갱신</li>
+     *     <li>수정된 댓글을 저장 후 Response DTO로 반환</li>
+     * </ol>
+     *
+     * <p><b>예외 처리:</b></p>
+     * <ul>
+     *     <li>댓글 ID가 유효하지 않은 경우 {@link IllegalArgumentException} 발생</li>
+     *     <li>숨김 또는 삭제된 댓글일 경우 {@link IllegalStateException} 발생</li>
+     * </ul>
+     *
      * @param commentId 수정할 댓글 ID
      * @param newContent 새로운 댓글 내용
-     * @return 수정된 댓글 정보
+     * @return 수정된 댓글 정보 (DTO 형태)
+     * @throws IllegalArgumentException 유효하지 않은 댓글 ID일 경우 발생
+     * @throws IllegalStateException 숨김 또는 삭제된 댓글을 수정하려는 경우 발생
      */
     @Transactional
     public ForumPostCommentResponseDto updateComment(Integer commentId, String newContent) {
@@ -206,6 +226,7 @@ public class ForumPostCommentService {
         comment.setUpdatedAt(LocalDateTime.now()); // 수정 시간 갱신
         ForumPostComment updatedComment = commentRepository.save(comment); // 저장
 
+        // Response DTO 반환
         return new ForumPostCommentResponseDto(
                 updatedComment.getId(),
                 updatedComment.getContent(),
@@ -216,6 +237,7 @@ public class ForumPostCommentService {
                 updatedComment.getCreatedAt()
         );
     }
+
 
     /**
      * 댓글 삭제 (히스토리 생성 포함)
@@ -347,29 +369,30 @@ public class ForumPostCommentService {
         log.info("Comment ID: {} successfully restored.", commentId);
     }
 
-
-    /**
-     * 댓글 삭제 취소 (복구)
-     * 삭제된 댓글을 원래 상태로 복원
-     *
-     * @param commentId 복구할 댓글 ID
-     */
-    @Transactional
-    public void undeleteComment(Integer commentId) {
-        log.info("Undeleting comment ID: {}", commentId);
-
-        ForumPostComment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
-
-        if ("[Removed]".equals(comment.getContent())) {
-            comment.setContent("This comment has been restored."); // 원래 내용 복구 (임시 메시지)
-            comment.setRemovedBy(null); // 삭제자 정보 초기화
-            commentRepository.save(comment);
-            log.info("Comment ID: {} has been undeleted.", commentId);
-        } else {
-            log.warn("Comment ID: {} is not in a deleted state.", commentId);
-        }
-    }
+//    게시글/포스팅쪽 이랑 동일한 문제. 중복된 기능으로 판단되서 주석처리
+    // 추후에 확정되면 삭제 처리
+//    /**
+//     * 댓글 삭제 취소 (복구)
+//     * 삭제된 댓글을 원래 상태로 복원
+//     *
+//     * @param commentId 복구할 댓글 ID
+//     */
+//    @Transactional
+//    public void undeleteComment(Integer commentId) {
+//        log.info("Undeleting comment ID: {}", commentId);
+//
+//        ForumPostComment comment = commentRepository.findById(commentId)
+//                .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
+//
+//        if ("[Removed]".equals(comment.getContent())) {
+//            comment.setContent("This comment has been restored."); // 원래 내용 복구 (임시 메시지)
+//            comment.setRemovedBy(null); // 삭제자 정보 초기화
+//            commentRepository.save(comment);
+//            log.info("Comment ID: {} has been undeleted.", commentId);
+//        } else {
+//            log.warn("Comment ID: {} is not in a deleted state.", commentId);
+//        }
+//    }
 
     /**
      * 특정 댓글의 삭제 히스토리 가져오기
