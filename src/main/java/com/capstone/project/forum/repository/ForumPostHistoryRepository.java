@@ -18,4 +18,11 @@ public interface ForumPostHistoryRepository extends JpaRepository<ForumPostHisto
      */
     Optional<ForumPostHistory> findByPostId(Integer postId);
 
+    /**
+     * 게시글 ID로 가장 최근 삭제된 게시글 이력을 조회
+     *
+     * @param postId 게시글 ID
+     * @return 가장 최근 삭제된 게시글 이력 Optional
+     */
+    Optional<ForumPostHistory> findTopByPostIdOrderByDeletedAtDesc(Integer postId);
 }

@@ -100,14 +100,32 @@ public class ForumPostCommentController {
      * 댓글 삭제
      *
      * @param id 삭제할 댓글 ID
+     * @param loggedInMemberId 요청 사용자 ID
      * @return 성공 상태
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteComment(
             @PathVariable Integer id,
-            @RequestParam(defaultValue = "OP") String removedBy // Default is "OP"
+            @RequestParam Integer loggedInMemberId
     ) {
-        commentService.deleteComment(id, removedBy);
+        commentService.deleteComment(id, loggedInMemberId);
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 댓글 신고
+     *
+     * @param commentId 신고 대상 댓글 ID
+     * @param reporterId 신고자 ID
+     * @param reason 신고 사유
+     * @return 성공 상태
+     */
+    @PostMapping("/{commentId}/report")
+    public ResponseEntity<Void> reportComment(
+            @PathVariable Integer commentId,
+            @RequestParam Integer reporterId,
+            @RequestBody String reason) {
+        commentService.reportComment(commentId, reporterId, reason);
         return ResponseEntity.ok().build();
     }
 
