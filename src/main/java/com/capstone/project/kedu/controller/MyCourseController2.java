@@ -76,6 +76,14 @@ public class MyCourseController2 {
         boolean isSuccess = myCourseService2.check_academy(academyId, memberId);
         return ResponseEntity.ok(!isSuccess);
     }
+    // 나의 강의 등록 여부 확인
+    @GetMapping("/check_course")
+    public ResponseEntity<Boolean> check_course(
+            @RequestParam(value = "course_id") Long courseId,
+            @RequestParam(value = "member_id") int member_id){
+        boolean isSuccess = myCourseService2.check_course(courseId, member_id);
+        return ResponseEntity.ok(isSuccess);
+    }
 
 
 
