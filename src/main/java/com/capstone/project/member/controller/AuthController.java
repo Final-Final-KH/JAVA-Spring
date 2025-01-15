@@ -4,6 +4,7 @@ import com.capstone.project.member.dto.TokenDto;
 import com.capstone.project.member.dto.request.LoginRequestDto;
 import com.capstone.project.member.dto.request.MemberRequestDto;
 import com.capstone.project.member.dto.response.MemberResponseDto;
+import com.capstone.project.member.entity.Member;
 import com.capstone.project.member.service.AuthService;
 import com.capstone.project.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
@@ -68,4 +71,5 @@ public class AuthController {
         memberService.deleteAccount(authentication.getName());
         return ResponseEntity.ok().build();
     }
+
 }
