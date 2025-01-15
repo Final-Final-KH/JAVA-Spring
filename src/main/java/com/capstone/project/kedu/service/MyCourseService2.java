@@ -120,6 +120,10 @@ public class MyCourseService2 {
     public boolean check_academy(Long academyId, int memberId) {
         return myCourseRepository2.existsByMember_IdAndAcademyEntity2_AcademyId(memberId, academyId);
     }
+    // 강의 등록 여부 조회
+    public boolean check_course(Long courseId, int memberId) {
+        return myCourseRepository2.existsByMember_IdAndCourseEntity2_CourseId(memberId, courseId);
+    }
 
     private List<MyAcademyResDTO2> convertAcademyEntityToDto(List<MyCourseEntity2> myCourseEntity2s) {
         List<MyAcademyResDTO2> myAcademyResDTO2s = new ArrayList<>();
@@ -150,6 +154,7 @@ public class MyCourseService2 {
 
         return myCourseResDTO;
     }
+
 
 
 }
