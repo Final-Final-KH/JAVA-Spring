@@ -66,5 +66,16 @@ public class MyCourseController2 {
         resultMap.put("list",list);
         return resultMap;
     }
+    // 나의 학원 등록 여부 조회
+    @GetMapping("/check_academy")
+    public ResponseEntity<Boolean> check_academy(
+            @RequestParam(value = "academy_id") Long academyId,
+            @RequestParam(value = "member_id") int memberId) {
+
+        boolean isSuccess = myCourseService2.check_academy(academyId, memberId);
+        return ResponseEntity.ok(!isSuccess);
+    }
+
+
 
 }

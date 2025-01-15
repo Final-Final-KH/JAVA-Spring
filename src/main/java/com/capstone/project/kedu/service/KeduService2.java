@@ -172,10 +172,10 @@ public class KeduService2 {
 
     public LectureResDTO2 convertEntityToLectureResDto(CourseEntity2 courseEntity){
         LectureResDTO2 lectureResDTO2 = new LectureResDTO2();
-        lectureResDTO2.setCourse_name(courseEntity.getCourseName());
+        lectureResDTO2.setCourse_id(courseEntity.getCourseId());
+        lectureResDTO2.setAcademy(courseEntity.getAcademy());
         lectureResDTO2.setCourse_name(courseEntity.getCourseName());
         lectureResDTO2.setRegion(courseEntity.getRegion());
-
         return lectureResDTO2;
     }
 

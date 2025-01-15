@@ -38,6 +38,7 @@ public class MyCourseService2 {
             MyCourseEntity2 myCourseEntity2 = new MyCourseEntity2();
             myCourseEntity2.setMember(member);
             myCourseEntity2.setAcademyEntity2(academyEntity2);
+            myCourseEntity2.setAcademy_name(myCourseReqDTO2.getAcademy());
             myCourseRepository2.save(myCourseEntity2);
             return true;
         } catch (Exception e ){
@@ -48,25 +49,46 @@ public class MyCourseService2 {
     // 수강 목록은 오히려 update가 되어야 할수도 있음
     @Transactional
     public boolean addMyCourse(MyCourseReqDTO2 myCourseReqDTO2) {
-        try{
+        try {
+            // 동일한 member_id와 academy_id로 수강 목록을 찾되, course_id가 다르면 새로운 수강 기록으로 처리
             MyCourseEntity2 myCourseEntity2 = myCourseRepository2
-                    .findByMember_IdAndAcademyEntity2_AcademyId(myCourseReqDTO2.getMember_id(),myCourseReqDTO2.getAcademy_id());
-            Member member = memberRepository.findById(myCourseReqDTO2.getMember_id())
-                    .orElseThrow(()-> new RuntimeException("해당 회원이 존재하지 않습니다."));
-            CourseEntity2 courseEntity2 = courseRepository2.findById(myCourseReqDTO2
-                    .getCourse_id()).orElseThrow(()->new RuntimeException("해당 강의가 존재 하지 않습니다."));
-            AcademyEntity2 academyEntity2 = academyRepository2.findById(myCourseReqDTO2.getAcademy_id())
-                    .orElseThrow(()->new RuntimeException("해당 학원이 존재 하지 않습니다."));
-            myCourseEntity2.setMember(member);
-            myCourseEntity2.setCourseEntity2(courseEntity2);
-            myCourseEntity2.setAcademyEntity2(academyEntity2);
-            myCourseRepository2.save(myCourseEntity2);
-            return true;
-        } catch (Exception e ){
+                    .findByMember_IdAndAcademyEntity2_AcademyIdAndCourseEntity2_CourseId(
+                            myCourseReqDTO2.getMember_id(),
+                            myCourseReqDTO2.getAcademy_id(),
+                            myCourseReqDTO2.getCourse_id()
+                    );
+
+            if (myCourseEntity2 == null) { // 기존에 해당 수강 기록이 없으면
+                Member member = memberRepository.findById(myCourseReqDTO2.getMember_id())
+                        .orElseThrow(() -> new RuntimeException("해당 회원이 존재하지 않습니다."));
+                CourseEntity2 courseEntity2 = courseRepository2.findById(myCourseReqDTO2.getCourse_id())
+                        .orElseThrow(() -> new RuntimeException("해당 강의가 존재하지 않습니다."));
+                AcademyEntity2 academyEntity2 = academyRepository2.findById(myCourseReqDTO2.getAcademy_id())
+                        .orElseThrow(() -> new RuntimeException("해당 학원이 존재하지 않습니다."));
+                // 새로운 수강 기록을 생성
+                myCourseEntity2 = new MyCourseEntity2();
+                myCourseEntity2.setMember(member);
+                myCourseEntity2.setCourseEntity2(courseEntity2);
+                myCourseEntity2.setAcademyEntity2(academyEntity2);
+                myCourseEntity2.setCourse_name(myCourseReqDTO2.getCourse());
+                myCourseEntity2.setAcademy_name(myCourseReqDTO2.getAcademy());
+
+
+                // 새로운 수강 기록 저장
+                myCourseRepository2.save(myCourseEntity2);
+                return true;
+            } else {
+                // 이미 동일한 member_id, academy_id, course_id로 존재하는 수강 기록이 있으면 업데이트하지 않음
+                log.info("이미 동일한 수강 기록이 존재합니다.");
+                return false;
+            }
+
+        } catch (Exception e) {
             log.error("나의 수강 목록 등록 실패 : {}", e.getMessage());
             return false;
         }
     }
+
 
     public boolean deleteMyCourse(MyCourseDeleteReqDTO2 myCourseReqDTO2) {
         try{
@@ -93,6 +115,10 @@ public class MyCourseService2 {
         List<MyCourseEntity2> myCourseEntity2s = myCourseRepository2.findByMemberId(memberId);
         System.out.println("myCourseEntity2s size: " + myCourseEntity2s.size());  // 로그 추가
         return convertAcademyEntityToDto(myCourseEntity2s);
+    }
+    // 학원 등록 여부 조회
+    public boolean check_academy(Long academyId, int memberId) {
+        return myCourseRepository2.existsByMember_IdAndAcademyEntity2_AcademyId(memberId, academyId);
     }
 
     private List<MyAcademyResDTO2> convertAcademyEntityToDto(List<MyCourseEntity2> myCourseEntity2s) {
@@ -124,4 +150,6 @@ public class MyCourseService2 {
 
         return myCourseResDTO;
     }
+
+
 }

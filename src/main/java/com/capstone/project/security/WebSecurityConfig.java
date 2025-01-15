@@ -48,7 +48,8 @@ public class WebSecurityConfig implements WebMvcConfigurer {
     @Bean // SecurityFilterChain 객체를 Bean으로 등록
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-
+                .cors()
+                .and()
                 .httpBasic()
                 .and()
                 .csrf().disable()
@@ -66,7 +67,10 @@ public class WebSecurityConfig implements WebMvcConfigurer {
                 .antMatchers("/api/auth/**").permitAll()
                 .antMatchers("/api/**").permitAll()
                 .antMatchers("/news").permitAll()
-                .antMatchers("/course/**", "/lecture/**","/edu/**").permitAll()// 로그인하여 인증된 사용자만
+                .antMatchers("/course/**",
+                        "/academy_comment/**","/my_page/**", "/auth/**","/my_course/**",
+                        "/course_comment/**","/board_comment_comment/**","/board_comment/**",
+                        "/kedu_board/**","/survey/**").permitAll()// 로그인하여 인증된 사용자만 되도록 추후 변경
                 .antMatchers("/admin/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .antMatchers("/favicon.ico","/manifest.json").permitAll()
