@@ -23,4 +23,6 @@ public interface MyCourseRepository2 extends JpaRepository<MyCourseEntity2, Long
     boolean existsByMember_IdAndAcademyEntity2_AcademyId(int memberId, Long academyId);
 
     boolean existsByMember_IdAndCourseEntity2_CourseId(int memberId, Long courseId);
+
+    List<MyCourseEntity2> findByMember_IdAndAcademyEntity2_AcademyId(int memberId, Long academyId);
 }

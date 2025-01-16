@@ -109,7 +109,11 @@ public class MyCourseService2 {
         List<MyCourseEntity2> myCourseEntity2 =  myCourseRepository2.findByMemberId(memberId);
         return convertEntityToDto(myCourseEntity2);
     }
-
+    // 나의 강의 조회
+    public List<MyCourseResDTO2> myCourse(int memberId, Long academy_id) {
+        List<MyCourseEntity2> myCourseEntity2s = myCourseRepository2.findByMember_IdAndAcademyEntity2_AcademyId(memberId,academy_id);
+        return convertMyCourseEntityToDto(myCourseEntity2s);
+    }
     // 나의 학원 조회
     public List<MyAcademyResDTO2> myAcademy(int memberId) {
         List<MyCourseEntity2> myCourseEntity2s = myCourseRepository2.findByMemberId(memberId);
@@ -139,7 +143,21 @@ public class MyCourseService2 {
         return myAcademyResDTO2s;
     }
 
+    private List<MyCourseResDTO2> convertMyCourseEntityToDto(List<MyCourseEntity2> myCourseEntity2s) {
+        List<MyCourseResDTO2> myCourseResDTO2s = new ArrayList<>();
+        for(MyCourseEntity2 myCourseEntity2 : myCourseEntity2s){
+            MyCourseResDTO2 myCourseResDTO2 = new MyCourseResDTO2();
 
+            myCourseResDTO2.setCourse(myCourseEntity2.getCourse_name());
+            myCourseResDTO2.setMember_id(myCourseEntity2.getMember().getMemberId());
+            myCourseResDTO2.setAcademy(myCourseEntity2.getAcademy_name());
+            myCourseResDTO2.setList_id(myCourseEntity2.getList_id());
+            myCourseResDTO2.setCourse_id(myCourseEntity2.getCourseEntity2().getCourseId());
+            myCourseResDTO2.setAcademy_id(myCourseEntity2.getAcademyEntity2().getAcademyId());
+            myCourseResDTO2s.add(myCourseResDTO2);
+        }
+        return myCourseResDTO2s;
+    }
     public List<MyCourseResDTO2> convertEntityToDto(List<MyCourseEntity2> myCourseEntity){
 
         List<MyCourseResDTO2> myCourseResDTO = new ArrayList<>();
@@ -154,7 +172,4 @@ public class MyCourseService2 {
 
         return myCourseResDTO;
     }
-
-
-
 }
