@@ -56,6 +56,9 @@ public class ForumPostComment {
     @Column(name = "removed_by")
     private String removedBy; // 댓글 삭제자 정보 ("OP", "ADMIN", "SYSTEM")
 
+    @Column(name = "file_url")
+    private String fileUrl; // 첨부 파일 URL (단일 파일 지원)
+
     /**
      * 대댓글(답글) 구현을 위한 부모 댓글 참조
      */

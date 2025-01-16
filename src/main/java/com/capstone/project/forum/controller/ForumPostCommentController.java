@@ -6,6 +6,8 @@ import com.capstone.project.forum.service.ForumPostCommentService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/forums/comments")
 @RequiredArgsConstructor
+@Slf4j
 public class ForumPostCommentController {
 
     private final ForumPostCommentService commentService; // 댓글 서비스 의존성 주입
@@ -35,38 +38,34 @@ public class ForumPostCommentController {
     }
 
     /**
-     * 댓글 추가
+     * 댓글 생성
      *
-     * @param requestDto 댓글 생성 요청 데이터
+     * @param requestDto 댓글 생성 요청 DTO
      * @return 생성된 댓글 정보
      */
     @PostMapping
-    public ResponseEntity<ForumPostCommentResponseDto> createComment(@RequestBody ForumPostCommentRequestDto requestDto) {
-        // Service 호출로 댓글 생성 및 반환
-        return ResponseEntity.ok(commentService.createComment(requestDto));
+    public ResponseEntity<ForumPostCommentResponseDto> createComment(
+            @RequestBody ForumPostCommentRequestDto requestDto) {
+        log.info("Creating comment for post ID: {}", requestDto.getPostId());
+        ForumPostCommentResponseDto responseDto = commentService.createComment(requestDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
 
     /**
      * 댓글 수정
      *
-     * @param commentId 수정할 댓글의 ID (경로 변수)
-     * @param newContent 새롭게 수정할 댓글 내용 (요청 본문)
-     *                   요청 본문은 단순 텍스트 또는 JSON 형식으로 받을 수 있다.
-     *                   JSON 형식 예: {"newContent": "수정된 댓글 내용"}
-     * @return 수정된 댓글 정보 (ForumPostCommentResponseDto)
-     *         수정된 댓글의 ID, 내용, 작성자, 좋아요 수, 숨김 여부, 삭제자, 생성일이 포함된 응답을 반환.
-     * @apiNote 이 메서드는 댓글의 내용을 수정하기 위한 API로, 댓글 ID와 새로운 내용을 입력받아 댓글을 업데이트.
-     *         요청 본문에서 JSON 형식과 단순 텍스트를 모두 처리할 수 있도록 확장되었다.
+     * @param commentId 수정할 댓글 ID
+     * @param newContent 수정할 댓글 내용 (JSON 또는 단순 텍스트)
+     * @return 수정된 댓글 정보
      */
     @PutMapping("/{commentId}")
     public ResponseEntity<ForumPostCommentResponseDto> updateComment(
-            @PathVariable Integer commentId, // 댓글 ID를 경로 변수로 전달받음
-            @RequestBody String newContent // 수정할 댓글 내용을 본문으로 전달받음
+            @PathVariable Integer commentId,
+            @RequestBody String newContent
     ) {
-        // 요청 본문에서 JSON 형식 제거 또는 단순 텍스트 처리
+        // JSON 및 단순 텍스트 처리
         String sanitizedContent;
         if (newContent.trim().startsWith("{") && newContent.trim().endsWith("}")) {
-            // JSON 형식인 경우: JSON 필드 추출
             try {
                 ObjectMapper objectMapper = new ObjectMapper();
                 JsonNode jsonNode = objectMapper.readTree(newContent);
@@ -75,21 +74,17 @@ public class ForumPostCommentController {
                 throw new IllegalArgumentException("Invalid JSON format for newContent");
             }
         } else {
-            // 단순 텍스트인 경우: 그대로 사용
             sanitizedContent = newContent.trim();
         }
 
-        // 내용이 비어 있는지 확인
         if (sanitizedContent == null || sanitizedContent.isEmpty()) {
             throw new IllegalArgumentException("Content cannot be empty.");
         }
 
-        // 서비스 레이어를 호출하여 댓글을 수정하고 수정된 댓글 정보를 반환받음
         ForumPostCommentResponseDto updatedComment = commentService.updateComment(commentId, sanitizedContent);
-
-        // HTTP 200 OK 상태와 함께 수정된 댓글 정보를 응답으로 반환
         return ResponseEntity.ok(updatedComment);
     }
+
 
 
 
@@ -199,6 +194,8 @@ public class ForumPostCommentController {
         // Service 호출로 게시글(OP)에 대한 답글 생성
         return ResponseEntity.ok(commentService.replyToPost(postId, requestDto));
     }
+
+
 
 
 }

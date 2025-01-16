@@ -3,10 +3,18 @@ package com.capstone.project.forum.controller;
 import com.capstone.project.forum.dto.request.ForumPostRequestDto;
 import com.capstone.project.forum.dto.response.ForumPostResponseDto;
 import com.capstone.project.forum.dto.response.PaginationDto;
+import com.capstone.project.forum.service.FileService;
 import com.capstone.project.forum.service.ForumPostService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * 게시글 컨트롤러 클래스
@@ -15,9 +23,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/forums/posts")
 @RequiredArgsConstructor
+@Slf4j
 public class ForumPostController {
 
     private final ForumPostService postService; // Service 계층 의존성 주입
+    private final FileService fileService;
 
     /**
      * 특정 카테고리의 게시글 가져오기 (페이지네이션)
@@ -43,32 +53,60 @@ public class ForumPostController {
     /**
      * 게시글 생성
      *
-     * @param requestDto 게시글 생성 요청 데이터
+     * @param requestDto 게시글 데이터 (제목, 내용, 카테고리 ID 등)
      * @return 생성된 게시글 정보
      */
     @PostMapping
-    public ResponseEntity<ForumPostResponseDto> createPost(@RequestBody ForumPostRequestDto requestDto) {
-        return ResponseEntity.ok(postService.createPost(requestDto)); // 게시글 생성 로직 호출
+    public ResponseEntity<?> createPost(@RequestBody ForumPostRequestDto requestDto) {
+        log.info("Creating post with title: {}", requestDto.getTitle());
+
+        // Validate required fields
+        if (requestDto.getMemberId() == null) {
+            return ResponseEntity.badRequest().body("Member ID is required.");
+        }
+        if (requestDto.getCategoryId() == null) {
+            return ResponseEntity.badRequest().body("Category ID is required.");
+        }
+        if (requestDto.getTitle() == null || requestDto.getTitle().isEmpty()) {
+            return ResponseEntity.badRequest().body("Title is required.");
+        }
+        if (requestDto.getContent() == null || requestDto.getContent().isEmpty()) {
+            return ResponseEntity.badRequest().body("Content is required.");
+        }
+
+        try {
+            ForumPostResponseDto responseDto = postService.createPost(requestDto);
+            return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
+        } catch (IllegalArgumentException e) {
+            log.error("Error creating post: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Unexpected error creating post", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
+        }
     }
+
 
     /**
      * 게시글 수정
      *
-     * @param id 수정할 게시글 ID
-     * @param requestDto 수정 요청 데이터
-     * @param loggedInMemberId 현재 로그인된 사용자 ID
-     * @param isAdmin 현재 사용자가 관리자 여부
+     * @param postId 수정할 게시글 ID
+     * @param requestDto 수정할 게시글 데이터
+     * @param loggedInMemberId 수정 요청 사용자 ID
+     * @param isAdmin 관리자 여부
      * @return 수정된 게시글 정보
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<ForumPostResponseDto> editPost(
-            @PathVariable Integer id,
-            @RequestBody ForumPostRequestDto requestDto,
+    @PutMapping("/{postId}")
+    public ResponseEntity<ForumPostResponseDto> updatePost(
+            @PathVariable Integer postId,
+            @RequestBody ForumPostRequestDto requestDto, // DTO 본문으로 전달
             @RequestParam Integer loggedInMemberId,
-            @RequestParam boolean isAdmin
-    ) {
-        return ResponseEntity.ok(postService.updatePost(id, requestDto, loggedInMemberId, isAdmin)); // 수정 메서드 호출
+            @RequestParam boolean isAdmin) {
+        log.info("Updating post ID: {}", postId);
+        ForumPostResponseDto responseDto = postService.updatePost(postId, requestDto, loggedInMemberId, isAdmin);
+        return ResponseEntity.ok(responseDto);
     }
+
 
     /**
      * 게시글 삭제
@@ -227,7 +265,6 @@ public class ForumPostController {
         postService.reportPost(postId, reporterId, reason);
         return ResponseEntity.ok().build();
     }
-
 
 
 }

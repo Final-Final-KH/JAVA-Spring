@@ -2,6 +2,8 @@ package com.capstone.project.forum.dto.request;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 새로운 게시글 생성을 위한 요청 DTO
  */
@@ -12,4 +14,7 @@ public class ForumPostRequestDto {
     private String title; // 게시글 제목
     private String content; // 게시글 내용
     private Boolean sticky; // 상단 고정 여부
+
+    private List<String> fileUrls; // 첨부 파일 URL 목록 (단일 또는 다중 모두 가능)
 }
+

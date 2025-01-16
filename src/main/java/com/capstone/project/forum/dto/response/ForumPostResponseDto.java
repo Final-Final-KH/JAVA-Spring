@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 게시글 응답 DTO
@@ -26,4 +27,6 @@ public class ForumPostResponseDto {
     private String removedBy; // 삭제자 정보
     private LocalDateTime createdAt; // 생성 시간
     private LocalDateTime updatedAt; // 수정 시간
+    private List<String> fileUrls; // 첨부 파일 URL 목록 (단일 또는 다중 모두 가능)
 }
+

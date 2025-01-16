@@ -22,4 +22,6 @@ public class ForumPostCommentResponseDto {
     private Boolean hidden; // 숨김 여부
     private String removedBy; // 삭제자 정보
     private LocalDateTime createdAt; // 생성 시간
+    private LocalDateTime updatedAt; // 수정 시간
+    private String fileUrl; // 첨부 파일 URL
 }

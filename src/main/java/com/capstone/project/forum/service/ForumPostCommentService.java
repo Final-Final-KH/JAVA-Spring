@@ -9,9 +9,12 @@ import com.capstone.project.forum.entity.ForumPostCommentHistory;
 import com.capstone.project.forum.repository.CommentReportRepository;
 import com.capstone.project.forum.repository.ForumPostCommentHistoryRepository;
 import com.capstone.project.forum.repository.ForumPostCommentRepository;
+import com.capstone.project.forum.repository.ForumPostRepository;
 import com.capstone.project.member.entity.Member;
 import com.capstone.project.member.repository.MemberRepository;
 import com.capstone.project.member.service.MemberService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +34,7 @@ public class ForumPostCommentService {
     private final CommentReportRepository commentReportRepository;
     private final MemberService memberService;
     private final ForumPostCommentHistoryRepository commentHistoryRepository;
+    private final ForumPostRepository postRepository;
 
     private static final int REPORT_THRESHOLD = 10; // 신고 누적 기준값
 
@@ -51,7 +55,9 @@ public class ForumPostCommentService {
                         comment.getLikesCount(), // 좋아요 수
                         comment.getHidden(), // 숨김 여부
                         comment.getRemovedBy(), // 삭제자 정보
-                        comment.getCreatedAt() // 생성 시간
+                        comment.getCreatedAt(),
+                        comment.getUpdatedAt(),
+                        comment.getFileUrl() // 첨부 파일 URL
                 ))
                 .collect(Collectors.toList()); // 결과를 리스트로 변환
     }
@@ -59,40 +65,124 @@ public class ForumPostCommentService {
     /**
      * 새로운 댓글 생성
      *
-     * @param requestDto 댓글 생성 요청 데이터
-     * @return 생성된 댓글 정보
+     * @param requestDto 댓글 생성 요청 데이터 (게시글 ID, 작성자 ID, 내용, 파일 URL 등)
+     * @return 생성된 댓글 정보 (ForumPostCommentResponseDto)
+     * @throws IllegalArgumentException 유효하지 않은 회원 ID 또는 게시글 ID일 경우 예외 발생
      */
     @Transactional
     public ForumPostCommentResponseDto createComment(ForumPostCommentRequestDto requestDto) {
         log.info("Creating new comment for post ID: {} by member ID: {}", requestDto.getPostId(), requestDto.getMemberId());
 
+        // 게시글 유효성 검증
+        ForumPost forumPost = postRepository.findById(requestDto.getPostId())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + requestDto.getPostId()));
+
+        // 작성자 유효성 검증
+        Member commentAuthor = memberRepository.findById(requestDto.getMemberId())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid member ID: " + requestDto.getMemberId()));
+
         // 댓글 엔티티 생성
         ForumPostComment newComment = ForumPostComment.builder()
-                .forumPost(ForumPost.builder().id(requestDto.getPostId()).build()) // 게시글 ID 매핑
-                .member(Member.builder().id(requestDto.getMemberId()).build()) // 작성자 ID 매핑
+                .forumPost(forumPost) // 게시글 매핑
+                .member(commentAuthor) // 작성자 매핑
                 .content(requestDto.getContent()) // 댓글 내용
+                .fileUrl(requestDto.getFileUrl()) // 파일 URL (선택 사항)
                 .likesCount(0) // 좋아요 수 초기화
                 .hidden(false) // 숨김 상태 초기화
                 .createdAt(LocalDateTime.now()) // 생성 시간 설정
                 .updatedAt(LocalDateTime.now()) // 수정 시간 초기화
                 .build();
 
-        ForumPostComment savedComment = commentRepository.save(newComment); // 데이터베이스에 저장
+        // 데이터베이스에 댓글 저장
+        ForumPostComment savedComment = commentRepository.save(newComment);
 
-        // 작성자의 이름을 가져오기 위해 작성자 정보를 다시 조회
-        Member commentAuthor = memberRepository.findById(requestDto.getMemberId())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid member ID: " + requestDto.getMemberId()));
-
-        return new ForumPostCommentResponseDto(
-                savedComment.getId(),
-                savedComment.getContent(),
-                commentAuthor.getName(),
-                savedComment.getLikesCount(),
-                savedComment.getHidden(),
-                savedComment.getRemovedBy(),
-                savedComment.getCreatedAt()
-        );
+        // 생성된 댓글의 응답 DTO 반환
+        return ForumPostCommentResponseDto.builder()
+                .id(savedComment.getId()) // 댓글 ID
+                .content(savedComment.getContent()) // 댓글 내용
+                .fileUrl(savedComment.getFileUrl()) // 파일 URL
+                .authorName(commentAuthor.getName()) // 작성자 이름
+                .likesCount(savedComment.getLikesCount()) // 좋아요 수
+                .hidden(savedComment.getHidden()) // 숨김 여부
+                .removedBy(savedComment.getRemovedBy()) // 삭제자 정보
+                .createdAt(savedComment.getCreatedAt()) // 생성 시간
+                .updatedAt(savedComment.getUpdatedAt()) // 수정 시간
+                .build();
     }
+
+
+
+
+    /**
+     * 댓글 수정
+     *
+     * @param commentId 수정할 댓글 ID
+     * @param requestBody 요청 본문 (JSON 형식 또는 단순 텍스트 가능)
+     * @return 수정된 댓글 정보가 포함된 응답 DTO
+     * @throws IllegalArgumentException 유효하지 않은 JSON 형식 또는 빈 내용일 경우
+     * @throws IllegalStateException 숨김 또는 삭제된 댓글을 수정하려는 경우
+     */
+    @Transactional
+    public ForumPostCommentResponseDto updateComment(Integer commentId, String requestBody) {
+        log.info("Updating comment ID: {}", commentId);
+
+        // 요청 본문에서 JSON 또는 단순 텍스트 처리
+        String sanitizedContent;
+        String fileUrl = null; // 초기화된 파일 URL 필드
+        if (requestBody.trim().startsWith("{") && requestBody.trim().endsWith("}")) {
+            // JSON 형식인 경우: JSON 필드 추출
+            try {
+                ObjectMapper objectMapper = new ObjectMapper();
+                JsonNode jsonNode = objectMapper.readTree(requestBody);
+                sanitizedContent = jsonNode.get("newContent").asText();
+                if (jsonNode.has("fileUrl")) {
+                    fileUrl = jsonNode.get("fileUrl").asText(); // 파일 URL 처리
+                }
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Invalid JSON format for requestBody");
+            }
+        } else {
+            // 단순 텍스트인 경우: 그대로 사용
+            sanitizedContent = requestBody.trim();
+        }
+
+        // 내용이 비어 있는지 확인
+        if (sanitizedContent == null || sanitizedContent.isEmpty()) {
+            throw new IllegalArgumentException("Content cannot be empty.");
+        }
+
+        // 댓글 조회
+        ForumPostComment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
+
+        // 숨김 또는 삭제된 댓글 검증
+        if (comment.getHidden() || "[Removed]".equals(comment.getContent())) {
+            throw new IllegalStateException("Cannot edit a hidden or removed comment. Please let ADMIN restore it first.");
+        }
+
+        // 댓글 수정
+        comment.setContent(sanitizedContent); // 댓글 내용 업데이트
+        if (fileUrl != null) {
+            comment.setFileUrl(fileUrl); // 파일 URL 업데이트 (존재하는 경우에만)
+        }
+        comment.setUpdatedAt(LocalDateTime.now()); // 수정 시간 갱신
+
+        ForumPostComment updatedComment = commentRepository.save(comment); // 저장
+
+        // Response DTO 반환 (Builder 사용)
+        return ForumPostCommentResponseDto.builder()
+                .id(updatedComment.getId())
+                .content(updatedComment.getContent())
+                .authorName(updatedComment.getMember().getName())
+                .likesCount(updatedComment.getLikesCount())
+                .hidden(updatedComment.getHidden())
+                .removedBy(updatedComment.getRemovedBy())
+                .createdAt(updatedComment.getCreatedAt())
+                .updatedAt(updatedComment.getUpdatedAt())
+                .fileUrl(updatedComment.getFileUrl()) // 파일 URL 응답에 포함
+                .build();
+    }
+
 
 
     /**
@@ -136,7 +226,9 @@ public class ForumPostCommentService {
                 savedReply.getLikesCount(),
                 savedReply.getHidden(),
                 savedReply.getRemovedBy(),
-                savedReply.getCreatedAt()
+                savedReply.getCreatedAt(),
+                savedReply.getUpdatedAt(),
+                savedReply.getFileUrl()
         );
     }
 
@@ -161,6 +253,7 @@ public class ForumPostCommentService {
                 .forumPost(ForumPost.builder().id(postId).build()) // 게시글 ID 매핑
                 .member(Member.builder().id(requestDto.getMemberId()).build()) // 작성자 ID 매핑
                 .content(quotedContent) // 답글 내용 설정
+                .fileUrl(requestDto.getFileUrl()) // 첨부 파일 URL 추가
                 .likesCount(0)
                 .hidden(false) // 기본 숨김 상태
                 .createdAt(LocalDateTime.now())
@@ -176,67 +269,13 @@ public class ForumPostCommentService {
                 savedReply.getLikesCount(),
                 savedReply.getHidden(),
                 savedReply.getRemovedBy(),
-                savedReply.getCreatedAt()
+                savedReply.getCreatedAt(),
+                savedReply.getUpdatedAt(),
+                savedReply.getFileUrl() // 첨부 파일 URL 반환
         );
     }
 
 
-    /**
-     * 댓글 수정
-     *
-     * 주어진 댓글 ID를 사용하여 댓글을 조회하고, 숨김 또는 삭제된 상태가 아닌 경우
-     * 새로운 내용으로 업데이트합니다. 업데이트 후 수정된 댓글 정보를 반환.
-     *
-     * <p><b>처리 절차:</b></p>
-     * <ol>
-     *     <li>댓글 ID로 댓글 조회</li>
-     *     <li>숨김 또는 삭제된 상태인지 확인</li>
-     *     <li>댓글 내용을 새로운 내용으로 업데이트</li>
-     *     <li>수정된 시간(updatedAt) 갱신</li>
-     *     <li>수정된 댓글을 저장 후 Response DTO로 반환</li>
-     * </ol>
-     *
-     * <p><b>예외 처리:</b></p>
-     * <ul>
-     *     <li>댓글 ID가 유효하지 않은 경우 {@link IllegalArgumentException} 발생</li>
-     *     <li>숨김 또는 삭제된 댓글일 경우 {@link IllegalStateException} 발생</li>
-     * </ul>
-     *
-     * @param commentId 수정할 댓글 ID
-     * @param newContent 새로운 댓글 내용
-     * @return 수정된 댓글 정보 (DTO 형태)
-     * @throws IllegalArgumentException 유효하지 않은 댓글 ID일 경우 발생
-     * @throws IllegalStateException 숨김 또는 삭제된 댓글을 수정하려는 경우 발생
-     */
-    @Transactional
-    public ForumPostCommentResponseDto updateComment(Integer commentId, String newContent) {
-        log.info("Updating comment ID: {}", commentId);
-
-        // 댓글 조회
-        ForumPostComment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
-
-        // 숨김 또는 삭제된 댓글 검증
-        if (comment.getHidden() || "[Removed]".equals(comment.getContent())) {
-            throw new IllegalStateException("Cannot edit a hidden or removed comment. Please let ADMIN restore it first.");
-        }
-
-        // 댓글 수정
-        comment.setContent(newContent); // 새로운 내용으로 업데이트
-        comment.setUpdatedAt(LocalDateTime.now()); // 수정 시간 갱신
-        ForumPostComment updatedComment = commentRepository.save(comment); // 저장
-
-        // Response DTO 반환
-        return new ForumPostCommentResponseDto(
-                updatedComment.getId(),
-                updatedComment.getContent(),
-                updatedComment.getMember().getName(),
-                updatedComment.getLikesCount(),
-                updatedComment.getHidden(),
-                updatedComment.getRemovedBy(),
-                updatedComment.getCreatedAt()
-        );
-    }
 
 
     /**

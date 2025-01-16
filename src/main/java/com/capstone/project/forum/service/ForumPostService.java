@@ -75,30 +75,40 @@ public class ForumPostService {
     }
 
     /**
-     * 새로운 게시글을 생성하는 메서드
+     * 게시글 생성
      *
-     * @param requestDto 게시글 생성 요청 DTO
-     * @return ForumPostResponseDto 생성된 게시글의 응답 DTO
+     * @param requestDto 게시글 요청 DTO
+     * @return 생성된 게시글 응답 DTO
      */
     @Transactional
     public ForumPostResponseDto createPost(ForumPostRequestDto requestDto) {
-        log.info("Creating new post in category ID: {}", requestDto.getCategoryId());
+        log.info("Creating post with title: {}", requestDto.getTitle());
 
-        // 작성자 정보 조회
+        // Validate member ID
+        if (requestDto.getMemberId() == null) {
+            throw new IllegalArgumentException("Member ID must not be null.");
+        }
+
+        // Validate category ID
+        if (requestDto.getCategoryId() == null) {
+            throw new IllegalArgumentException("Category ID must not be null.");
+        }
+
+        // Retrieve member and category
         var member = memberRepository.findById(requestDto.getMemberId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid member ID: " + requestDto.getMemberId()));
 
-        // 카테고리 정보 조회
         var category = categoryRepository.findById(requestDto.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid category ID: " + requestDto.getCategoryId()));
 
-        // 게시글 엔티티 생성
+        // Build the post entity
         var post = ForumPost.builder()
                 .title(requestDto.getTitle())
                 .content(requestDto.getContent())
-                .sticky(requestDto.getSticky())
+                .sticky(requestDto.getSticky() != null ? requestDto.getSticky() : false) // Default to false if not provided
                 .viewsCount(0)
                 .likesCount(0)
+                .fileUrls(requestDto.getFileUrls() != null ? requestDto.getFileUrls() : new ArrayList<>())
                 .hidden(false)
                 .member(member)
                 .forumCategory(category)
@@ -106,16 +116,20 @@ public class ForumPostService {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        var savedPost = postRepository.save(post); // DB에 저장
 
+        // Save the post
+        var savedPost = postRepository.save(post);
+
+        // Return the response DTO
         return ForumPostResponseDto.builder()
                 .id(savedPost.getId())
                 .title(savedPost.getTitle())
                 .content(savedPost.getContent())
-                .authorName(savedPost.getMember().getName())
+                .authorName(member.getName())
                 .sticky(savedPost.getSticky())
                 .viewsCount(savedPost.getViewsCount())
                 .likesCount(savedPost.getLikesCount())
+                .fileUrls(savedPost.getFileUrls())
                 .hidden(savedPost.getHidden())
                 .removedBy(savedPost.getRemovedBy())
                 .createdAt(savedPost.getCreatedAt())
@@ -123,57 +137,56 @@ public class ForumPostService {
                 .build();
     }
 
+
+
+
+
     /**
      * 게시글 수정
      *
-     * @param postId       수정할 게시글 ID
-     * @param requestDto   수정 요청 DTO
-     * @param loggedInMemberId 수정 요청 사용자 ID
-     * @param isAdmin      관리자 여부
+     * @param postId 수정할 게시글 ID
+     * @param requestDto 수정 요청 DTO
+     * @param loggedInMemberId 요청 사용자 ID
+     * @param isAdmin 관리자 여부
      * @return 수정된 게시글 응답 DTO
      */
     @Transactional
     public ForumPostResponseDto updatePost(Integer postId, ForumPostRequestDto requestDto, Integer loggedInMemberId, boolean isAdmin) {
-        log.info("Updating post ID: {} by member ID: {}, isAdmin: {}", postId, loggedInMemberId, isAdmin);
+        log.info("Updating post with ID: {}", postId);
 
-        // 게시글 조회
         var post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
+                .orElseThrow(() -> new IllegalArgumentException("Post not found with ID: " + postId));
 
-        // 숨김 또는 삭제된 게시글 검증
-        if (post.getHidden()) {
-            throw new IllegalStateException("Cannot edit a hidden or removed post. Please let ADMIN restore it first.");
+        if (!isAdmin && !post.getMember().getId().equals(loggedInMemberId)) {
+            throw new SecurityException("Not authorized to edit this post");
         }
 
-        // 권한 검증
-        if (!post.getMember().getId().equals(loggedInMemberId) && !isAdmin) {
-            throw new AccessDeniedException("You are not allowed to edit this post.");
-        }
+        post.setTitle(requestDto.getTitle());
+        post.setContent(requestDto.getContent());
+        post.setSticky(requestDto.getSticky());
+        post.setFileUrls(requestDto.getFileUrls());
+        post.setUpdatedAt(LocalDateTime.now());
 
-        // 게시글 수정
-        post.setTitle(requestDto.getTitle()); // 제목 업데이트
-        post.setContent(requestDto.getContent()); // 내용 업데이트
-        post.setSticky(requestDto.getSticky()); // 상단 고정 여부 업데이트
-        post.setUpdatedAt(LocalDateTime.now()); // 수정 시간 갱신
-
-        // 업데이트된 게시글 저장
         var updatedPost = postRepository.save(post);
 
-        // 응답 DTO 생성 및 반환
         return ForumPostResponseDto.builder()
                 .id(updatedPost.getId())
                 .title(updatedPost.getTitle())
                 .content(updatedPost.getContent())
-                .authorName(updatedPost.getMember().getName())
+                .authorName(post.getMember().getName())
                 .sticky(updatedPost.getSticky())
                 .viewsCount(updatedPost.getViewsCount())
                 .likesCount(updatedPost.getLikesCount())
+                .fileUrls(updatedPost.getFileUrls())
                 .hidden(updatedPost.getHidden())
                 .removedBy(updatedPost.getRemovedBy())
                 .createdAt(updatedPost.getCreatedAt())
                 .updatedAt(updatedPost.getUpdatedAt())
                 .build();
     }
+
+
+
 
 
     /**
