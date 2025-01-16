@@ -6,7 +6,7 @@ import lombok.*;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class GoogleLoginRequestDto {
+public class OAuth2LoginRequestDto {
     private String email;
     private String name;
     private String provider;
