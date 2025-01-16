@@ -9,27 +9,22 @@ import lombok.ToString;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "my_course_list")
+@Table(name = "my_academy_list")
 @Getter
 @Setter
 @ToString
 @NoArgsConstructor
-public class MyCourseEntity2 {
+public class MyAcademyEntity2 {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long list_id;
-
-    private String course_name;
 
     private String academy_name;
 
     @ManyToOne
     @JoinColumn(name = "academy_id")
     private AcademyEntity2 academyEntity2;
-
-    @ManyToOne
-    @JoinColumn(name = "course_id")
-    private CourseEntity2 courseEntity2;
 
     @ManyToOne
     @JoinColumn(name = "member_id")

@@ -16,5 +16,6 @@ public class KeduBoardResDTO2 {
     private String title;
     private String user_id;
     private LocalDateTime regDate;
+    private String content;
 
 }

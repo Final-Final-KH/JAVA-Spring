@@ -400,7 +400,9 @@ public class KeduBoardService2 {
     }
     private KeduBoardResDTO2 convertEntityToDto(KeduBoardEntity2 keduBoardEntity) {
         KeduBoardResDTO2 keduBoardResDTO2 = new KeduBoardResDTO2();
-
+        keduBoardResDTO2.setId(keduBoardEntity.getId());
+        keduBoardResDTO2.setContent(keduBoardEntity.getContent());
+        keduBoardResDTO2.setUser_id(keduBoardEntity.getUser_id());
         keduBoardResDTO2.setTitle(keduBoardEntity.getTitle());
         keduBoardResDTO2.setRegDate(keduBoardEntity.getRegDate());
         return keduBoardResDTO2;
