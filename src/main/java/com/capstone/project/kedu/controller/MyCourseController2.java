@@ -66,6 +66,15 @@ public class MyCourseController2 {
         resultMap.put("list",list);
         return resultMap;
     }
+    // 나의 강의 조회
+    @GetMapping("/my_course")
+    public ResponseEntity<Map<String, Object>> myCourseList(@RequestParam(value = "member_id") int member_id,
+                                                            @RequestParam(value = "academy_id") Long academy_id){
+        Map<String, Object> resultMap = new HashMap<>();
+        List<MyCourseResDTO2> list = myCourseService2.myCourse(member_id, academy_id);
+        resultMap.put("list",list);
+        return ResponseEntity.ok(resultMap);
+    }
     // 나의 학원 등록 여부 조회
     @GetMapping("/check_academy")
     public ResponseEntity<Boolean> check_academy(
@@ -75,6 +84,14 @@ public class MyCourseController2 {
         log.info("체크 시 멤버 아이디 : {}", memberId);
         boolean isSuccess = myCourseService2.check_academy(academyId, memberId);
         return ResponseEntity.ok(!isSuccess);
+    }
+    // 나의 강의 등록 여부 확인
+    @GetMapping("/check_course")
+    public ResponseEntity<Boolean> check_course(
+            @RequestParam(value = "course_id") Long courseId,
+            @RequestParam(value = "member_id") int member_id){
+        boolean isSuccess = myCourseService2.check_course(courseId, member_id);
+        return ResponseEntity.ok(isSuccess);
     }
 
 

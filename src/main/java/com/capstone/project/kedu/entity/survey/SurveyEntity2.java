@@ -27,7 +27,7 @@ public class SurveyEntity2 {
 
     private String facilities;
 
-    private String comment;
+    private String comment; // 수업 난이도
 
     @ManyToOne
     @JoinColumn(name = "member_id")

@@ -7,7 +7,7 @@ import com.capstone.project.member.dto.request.MemberRequestDto;
 import com.capstone.project.member.dto.response.MemberResponseDto;
 import com.capstone.project.member.entity.Member;
 import com.capstone.project.member.repository.MemberRepository;
-import com.capstone.project.oauth2.dto.GoogleLoginRequestDto;
+import com.capstone.project.oauth2.dto.OAuth2LoginRequestDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -102,8 +102,9 @@ public class AuthService {
         return tokenProvider.generateAccessToken(authentication);
     }
 
-    public TokenDto OAuth2Google(GoogleLoginRequestDto loginDto) {
+    public TokenDto OAuth2Login(OAuth2LoginRequestDto loginDto) {
         // 구글은 프로바이더 ID의 식별명이 sub 다. 하지만 프론트에서 프로바이더 id로 이름을 다시 붙여 보냈다.
+        // 네이버는 프로바이더 ID의 식별명이 ID 다. 이것 또한 프론트에서 프로바이더 id로 이름을 다시 붙여 보냈다.
         Optional<Member> existingMember = memberRepository.findByProviderAndProviderId(loginDto.getProvider(), loginDto.getProviderId());
         log.info(" 제 3자 로그인 요청 - 이메일: {}", loginDto.getEmail());
         Member member;
