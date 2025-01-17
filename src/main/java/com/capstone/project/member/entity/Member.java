@@ -3,6 +3,7 @@ package com.capstone.project.member.entity;
 import javax.persistence.*;
 import com.capstone.project.kedu.entity.board.*;
 import com.capstone.project.kedu.entity.comment.*;
+import com.capstone.project.kedu.entity.edu.MyAcademyEntity2;
 import com.capstone.project.kedu.entity.edu.MyCourseEntity2;
 import com.capstone.project.kedu.entity.mypage.SkillHubEntity2;
 import com.capstone.project.kedu.entity.survey.SurveyEntity2;
@@ -32,7 +33,7 @@ public class Member {
     private Integer id; // 회원 ID
 
 
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(nullable = true, unique = true, length = 100)
     private String email; // 이메일 (로그인 ID)
 
     @Column(nullable = true)
@@ -117,6 +118,8 @@ public class Member {
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<SkillHubEntity2> skillHubEntities = new ArrayList<>();
 
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MyAcademyEntity2> myAcademy = new ArrayList<>();
     /**
      * 사용자 역할 Enum
      * USER: 일반 사용자

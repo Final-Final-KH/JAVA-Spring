@@ -33,4 +33,7 @@ public class AcademyEntity2 {
 
     @OneToMany(mappedBy = "academyEntity2", cascade = CascadeType.ALL, orphanRemoval = true )
     private List<SurveyEntity2> survey = new ArrayList<>();
+
+    @OneToMany(mappedBy = "academyEntity2", cascade = CascadeType.ALL, orphanRemoval = true )
+    private List<MyAcademyEntity2> myAcademy = new ArrayList<>();
 }
