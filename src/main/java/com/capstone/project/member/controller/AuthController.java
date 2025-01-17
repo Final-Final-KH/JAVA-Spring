@@ -5,6 +5,7 @@ import com.capstone.project.member.dto.request.LoginRequestDto;
 import com.capstone.project.member.dto.request.MemberRequestDto;
 import com.capstone.project.member.dto.response.MemberResponseDto;
 import com.capstone.project.member.entity.Member;
+import com.capstone.project.member.repository.MemberRepository;
 import com.capstone.project.member.service.AuthService;
 import com.capstone.project.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -25,6 +28,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final MemberService memberService;
+    private final MemberRepository memberRepository;
 
     // Register a new user
     @PostMapping("/signup")
@@ -72,4 +76,14 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+    // 중복 이메일 회원 확인
+    @PostMapping("/check-email")
+    public ResponseEntity<Map<String, Boolean>> checkEmail(@RequestBody Map<String, String> request) {
+        String email = request.get("email"); // 클라이언트에서 전달받은 이메일
+        boolean isAvailable = !memberRepository.existsByEmail(email); // 이메일 사용 가능 여부
+
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("isAvailable", isAvailable); // 결과를 JSON으로 반환
+        return ResponseEntity.ok(response); // HTTP 상태 코드 200과 함께 반환
+    }
 }
