@@ -94,7 +94,4 @@ public class MyCourseController2 {
         boolean isSuccess = myCourseService2.check_course(courseId, member_id);
         return ResponseEntity.ok(isSuccess);
     }
-
-
-
 }

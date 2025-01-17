@@ -58,7 +58,15 @@ public class KeduBoardService2 {
         }
         return keduBoardResDTO2s;
     }
-
+    // 한줄 코멘트 조회
+    public List<KeduBoardResDTO2> shortCommentList(Long academyId, Long courseId) {
+        List<KeduBoardEntity2> keduBoardEntity2s = keduBoardRepository2.findByAcademyIdAndCourseId(academyId,courseId);
+        List<KeduBoardResDTO2> keduBoardResDTO2s = new ArrayList<>();
+        for(KeduBoardEntity2 keduBoardEntity2 : keduBoardEntity2s){
+            keduBoardResDTO2s.add(convertEntityToDto(keduBoardEntity2));
+        }
+        return  keduBoardResDTO2s;
+    }
     // 게시글 상세 조회
     public KeduBoardDetailResDTO2 boardDetail(Long id) {
        KeduBoardEntity2 keduBoardEntity2 = keduBoardRepository2.findById(id)
@@ -398,6 +406,7 @@ public class KeduBoardService2 {
         }
         return boardResDTO2List;
     }
+
     private KeduBoardResDTO2 convertEntityToDto(KeduBoardEntity2 keduBoardEntity) {
         KeduBoardResDTO2 keduBoardResDTO2 = new KeduBoardResDTO2();
         keduBoardResDTO2.setId(keduBoardEntity.getId());
