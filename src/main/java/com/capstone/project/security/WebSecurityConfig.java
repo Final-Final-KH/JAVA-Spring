@@ -65,7 +65,7 @@ public class WebSecurityConfig implements WebMvcConfigurer {
                 .antMatchers("/v2/api-docs", "/swagger-resources/**", "/swagger-ui.html", "/webjars/**", "/swagger/**", "/sign-api/exception").permitAll()
                 .antMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .antMatchers("/api/auth/**").permitAll()
-                .antMatchers("/api/**").permitAll()
+                .antMatchers("/api/**", "/api/email/**").permitAll()
 //                .antMatchers("/api/news").authenticated() 로그인 검증시키고 싶으면 해당 주소에 authenticated() 적용
                 .antMatchers("/news").permitAll()
                 .antMatchers("/course/**",
