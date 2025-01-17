@@ -31,29 +31,39 @@ public class AcademyCommentService2 {
     }
 
     // 각 컬럼별 평균 + 총 평균 반환
-    public AcademyCommentResDTO2 sub_total_avg(Long academyId) {
+    public List<AcademyCommentResDTO2> sub_total_avg(Long academyId) {
+        AcademyEntity2 academyEntity2 = academyRepository2.findById(academyId)
+                .orElseThrow(()-> new RuntimeException("해당학원은 존재하지 않습니다."));
         // 평균을 계산하는 쿼리 호출
-        Object[] averages = academyCommentRepository2.findAverageScoresForAcademy(academyId);
+        List<Object[]> results = academyCommentRepository2.findAverageScoresForAcademy(academyId);
 
-        // 평균을 담을 DTO 생성
-        AcademyCommentResDTO2 dto = new AcademyCommentResDTO2();
+        // 결과 리스트를 저장할 리스트
+        List<AcademyCommentResDTO2> dtoList = new ArrayList<>();
 
-        // DTO에 평균값 설정
-        dto.setAvgJob((double) averages[0]);
-        dto.setAvgLecture((double) averages[1]);
-        dto.setAvgFacilities((double) averages[2]);
-        dto.setAvgTeacher((double) averages[3]);
-        dto.setAvgBooks((double) averages[4]);
-        dto.setAvgService((double) averages[5]);
+        for (Object[] averages : results) {
+            // DTO 생성
+            AcademyCommentResDTO2 dto = new AcademyCommentResDTO2();
 
-        // 전체 평균 계산
-        double totalAvg = (dto.getAvgJob() + dto.getAvgLecture() + dto.getAvgFacilities() +
-                dto.getAvgTeacher() + dto.getAvgBooks() + dto.getAvgService()) / 6.0;
+            // 각 컬럼별 평균값 설정
+            dto.setAvgJob((averages[0] != null) ? (double) averages[0] : 0);
+            dto.setAvgLecture((averages[1] != null) ? (double) averages[1] : 0);
+            dto.setAvgFacilities((averages[2] != null) ? (double) averages[2] : 0);
+            dto.setAvgTeacher((averages[3] != null) ? (double) averages[3] : 0);
+            dto.setAvgBooks((averages[4] != null) ? (double) averages[4] : 0);
+            dto.setAvgService((averages[5] != null) ? (double) averages[5] : 0);
+            dto.setAcademy_id(academyEntity2.getAcademyId());
+            // 전체 평균 계산
+            double totalAvg = (dto.getAvgJob() + dto.getAvgLecture() + dto.getAvgFacilities() +
+                    dto.getAvgTeacher() + dto.getAvgBooks() + dto.getAvgService()) / 6.0;
 
-        // 전체 평균 설정
-        dto.setTotalAvg(totalAvg);
+            // 전체 평균 설정
+            dto.setTotalAvg(totalAvg);
 
-        return dto;
+            // DTO를 리스트에 추가
+            dtoList.add(dto);
+        }
+
+        return dtoList; // 리스트 반환
     }
     // 취업률
     public Optional<Integer> empl(Long academyId) {

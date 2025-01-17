@@ -31,7 +31,7 @@ public class AcademyCommentController {
     @GetMapping("/sub_total_avg")
     public ResponseEntity<Map<String, Object>> sub_total_avg(@RequestParam(value = "academy_id") Long academy_id){
         Map<String, Object> resultMap = new HashMap<>();
-        AcademyCommentResDTO2 sub_total_avg = academyCommentService2.sub_total_avg(academy_id);
+        List<AcademyCommentResDTO2> sub_total_avg = academyCommentService2.sub_total_avg(academy_id);
         resultMap.put("sub_total_avg",sub_total_avg);
         return ResponseEntity.ok(resultMap);
     }
