@@ -19,5 +19,5 @@ public interface AcademyCommentRepository2 extends JpaRepository<AcademyCommentE
 
     @Query("SELECT AVG(c.job), AVG(c.lecture), AVG(c.facilities), AVG(c.teacher), AVG(c.books), AVG(c.service) " +
             "FROM AcademyCommentEntity2 c WHERE c.academyEntity2.academyId = :academyId")
-    Object[] findAverageScoresForAcademy(Long academyId);
+    List<Object[]> findAverageScoresForAcademy(Long academyId);
 }
