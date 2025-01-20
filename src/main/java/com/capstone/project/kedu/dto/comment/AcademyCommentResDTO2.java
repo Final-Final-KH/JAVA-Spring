@@ -1,14 +1,12 @@
 package com.capstone.project.kedu.dto.comment;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 @Getter
 @Setter
 @ToString
 @NoArgsConstructor
+@AllArgsConstructor
 public class AcademyCommentResDTO2 {
     private Long academy_comment_id;
     private Long academy_id;
