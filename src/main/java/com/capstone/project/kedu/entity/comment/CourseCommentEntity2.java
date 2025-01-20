@@ -2,10 +2,7 @@ package com.capstone.project.kedu.entity.comment;
 
 import com.capstone.project.kedu.entity.edu.CourseEntity2;
 import com.capstone.project.member.entity.Member;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 import javax.persistence.*;
 
@@ -15,6 +12,8 @@ import javax.persistence.*;
 @Setter
 @ToString
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class CourseCommentEntity2 {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
