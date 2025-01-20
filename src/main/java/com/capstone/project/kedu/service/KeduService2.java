@@ -11,6 +11,8 @@ import com.capstone.project.kedu.repository.edu.CourseRepository2;
 import com.capstone.project.kedu.repository.edu.KeduRepository2;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +36,15 @@ public class KeduService2 {
     private CityRepository2 cityRepository2;
 
 
-
+    public List<KeduResDTO2> getCourseList(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        List<KeduEntity2> keduEntity2s = repository.findAll(pageable).getContent();
+        List<KeduResDTO2> keduResDTO2s = new ArrayList<>();
+        for (KeduEntity2 keduEntity2 : keduEntity2s){
+            keduResDTO2s.add(convertEntityToDtoWithoutComments(keduEntity2));
+        }
+        return keduResDTO2s;
+    }
     public List<KeduResDTO2>findAllCourse(){
         List<KeduEntity2> course = repository.findAll();
         List<KeduResDTO2> keduResDTO2List = new ArrayList<>();
@@ -168,6 +178,10 @@ public class KeduService2 {
             lectureResDTO2List.add(convertEntityToLectureResDto(courseEntity2));
         }
         return lectureResDTO2List;
+    }
+
+    public Integer getBoards(PageRequest pageRequest) {
+        return repository.findAll(pageRequest).getTotalPages();
     }
 
     public LectureResDTO2 convertEntityToLectureResDto(CourseEntity2 courseEntity){
