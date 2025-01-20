@@ -1,5 +1,6 @@
 package com.capstone.project.kedu.entity.edu;
 
+import com.capstone.project.kedu.entity.comment.CourseCommentEntity2;
 import com.capstone.project.kedu.entity.survey.SurveyEntity2;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,4 +36,7 @@ public class CourseEntity2 {
 
     @OneToMany(mappedBy = "courseEntity2", cascade = CascadeType.ALL, orphanRemoval = true )
     private List<SurveyEntity2> survey = new ArrayList<>();
+
+    @OneToMany(mappedBy = "courseEntity2", cascade = CascadeType.ALL, orphanRemoval = true )
+    private List<CourseCommentEntity2> courseReview = new ArrayList<>();
 }
