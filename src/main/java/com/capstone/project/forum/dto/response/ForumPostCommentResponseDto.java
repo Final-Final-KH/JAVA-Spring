@@ -18,9 +18,12 @@ public class ForumPostCommentResponseDto {
     private Integer id; // 댓글 ID
     private String content; // 댓글 내용
     private String authorName; // 작성자 이름
+    private Integer memberId; // 댓글 작성자 ID 추가
     private Integer likesCount; // 좋아요 수
     private Boolean hidden; // 숨김 여부
     private String removedBy; // 삭제자 정보
+    private String editedBy; // 수정자 정보 (추가)
+    private Boolean locked; // 편집 잠금 상태 (추가)
     private LocalDateTime createdAt; // 생성 시간
     private LocalDateTime updatedAt; // 수정 시간
     private String fileUrl; // 첨부 파일 URL

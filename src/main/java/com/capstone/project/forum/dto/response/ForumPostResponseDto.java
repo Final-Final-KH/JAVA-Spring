@@ -20,6 +20,7 @@ public class ForumPostResponseDto {
     private String title; // 게시글 제목
     private String content; // 게시글 내용
     private String authorName; // 작성자 이름
+    private Integer memberId; // 작성자 ID
     private Boolean sticky; // 상단 고정 여부
     private Integer viewsCount; // 조회수
     private Integer likesCount; // 좋아요 수

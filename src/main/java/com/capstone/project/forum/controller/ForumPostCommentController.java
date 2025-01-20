@@ -55,35 +55,30 @@ public class ForumPostCommentController {
      * 댓글 수정
      *
      * @param commentId 수정할 댓글 ID
-     * @param newContent 수정할 댓글 내용 (JSON 또는 단순 텍스트)
+     * @param requestBody 수정 요청 데이터 (JSON 또는 텍스트)
+     * @param loggedInMemberId 요청 사용자 ID
      * @return 수정된 댓글 정보
      */
     @PutMapping("/{commentId}")
     public ResponseEntity<ForumPostCommentResponseDto> updateComment(
             @PathVariable Integer commentId,
-            @RequestBody String newContent
+            @RequestBody String requestBody,
+            @RequestParam Integer loggedInMemberId
     ) {
-        // JSON 및 단순 텍스트 처리
-        String sanitizedContent;
-        if (newContent.trim().startsWith("{") && newContent.trim().endsWith("}")) {
-            try {
-                ObjectMapper objectMapper = new ObjectMapper();
-                JsonNode jsonNode = objectMapper.readTree(newContent);
-                sanitizedContent = jsonNode.get("newContent").asText();
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Invalid JSON format for newContent");
-            }
-        } else {
-            sanitizedContent = newContent.trim();
-        }
+        log.info("Updating comment ID: {} by member ID: {}", commentId, loggedInMemberId);
 
-        if (sanitizedContent == null || sanitizedContent.isEmpty()) {
-            throw new IllegalArgumentException("Content cannot be empty.");
+        try {
+            ForumPostCommentResponseDto updatedComment = commentService.updateComment(commentId, requestBody, loggedInMemberId);
+            return ResponseEntity.ok(updatedComment);
+        } catch (SecurityException e) {
+            log.error("Unauthorized edit attempt: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        } catch (IllegalArgumentException e) {
+            log.error("Error editing comment: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(null);
         }
-
-        ForumPostCommentResponseDto updatedComment = commentService.updateComment(commentId, sanitizedContent);
-        return ResponseEntity.ok(updatedComment);
     }
+
 
 
 
@@ -132,17 +127,18 @@ public class ForumPostCommentController {
     /**
      * 댓글 삭제
      *
-     * @param id 삭제할 댓글 ID
+     * @param commentId 삭제할 댓글 ID
      * @param loggedInMemberId 요청 사용자 ID
      * @return 성공 상태
      */
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{commentId}")
     public ResponseEntity<Void> deleteComment(
-            @PathVariable Integer id,
-            @RequestParam Integer loggedInMemberId
+            @PathVariable Integer commentId,
+            @RequestParam Integer loggedInMemberId // 로그인된 사용자의 ID를 요청 매개변수로 받음
     ) {
-        commentService.deleteComment(id, loggedInMemberId);
-        return ResponseEntity.ok().build();
+        log.info("Deleting comment ID: {} by member ID: {}", commentId, loggedInMemberId);
+        commentService.deleteComment(commentId, loggedInMemberId);
+        return ResponseEntity.noContent().build(); // 성공적인 삭제 응답 반환
     }
 
     /**
