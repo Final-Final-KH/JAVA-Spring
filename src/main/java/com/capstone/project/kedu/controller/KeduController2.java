@@ -105,4 +105,13 @@ public class KeduController2 {
         return resultMap;
     }
 
+    @GetMapping("/detail")
+    public ResponseEntity<Map<String, Object>> detail (@RequestParam(value = "academy_id") Long academy_id,
+                                                       @PathVariable(value = "course_id") Long course_id){
+        Map<String, Object> resultMap = new HashMap<>();
+        List<CourseDetailResDTO2> list = keduService2.detail(academy_id, course_id);
+        resultMap.put("list", list);
+        return ResponseEntity.ok(resultMap);
+    }
+
 }

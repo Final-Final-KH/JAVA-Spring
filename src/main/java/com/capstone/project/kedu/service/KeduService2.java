@@ -1,14 +1,21 @@
 package com.capstone.project.kedu.service;
 
 import com.capstone.project.kedu.dto.edu.response.*;
+import com.capstone.project.kedu.entity.board.KeduBoardEntity2;
+import com.capstone.project.kedu.entity.comment.AcademyCommentEntity2;
+import com.capstone.project.kedu.entity.comment.CourseCommentEntity2;
 import com.capstone.project.kedu.entity.edu.AcademyEntity2;
 import com.capstone.project.kedu.entity.edu.CityEntity2;
 import com.capstone.project.kedu.entity.edu.CourseEntity2;
 import com.capstone.project.kedu.entity.edu.KeduEntity2;
+import com.capstone.project.kedu.entity.survey.SurveyEntity2;
+import com.capstone.project.kedu.repository.comment.AcademyCommentRepository2;
+import com.capstone.project.kedu.repository.comment.CourseCommentRepository2;
 import com.capstone.project.kedu.repository.edu.AcademyRepository2;
 import com.capstone.project.kedu.repository.edu.CityRepository2;
 import com.capstone.project.kedu.repository.edu.CourseRepository2;
 import com.capstone.project.kedu.repository.edu.KeduRepository2;
+import com.capstone.project.kedu.repository.survey.SurveyRepository2;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -19,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 @Slf4j
 @Service
 public class KeduService2 {
@@ -35,7 +44,20 @@ public class KeduService2 {
     @Autowired
     private CityRepository2 cityRepository2;
 
+    @Autowired
+    private AcademyCommentRepository2 academyCommentRepository2;
 
+    @Autowired
+    private CourseCommentRepository2 courseCommentRepository2;
+
+    @Autowired
+    private SurveyRepository2 surveyRepository2;
+
+
+    public List<CourseDetailResDTO2> detail(Long academyId, Long courseId) {
+        // courseCommentRepository2에서 데이터를 가져옴 (리스트로)
+        return courseCommentRepository2.findReview(academyId, courseId);
+    }
     public List<KeduResDTO2> getCourseList(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         List<KeduEntity2> keduEntity2s = repository.findAll(pageable).getContent();
@@ -222,4 +244,6 @@ public class KeduService2 {
 
         return keduResDTO2;
     }
+
+
 }

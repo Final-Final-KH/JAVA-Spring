@@ -1,5 +1,6 @@
 package com.capstone.project.kedu.entity.comment;
 
+import com.capstone.project.kedu.entity.edu.AcademyEntity2;
 import com.capstone.project.kedu.entity.edu.CourseEntity2;
 import com.capstone.project.member.entity.Member;
 import lombok.*;
@@ -38,7 +39,23 @@ public class CourseCommentEntity2 {
     @JoinColumn(name = "member_id")
     private Member member;
 
+    @ManyToOne
+    @JoinColumn(name = "academy_id")
+    private AcademyEntity2 academyEntity2;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id")
     private CourseEntity2 courseEntity2;
+
+    // 각 항목의 평균 계산 (점수 항목들을 합산하고 개수로 나눔)
+    public double getTotalScore() {
+        return (job + lecture + skillUp + teacher + books + newTech) / 6.0;
+    }
+
+    // 평점 저장 시 학원의 평균 점수 갱신
+    public void saveRating() {
+        if (courseEntity2 != null) {
+            courseEntity2.addRating(getTotalScore());  // 학원의 평균 점수를 갱신
+        }
+    }
 }

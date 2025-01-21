@@ -1,5 +1,7 @@
 package com.capstone.project.kedu.entity.edu;
 
+import com.capstone.project.kedu.entity.comment.AcademyCommentEntity2;
+import com.capstone.project.kedu.entity.comment.CourseCommentEntity2;
 import com.capstone.project.kedu.entity.survey.SurveyEntity2;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -42,6 +44,12 @@ public class AcademyEntity2 {
 
     @OneToMany(mappedBy = "academyEntity2", cascade = CascadeType.ALL, orphanRemoval = true )
     private List<MyAcademyEntity2> myAcademy = new ArrayList<>();
+
+    @OneToMany(mappedBy = "academyEntity2", cascade = CascadeType.ALL, orphanRemoval = true )
+    private List<CourseCommentEntity2> courseComment = new ArrayList<>();
+
+    @OneToMany(mappedBy = "academyEntity2", cascade = CascadeType.ALL, orphanRemoval = true )
+    private List<AcademyCommentEntity2> academyComment = new ArrayList<>();
 
     // 평점 추가 메서드 (새로운 평점이 들어오면 totalScore, ratingCount, averageScore 갱신)
     public void addRating(double score) {
