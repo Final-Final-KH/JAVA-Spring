@@ -19,9 +19,9 @@ public class MyCourseEntity2 {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long list_id;
 
-    private String academy_name;
-
     private String course_name;
+
+    private String academy_name;
 
     @ManyToOne
     @JoinColumn(name = "academy_id")

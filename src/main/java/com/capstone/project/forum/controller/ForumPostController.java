@@ -5,6 +5,7 @@ import com.capstone.project.forum.dto.response.ForumPostResponseDto;
 import com.capstone.project.forum.dto.response.PaginationDto;
 import com.capstone.project.forum.service.FileService;
 import com.capstone.project.forum.service.ForumPostService;
+import com.capstone.project.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 public class ForumPostController {
 
     private final ForumPostService postService; // Service 계층 의존성 주입
+    private final MemberService memberService;
     private final FileService fileService;
 
     /**
@@ -60,61 +62,90 @@ public class ForumPostController {
     public ResponseEntity<?> createPost(@RequestBody ForumPostRequestDto requestDto) {
         log.info("Creating post with title: {}", requestDto.getTitle());
 
-        // Validate required fields
+        // 필수 필드 검증 (예외 처리)
         if (requestDto.getMemberId() == null) {
-            return ResponseEntity.badRequest().body("Member ID is required.");
+            log.warn("Member ID is missing in the request.");
+            return ResponseEntity.badRequest().body("Member ID is required."); // Member ID가 필수
         }
         if (requestDto.getCategoryId() == null) {
-            return ResponseEntity.badRequest().body("Category ID is required.");
+            log.warn("Category ID is missing in the request.");
+            return ResponseEntity.badRequest().body("Category ID is required."); // Category ID가 필수
         }
         if (requestDto.getTitle() == null || requestDto.getTitle().isEmpty()) {
-            return ResponseEntity.badRequest().body("Title is required.");
+            log.warn("Title is missing or empty.");
+            return ResponseEntity.badRequest().body("Title is required."); // 제목이 필수
         }
         if (requestDto.getContent() == null || requestDto.getContent().isEmpty()) {
-            return ResponseEntity.badRequest().body("Content is required.");
+            log.warn("Content is missing or empty.");
+            return ResponseEntity.badRequest().body("Content is required."); // 내용이 필수
         }
 
         try {
+            // 게시글 생성 서비스 호출
             ForumPostResponseDto responseDto = postService.createPost(requestDto);
-            return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
+
+            log.info("Post created successfully with ID: {}", responseDto.getId());
+            return ResponseEntity.status(HttpStatus.CREATED).body(responseDto); // 성공 시 HTTP 201 반환
         } catch (IllegalArgumentException e) {
+            // 잘못된 요청 처리
             log.error("Error creating post: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage()); // 잘못된 요청 응답 반환
         } catch (Exception e) {
+            // 예상치 못한 예외 처리
             log.error("Unexpected error creating post", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred.");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred."); // 서버 에러 응답
         }
     }
+
 
 
     /**
      * 게시글 수정
      *
      * @param postId 수정할 게시글 ID
-     * @param requestDto 수정할 게시글 데이터
-     * @param loggedInMemberId 수정 요청 사용자 ID
-     * @param isAdmin 관리자 여부
+     * @param requestDto 게시글 수정 요청 데이터
+     * @param loggedInMemberId 요청한 사용자 ID
      * @return 수정된 게시글 정보
      */
     @PutMapping("/{postId}")
     public ResponseEntity<ForumPostResponseDto> updatePost(
             @PathVariable Integer postId,
-            @RequestBody ForumPostRequestDto requestDto, // DTO 본문으로 전달
-            @RequestParam Integer loggedInMemberId,
-            @RequestParam boolean isAdmin) {
-        log.info("Updating post ID: {}", postId);
-        ForumPostResponseDto responseDto = postService.updatePost(postId, requestDto, loggedInMemberId, isAdmin);
-        return ResponseEntity.ok(responseDto);
+            @RequestBody ForumPostRequestDto requestDto,
+            @RequestParam Integer loggedInMemberId
+    ) {
+        log.info("Updating post with ID: {} by member ID: {}", postId, loggedInMemberId);
+
+        // 1. 관리자 여부 확인
+        boolean isAdmin = memberService.isAdmin(loggedInMemberId);
+
+        try {
+            // 2. 게시글 업데이트 서비스 호출
+            ForumPostResponseDto updatedPost = postService.updatePost(postId, requestDto, loggedInMemberId, isAdmin);
+
+            // 3. 성공적으로 업데이트된 데이터 반환
+            return ResponseEntity.ok(updatedPost);
+        } catch (SecurityException e) {
+            // 권한 오류 처리
+            log.error("Unauthorized edit attempt: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        } catch (IllegalArgumentException e) {
+            // 게시글 없음 오류 처리
+            log.error("Error editing post: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            // 기타 오류 처리
+            log.error("Unexpected error while updating post: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
+
 
 
     /**
      * 게시글 삭제
-     * 게시글과 댓글 삭제 여부는 cascadeComments 플래그에 따라 결정됩니다.
      *
      * @param id 삭제할 게시글 ID
      * @param loggedInMemberId 요청 사용자 ID
-     * @param cascadeComments 댓글 삭제 여부를 결정하는 플래그
      * @param removedBy 삭제를 수행한 사용자 정보 (ADMIN 또는 작성자 이름)
      * @return 성공 상태
      */
@@ -122,10 +153,9 @@ public class ForumPostController {
     public ResponseEntity<Void> deletePost(
             @PathVariable Integer id,
             @RequestParam Integer loggedInMemberId,
-            @RequestParam boolean cascadeComments,
             @RequestParam String removedBy
     ) {
-        postService.deletePost(id, loggedInMemberId, cascadeComments, removedBy);
+        postService.deletePost(id, loggedInMemberId, removedBy);
         return ResponseEntity.ok().build();
     }
 
@@ -214,7 +244,7 @@ public class ForumPostController {
     public ResponseEntity<ForumPostResponseDto> getPostDetails(@PathVariable Integer id) {
         return postService.getPostDetails(id)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build()); // Optional 처리
+                .orElse(ResponseEntity.notFound().build()); // memberId 포함된 응답 DTO 반환
     }
 
     /**

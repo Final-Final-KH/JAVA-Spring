@@ -42,23 +42,27 @@ public class ForumPostCommentService {
      * 특정 게시글에 속한 댓글 가져오기
      *
      * @param postId 게시글 ID
-     * @return 댓글 리스트
+     * @return 댓글 리스트 (ForumPostCommentResponseDto)
      */
     public List<ForumPostCommentResponseDto> getCommentsForPost(Integer postId) {
-        log.info("Fetching comments for post ID: {}", postId); // 로그 기록
+        log.info("Fetching comments for post ID: {}", postId); // 로그: 댓글 가져오기
         return commentRepository.findCommentsByPostId(postId) // 게시글 ID로 댓글 조회
                 .stream()
-                .map(comment -> new ForumPostCommentResponseDto(
-                        comment.getId(),
-                        comment.getContent(),
-                        comment.getMember().getName(), // 작성자 이름 반환
-                        comment.getLikesCount(), // 좋아요 수
-                        comment.getHidden(), // 숨김 여부
-                        comment.getRemovedBy(), // 삭제자 정보
-                        comment.getCreatedAt(),
-                        comment.getUpdatedAt(),
-                        comment.getFileUrl() // 첨부 파일 URL
-                ))
+                .map(comment -> ForumPostCommentResponseDto.builder()
+                        .id(comment.getId()) // 댓글 ID
+                        .content(comment.getContent()) // 댓글 내용
+                        .authorName(comment.getMember().getName()) // 작성자 이름
+                        .memberId(comment.getMember().getId()) // 작성자 ID
+                        .likesCount(comment.getLikesCount()) // 좋아요 수
+                        .hidden(comment.getHidden()) // 숨김 여부
+                        .removedBy(comment.getRemovedBy()) // 삭제자 정보
+                        .editedBy(comment.getEditedBy()) // 수정자 정보 추가
+                        .locked(comment.getLocked()) // 편집 잠금 상태 추가
+                        .createdAt(comment.getCreatedAt()) // 생성 시간
+                        .updatedAt(comment.getUpdatedAt()) // 수정 시간
+                        .fileUrl(comment.getFileUrl()) // 첨부 파일 URL
+                        .build()
+                )
                 .collect(Collectors.toList()); // 결과를 리스트로 변환
     }
 
@@ -71,46 +75,44 @@ public class ForumPostCommentService {
      */
     @Transactional
     public ForumPostCommentResponseDto createComment(ForumPostCommentRequestDto requestDto) {
-        log.info("Creating new comment for post ID: {} by member ID: {}", requestDto.getPostId(), requestDto.getMemberId());
+        log.info("Creating new comment for post ID: {} by member ID: {}", requestDto.getPostId(), requestDto.getMemberId()); // 댓글 생성 로그
 
-        // 게시글 유효성 검증
+        if (requestDto.getMemberId() == null) {
+            throw new IllegalArgumentException("Member ID is null or invalid.");
+        }
+
         ForumPost forumPost = postRepository.findById(requestDto.getPostId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + requestDto.getPostId()));
 
-        // 작성자 유효성 검증
         Member commentAuthor = memberRepository.findById(requestDto.getMemberId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid member ID: " + requestDto.getMemberId()));
 
-        // 댓글 엔티티 생성
         ForumPostComment newComment = ForumPostComment.builder()
-                .forumPost(forumPost) // 게시글 매핑
-                .member(commentAuthor) // 작성자 매핑
-                .content(requestDto.getContent()) // 댓글 내용
-                .fileUrl(requestDto.getFileUrl()) // 파일 URL (선택 사항)
-                .likesCount(0) // 좋아요 수 초기화
-                .hidden(false) // 숨김 상태 초기화
+                .forumPost(forumPost) // 댓글이 작성된 게시글 매핑
+                .member(commentAuthor) // 댓글 작성자 매핑
+                .content(requestDto.getContent()) // 댓글 내용 설정
+                .fileUrl(requestDto.getFileUrl()) // 첨부 파일 URL (선택 사항)
+                .likesCount(0) // 초기 좋아요 수 설정
+                .hidden(false) // 초기 숨김 상태 설정
                 .createdAt(LocalDateTime.now()) // 생성 시간 설정
                 .updatedAt(LocalDateTime.now()) // 수정 시간 초기화
                 .build();
 
-        // 데이터베이스에 댓글 저장
         ForumPostComment savedComment = commentRepository.save(newComment);
 
-        // 생성된 댓글의 응답 DTO 반환
         return ForumPostCommentResponseDto.builder()
-                .id(savedComment.getId()) // 댓글 ID
+                .id(savedComment.getId()) // 댓글 ID 설정
                 .content(savedComment.getContent()) // 댓글 내용
-                .fileUrl(savedComment.getFileUrl()) // 파일 URL
+                .memberId(commentAuthor.getId()) // 작성자 ID
                 .authorName(commentAuthor.getName()) // 작성자 이름
                 .likesCount(savedComment.getLikesCount()) // 좋아요 수
                 .hidden(savedComment.getHidden()) // 숨김 여부
                 .removedBy(savedComment.getRemovedBy()) // 삭제자 정보
                 .createdAt(savedComment.getCreatedAt()) // 생성 시간
                 .updatedAt(savedComment.getUpdatedAt()) // 수정 시간
+                .fileUrl(savedComment.getFileUrl()) // 첨부 파일 URL
                 .build();
     }
-
-
 
 
     /**
@@ -118,13 +120,14 @@ public class ForumPostCommentService {
      *
      * @param commentId 수정할 댓글 ID
      * @param requestBody 요청 본문 (JSON 형식 또는 단순 텍스트 가능)
+     * @param loggedInMemberId 요청 사용자 ID
      * @return 수정된 댓글 정보가 포함된 응답 DTO
      * @throws IllegalArgumentException 유효하지 않은 JSON 형식 또는 빈 내용일 경우
      * @throws IllegalStateException 숨김 또는 삭제된 댓글을 수정하려는 경우
      */
     @Transactional
-    public ForumPostCommentResponseDto updateComment(Integer commentId, String requestBody) {
-        log.info("Updating comment ID: {}", commentId);
+    public ForumPostCommentResponseDto updateComment(Integer commentId, String requestBody, Integer loggedInMemberId) {
+        log.info("Updating comment ID: {} by member ID: {}", commentId, loggedInMemberId);
 
         // 요청 본문에서 JSON 또는 단순 텍스트 처리
         String sanitizedContent;
@@ -155,6 +158,12 @@ public class ForumPostCommentService {
         ForumPostComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
 
+        // 댓글 소유자 또는 관리자 권한 확인
+        boolean isAdmin = memberService.isAdmin(loggedInMemberId); // 관리자 여부 확인
+        if (!comment.getMember().getId().equals(loggedInMemberId) && !isAdmin) {
+            throw new SecurityException("You are not allowed to edit this comment.");
+        }
+
         // 숨김 또는 삭제된 댓글 검증
         if (comment.getHidden() || "[Removed]".equals(comment.getContent())) {
             throw new IllegalStateException("Cannot edit a hidden or removed comment. Please let ADMIN restore it first.");
@@ -167,6 +176,12 @@ public class ForumPostCommentService {
         }
         comment.setUpdatedAt(LocalDateTime.now()); // 수정 시간 갱신
 
+        // 관리자가 수정한 경우 추가 처리
+        if (isAdmin) {
+            comment.setEditedBy("ADMIN"); // ADMIN에 의해 수정됨 표시
+            comment.setLocked(true); // 사용자에 의한 추가 편집 불가
+        }
+
         ForumPostComment updatedComment = commentRepository.save(comment); // 저장
 
         // Response DTO 반환 (Builder 사용)
@@ -177,6 +192,8 @@ public class ForumPostCommentService {
                 .likesCount(updatedComment.getLikesCount())
                 .hidden(updatedComment.getHidden())
                 .removedBy(updatedComment.getRemovedBy())
+                .editedBy(updatedComment.getEditedBy()) // 수정자 정보 추가
+                .locked(updatedComment.getLocked()) // 편집 잠금 상태 포함
                 .createdAt(updatedComment.getCreatedAt())
                 .updatedAt(updatedComment.getUpdatedAt())
                 .fileUrl(updatedComment.getFileUrl()) // 파일 URL 응답에 포함
@@ -185,52 +202,62 @@ public class ForumPostCommentService {
 
 
 
+
     /**
      * 댓글에 대한 답글 추가
      *
      * @param parentCommentId 부모 댓글 ID
      * @param requestDto 답글 요청 데이터
-     * @return 생성된 답글 정보
+     * @return 생성된 답글 정보 (ForumPostCommentResponseDto)
      */
     @Transactional
     public ForumPostCommentResponseDto replyToComment(Integer parentCommentId, ForumPostCommentRequestDto requestDto) {
         log.info("Replying to comment ID: {} by member ID: {}", parentCommentId, requestDto.getMemberId());
 
+        // 부모 댓글 조회
         ForumPostComment parentComment = commentRepository.findById(parentCommentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid parent comment ID: " + parentCommentId));
 
+        // 답글 작성자 정보 조회
         Member replyAuthor = memberRepository.findById(requestDto.getMemberId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid member ID: " + requestDto.getMemberId()));
 
+        // 부모 댓글 내용을 포함한 답글 내용 생성
         String quotedContent = String.format("%s said: \"%s\"\n\n%s",
                 parentComment.getMember().getName(), // 부모 댓글 작성자 이름
                 parentComment.getContent(), // 부모 댓글 내용
                 requestDto.getContent()); // 답글 내용
 
+        // 답글 댓글 엔티티 생성
         ForumPostComment replyComment = ForumPostComment.builder()
-                .forumPost(parentComment.getForumPost())
-                .member(replyAuthor)
-                .content(quotedContent)
-                .likesCount(0)
-                .hidden(false)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .forumPost(parentComment.getForumPost()) // 부모 댓글이 속한 게시글 정보
+                .member(replyAuthor) // 답글 작성자 정보
+                .content(quotedContent) // 답글 내용
+                .likesCount(0) // 초기 좋아요 수
+                .hidden(false) // 숨김 여부
+                .locked(false) // 초기 잠금 상태
+                .createdAt(LocalDateTime.now()) // 생성 시간
+                .updatedAt(LocalDateTime.now()) // 수정 시간
                 .build();
 
+        // 데이터베이스에 답글 저장
         ForumPostComment savedReply = commentRepository.save(replyComment);
 
-        return new ForumPostCommentResponseDto(
-                savedReply.getId(),
-                savedReply.getContent(),
-                replyAuthor.getName(),
-                savedReply.getLikesCount(),
-                savedReply.getHidden(),
-                savedReply.getRemovedBy(),
-                savedReply.getCreatedAt(),
-                savedReply.getUpdatedAt(),
-                savedReply.getFileUrl()
-        );
+        // 응답 DTO 반환
+        return ForumPostCommentResponseDto.builder()
+                .id(savedReply.getId()) // 댓글 ID
+                .content(savedReply.getContent()) // 댓글 내용
+                .authorName(replyAuthor.getName()) // 작성자 이름
+                .memberId(replyAuthor.getId()) // 작성자 ID
+                .likesCount(savedReply.getLikesCount()) // 좋아요 수
+                .hidden(savedReply.getHidden()) // 숨김 여부
+                .locked(savedReply.getLocked()) // 잠금 상태 추가
+                .createdAt(savedReply.getCreatedAt()) // 생성 시간
+                .updatedAt(savedReply.getUpdatedAt()) // 수정 시간
+                .fileUrl(savedReply.getFileUrl()) // 첨부 파일 URL
+                .build();
     }
+
 
 
     /**
@@ -238,43 +265,48 @@ public class ForumPostCommentService {
      *
      * @param postId 게시글 ID
      * @param requestDto 답글 요청 데이터
-     * @return 생성된 답글 정보
+     * @return 생성된 답글 정보 (ForumPostCommentResponseDto)
      */
     @Transactional
     public ForumPostCommentResponseDto replyToPost(Integer postId, ForumPostCommentRequestDto requestDto) {
         log.info("Replying to post ID: {} by member ID: {}", postId, requestDto.getMemberId());
 
+        // 게시글 내용을 인용한 답글 내용 생성
         String quotedContent = String.format("%s (OP) said: \"%s\"\n\n%s",
-                requestDto.getOpAuthorName(), // OP 작성자 이름
-                requestDto.getOpContent(), // OP 내용
+                requestDto.getOpAuthorName(), // 게시글 작성자 이름
+                requestDto.getOpContent(), // 게시글 내용
                 requestDto.getContent()); // 답글 내용
 
+        // 답글 댓글 엔티티 생성
         ForumPostComment replyComment = ForumPostComment.builder()
                 .forumPost(ForumPost.builder().id(postId).build()) // 게시글 ID 매핑
-                .member(Member.builder().id(requestDto.getMemberId()).build()) // 작성자 ID 매핑
-                .content(quotedContent) // 답글 내용 설정
-                .fileUrl(requestDto.getFileUrl()) // 첨부 파일 URL 추가
-                .likesCount(0)
-                .hidden(false) // 기본 숨김 상태
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
+                .member(Member.builder().id(requestDto.getMemberId()).build()) // 답글 작성자 ID 매핑
+                .content(quotedContent) // 답글 내용
+                .fileUrl(requestDto.getFileUrl()) // 첨부 파일 URL
+                .likesCount(0) // 초기 좋아요 수
+                .hidden(false) // 숨김 여부
+                .locked(false) // 초기 잠금 상태
+                .createdAt(LocalDateTime.now()) // 생성 시간
+                .updatedAt(LocalDateTime.now()) // 수정 시간
                 .build();
 
+        // 데이터베이스에 답글 저장
         ForumPostComment savedReply = commentRepository.save(replyComment);
 
-        return new ForumPostCommentResponseDto(
-                savedReply.getId(),
-                savedReply.getContent(),
-                savedReply.getMember().getName(),
-                savedReply.getLikesCount(),
-                savedReply.getHidden(),
-                savedReply.getRemovedBy(),
-                savedReply.getCreatedAt(),
-                savedReply.getUpdatedAt(),
-                savedReply.getFileUrl() // 첨부 파일 URL 반환
-        );
+        // 응답 DTO 반환
+        return ForumPostCommentResponseDto.builder()
+                .id(savedReply.getId()) // 댓글 ID
+                .content(savedReply.getContent()) // 댓글 내용
+                .authorName(savedReply.getMember().getName()) // 작성자 이름
+                .memberId(savedReply.getMember().getId()) // 작성자 ID
+                .likesCount(savedReply.getLikesCount()) // 좋아요 수
+                .hidden(savedReply.getHidden()) // 숨김 여부
+                .locked(savedReply.getLocked()) // 잠금 상태 추가
+                .createdAt(savedReply.getCreatedAt()) // 생성 시간
+                .updatedAt(savedReply.getUpdatedAt()) // 수정 시간
+                .fileUrl(savedReply.getFileUrl()) // 첨부 파일 URL
+                .build();
     }
-
 
 
 

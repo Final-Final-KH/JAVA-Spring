@@ -27,6 +27,15 @@ public class CourseCommentController {
         return ResponseEntity.ok(isSuccess);
     }
 
+    // 컬럼별 평균
+    @GetMapping("/sub_total_avg")
+    public ResponseEntity<Map<String, Object>> sub_total_avg(@RequestParam(value = "academy_id") Long academy_id,
+                                                             @RequestParam(value = "course_id") Long course_id){
+        Map<String, Object> resultMap = new HashMap<>();
+        List<CourseCommentResDTO2> sub_total_avg = courseCommentService2.sub_total_avg(academy_id,course_id);
+        resultMap.put("sub_total_avg",sub_total_avg);
+        return ResponseEntity.ok(resultMap);
+    }
     @PostMapping("/list")
     public Map<String,Object> list(@RequestParam(name = "course_id") long course_id){
         Map<String, Object> resultMap = new HashMap<>();

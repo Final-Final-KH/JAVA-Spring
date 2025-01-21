@@ -2,10 +2,7 @@ package com.capstone.project.kedu.entity.comment;
 
 import com.capstone.project.kedu.entity.edu.AcademyEntity2;
 import com.capstone.project.member.entity.Member;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 import javax.persistence.*;
 
@@ -15,6 +12,8 @@ import javax.persistence.*;
 @Setter
 @ToString
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class AcademyCommentEntity2 {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -42,4 +41,15 @@ public class AcademyCommentEntity2 {
     @JoinColumn(name = "academy_id")
     private AcademyEntity2 academyEntity2;
 
+    // 각 항목의 평균 계산 (점수 항목들을 합산하고 개수로 나눔)
+    public double getTotalScore() {
+        return (job + lecture + facilities + teacher + books + service) / 6.0;
+    }
+
+    // 평점 저장 시 학원의 평균 점수 갱신
+    public void saveRating() {
+        if (academyEntity2 != null) {
+            academyEntity2.addRating(getTotalScore());  // 학원의 평균 점수를 갱신
+        }
+    }
 }
