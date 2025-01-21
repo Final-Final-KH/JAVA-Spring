@@ -13,4 +13,8 @@ public interface AcademyRepository2 extends JpaRepository<AcademyEntity2, Long> 
     List<AcademyEntity2> findByRegion(String region);
 
     List<AcademyEntity2> findAllByOrderByTotalScoreDesc();
+
+    Long findIdByAcademyNameAndRegion(String academyName, String region);
+
+    Long findAcademyIdByAcademyNameAndRegion(String academyName, String region);
 }

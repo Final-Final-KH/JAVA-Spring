@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @CrossOrigin(origins = {"http://localhost:3000", "http://192.168.10.25:3000"})  // 두 개의 origin을 추가
@@ -21,6 +22,14 @@ public class KeduController2 {
 
     private final KeduService2 keduService2;
 
+    @GetMapping("/getId")
+    public ResponseEntity<Map<String, Object>> getId(@RequestParam(value = "region") String region,
+                                                     @RequestParam(value = "academy_name") String academy_name){
+        Map<String, Object> resultMap = new HashMap<>();
+        Long id = keduService2.getAcademyId(region, academy_name);
+        resultMap.put("id", id);
+        return ResponseEntity.ok(resultMap);
+    }
     @GetMapping("/list/page")
     public ResponseEntity<Map<String, Object>> courseList(@RequestParam(value = "page", defaultValue = "0") int page,
                                                         @RequestParam(value = "size", defaultValue = "5") int size){
