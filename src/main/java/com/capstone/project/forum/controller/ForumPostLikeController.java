@@ -8,42 +8,45 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/forums/likes")
-@RequiredArgsConstructor
+@RequestMapping("/api/forums")
 public class ForumPostLikeController {
+
     private final ForumPostLikeService likeService;
 
-    // 게시글 좋아요 토글
-    @PostMapping("/post/toggle")
-    public ResponseEntity<Void> togglePostLike(@RequestBody ForumPostLikeRequestDto requestDto) {
-        likeService.togglePostLike(requestDto.getMemberId(), requestDto.getPostId());
-        return ResponseEntity.ok().build();
+    public ForumPostLikeController(ForumPostLikeService likeService) {
+        this.likeService = likeService;
     }
 
-    // 댓글 좋아요 토글
-    @PostMapping("/comment/toggle")
-    public ResponseEntity<Void> toggleCommentLike(@RequestBody ForumPostLikeRequestDto requestDto) {
-        likeService.toggleCommentLike(requestDto.getMemberId(), requestDto.getCommentId());
-        return ResponseEntity.ok().build();
+    /**
+     * 게시글 좋아요 토글
+     *
+     * @param postId 게시글 ID
+     * @param loggedInMemberId 요청 사용자 ID
+     * @return 좋아요 토글 결과 DTO
+     * @apiNote 게시글에 대해 사용자가 좋아요/좋아요 취소를 수행합니다.
+     */
+    @PostMapping("/posts/{postId}/like")
+    public ResponseEntity<ForumPostLikeResponseDto> toggleLikePost(
+            @PathVariable Integer postId,
+            @RequestParam Integer loggedInMemberId) {
+        ForumPostLikeResponseDto response = likeService.togglePostLike(postId, loggedInMemberId);
+        return ResponseEntity.ok(response);
     }
 
-    // 게시글에 좋아요 여부 확인
-    @GetMapping("/post")
-    public ResponseEntity<ForumPostLikeResponseDto> hasLikedPost(
-            @RequestParam Integer memberId,
-            @RequestParam Integer postId
-    ) {
-        boolean liked = likeService.hasLikedPost(memberId, postId);
-        return ResponseEntity.ok(new ForumPostLikeResponseDto(liked, null)); // 총 좋아요 수는 null
-    }
-
-    // 댓글에 좋아요 여부 확인
-    @GetMapping("/comment")
-    public ResponseEntity<ForumPostLikeResponseDto> hasLikedComment(
-            @RequestParam Integer memberId,
-            @RequestParam Integer commentId
-    ) {
-        boolean liked = likeService.hasLikedComment(memberId, commentId);
-        return ResponseEntity.ok(new ForumPostLikeResponseDto(liked, null)); // 총 좋아요 수는 null
+    /**
+     * 댓글 좋아요 토글
+     *
+     * @param commentId 댓글 ID
+     * @param loggedInMemberId 요청 사용자 ID
+     * @return 좋아요 토글 결과 DTO
+     * @apiNote 댓글에 대해 사용자가 좋아요/좋아요 취소를 수행합니다.
+     */
+    @PostMapping("/comments/{commentId}/like")
+    public ResponseEntity<ForumPostLikeResponseDto> toggleLikeComment(
+            @PathVariable Integer commentId,
+            @RequestParam Integer loggedInMemberId) {
+        ForumPostLikeResponseDto response = likeService.toggleCommentLike(commentId, loggedInMemberId);
+        return ResponseEntity.ok(response);
     }
 }
+

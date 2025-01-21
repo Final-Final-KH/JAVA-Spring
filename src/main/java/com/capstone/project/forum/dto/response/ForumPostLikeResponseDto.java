@@ -8,9 +8,26 @@ import lombok.NoArgsConstructor;
  * 좋아요 관련 정보를 전송하기 위한 DTO
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class ForumPostLikeResponseDto {
-    private boolean liked; // 좋아요 여부
-    private Integer totalLikes; // 총 좋아요 수
+
+    /**
+     * 좋아요 상태 (추가 또는 취소 여부)
+     */
+    private boolean liked;
+
+    /**
+     * 총 좋아요 개수
+     */
+    private Integer totalLikes;
+
+    /**
+     * 생성자: 좋아요 상태와 총 좋아요 개수를 설정합니다.
+     *
+     * @param liked 좋아요 상태 (true: 좋아요, false: 취소)
+     * @param totalLikes 총 좋아요 개수
+     */
+    public ForumPostLikeResponseDto(boolean liked, Integer totalLikes) {
+        this.liked = liked;
+        this.totalLikes = totalLikes;
+    }
 }
