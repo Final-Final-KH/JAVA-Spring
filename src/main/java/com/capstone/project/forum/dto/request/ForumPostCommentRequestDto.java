@@ -16,4 +16,6 @@ public class ForumPostCommentRequestDto {
 
     // 추가 필드: OP 내용 (인용 시 필요)
     private String opContent;
+
+    private String fileUrl; // 첨부 파일 URL (Firebase 또는 다른 스토리지 서비스에서 반환된 URL)
 }

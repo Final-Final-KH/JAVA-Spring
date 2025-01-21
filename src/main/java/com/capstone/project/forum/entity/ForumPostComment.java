@@ -56,6 +56,9 @@ public class ForumPostComment {
     @Column(name = "removed_by")
     private String removedBy; // 댓글 삭제자 정보 ("OP", "ADMIN", "SYSTEM")
 
+    @Column(name = "file_url")
+    private String fileUrl; // 첨부 파일 URL (단일 파일 지원)
+
     /**
      * 대댓글(답글) 구현을 위한 부모 댓글 참조
      */
@@ -87,5 +90,24 @@ public class ForumPostComment {
     @PreUpdate
     private void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    @Column(name = "edited_by")
+    private String editedBy; // 댓글 수정자 정보 ("OP", "ADMIN")
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean locked = false; // 댓글 수정 잠금 여부 (ADMIN이 수정 시 잠김)
+
+    // Add methods for setting edit metadata
+    public void lockForEditing(String editor) {
+        this.editedBy = editor;
+        this.locked = true;
+        this.onUpdate(); // Update the timestamp
+    }
+
+    public void unlock() {
+        this.editedBy = null;
+        this.locked = false;
     }
 }

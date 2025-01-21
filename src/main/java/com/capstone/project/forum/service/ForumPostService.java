@@ -53,13 +53,13 @@ public class ForumPostService {
         Pageable pageable = PageRequest.of(page, size); // 페이지 요청 객체 생성
         Page<ForumPost> postPage = postRepository.findPostsByCategory(categoryId, pageable); // DB에서 게시글 조회
 
-        // 게시글 리스트를 DTO로 변환
         List<ForumPostResponseDto> postDtos = postPage.getContent()
                 .stream()
                 .map(post -> ForumPostResponseDto.builder()
                         .id(post.getId())
                         .title(post.getTitle())
                         .content(post.getContent())
+                        .memberId(post.getMember().getId()) // memberId 추가
                         .authorName(post.getMember().getName())
                         .sticky(post.getSticky())
                         .viewsCount(post.getViewsCount())
@@ -75,30 +75,40 @@ public class ForumPostService {
     }
 
     /**
-     * 새로운 게시글을 생성하는 메서드
+     * 게시글 생성
      *
-     * @param requestDto 게시글 생성 요청 DTO
-     * @return ForumPostResponseDto 생성된 게시글의 응답 DTO
+     * @param requestDto 게시글 요청 DTO
+     * @return 생성된 게시글 응답 DTO
      */
     @Transactional
     public ForumPostResponseDto createPost(ForumPostRequestDto requestDto) {
-        log.info("Creating new post in category ID: {}", requestDto.getCategoryId());
+        log.info("Creating post with title: {}", requestDto.getTitle());
 
-        // 작성자 정보 조회
+        // Validate member ID
+        if (requestDto.getMemberId() == null) {
+            throw new IllegalArgumentException("Member ID must not be null.");
+        }
+
+        // Validate category ID
+        if (requestDto.getCategoryId() == null) {
+            throw new IllegalArgumentException("Category ID must not be null.");
+        }
+
+        // Retrieve member and category
         var member = memberRepository.findById(requestDto.getMemberId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid member ID: " + requestDto.getMemberId()));
 
-        // 카테고리 정보 조회
         var category = categoryRepository.findById(requestDto.getCategoryId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid category ID: " + requestDto.getCategoryId()));
 
-        // 게시글 엔티티 생성
+        // Build the post entity
         var post = ForumPost.builder()
                 .title(requestDto.getTitle())
                 .content(requestDto.getContent())
-                .sticky(requestDto.getSticky())
+                .sticky(requestDto.getSticky() != null ? requestDto.getSticky() : false) // Default to false if not provided
                 .viewsCount(0)
                 .likesCount(0)
+                .fileUrls(requestDto.getFileUrls() != null ? requestDto.getFileUrls() : new ArrayList<>())
                 .hidden(false)
                 .member(member)
                 .forumCategory(category)
@@ -106,13 +116,17 @@ public class ForumPostService {
                 .updatedAt(LocalDateTime.now())
                 .build();
 
-        var savedPost = postRepository.save(post); // DB에 저장
 
+        // Save the post
+        var savedPost = postRepository.save(post);
+
+        // Return the response DTO
         return ForumPostResponseDto.builder()
                 .id(savedPost.getId())
                 .title(savedPost.getTitle())
                 .content(savedPost.getContent())
-                .authorName(savedPost.getMember().getName())
+                .memberId(member.getId()) // memberId 추가
+                .authorName(member.getName())
                 .sticky(savedPost.getSticky())
                 .viewsCount(savedPost.getViewsCount())
                 .likesCount(savedPost.getLikesCount())
@@ -123,57 +137,61 @@ public class ForumPostService {
                 .build();
     }
 
+
+
+
+
     /**
      * 게시글 수정
      *
-     * @param postId       수정할 게시글 ID
-     * @param requestDto   수정 요청 DTO
-     * @param loggedInMemberId 수정 요청 사용자 ID
-     * @param isAdmin      관리자 여부
+     * @param postId 수정할 게시글 ID
+     * @param requestDto 수정 요청 DTO
+     * @param loggedInMemberId 요청 사용자 ID
+     * @param isAdmin 관리자 여부
      * @return 수정된 게시글 응답 DTO
      */
     @Transactional
     public ForumPostResponseDto updatePost(Integer postId, ForumPostRequestDto requestDto, Integer loggedInMemberId, boolean isAdmin) {
-        log.info("Updating post ID: {} by member ID: {}, isAdmin: {}", postId, loggedInMemberId, isAdmin);
+        log.info("Updating post with ID: {}", postId);
 
-        // 게시글 조회
+        // 1. 게시글 존재 여부 확인
         var post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
+                .orElseThrow(() -> new IllegalArgumentException("Post not found with ID: " + postId));
 
-        // 숨김 또는 삭제된 게시글 검증
-        if (post.getHidden()) {
-            throw new IllegalStateException("Cannot edit a hidden or removed post. Please let ADMIN restore it first.");
+        // 2. 권한 검증
+        if (!isAdmin && !post.getMember().getId().equals(loggedInMemberId)) {
+            throw new SecurityException("Not authorized to edit this post"); // 권한이 없는 경우 예외 발생
         }
 
-        // 권한 검증
-        if (!post.getMember().getId().equals(loggedInMemberId) && !isAdmin) {
-            throw new AccessDeniedException("You are not allowed to edit this post.");
-        }
-
-        // 게시글 수정
+        // 3. 게시글 데이터 수정
         post.setTitle(requestDto.getTitle()); // 제목 업데이트
         post.setContent(requestDto.getContent()); // 내용 업데이트
-        post.setSticky(requestDto.getSticky()); // 상단 고정 여부 업데이트
-        post.setUpdatedAt(LocalDateTime.now()); // 수정 시간 갱신
+        post.setSticky(requestDto.getSticky());
+        post.setFileUrls(requestDto.getFileUrls() != null ? requestDto.getFileUrls() : post.getFileUrls()); // 파일 URL 값 유지
+        post.setUpdatedAt(LocalDateTime.now()); // 수정 시간 업데이트
 
-        // 업데이트된 게시글 저장
+        // 4. 수정된 게시글 저장
         var updatedPost = postRepository.save(post);
 
-        // 응답 DTO 생성 및 반환
+        // 5. 수정된 데이터 DTO로 반환
         return ForumPostResponseDto.builder()
                 .id(updatedPost.getId())
                 .title(updatedPost.getTitle())
                 .content(updatedPost.getContent())
-                .authorName(updatedPost.getMember().getName())
+                .authorName(post.getMember().getName())
                 .sticky(updatedPost.getSticky())
                 .viewsCount(updatedPost.getViewsCount())
                 .likesCount(updatedPost.getLikesCount())
+                .fileUrls(updatedPost.getFileUrls())
                 .hidden(updatedPost.getHidden())
                 .removedBy(updatedPost.getRemovedBy())
                 .createdAt(updatedPost.getCreatedAt())
                 .updatedAt(updatedPost.getUpdatedAt())
                 .build();
     }
+
+
+
 
 
     /**
@@ -228,18 +246,16 @@ public class ForumPostService {
 
     /**
      * 게시글 삭제
-     * 게시글과 해당 게시글의 댓글을 삭제 상태로 표시하며, 삭제 이력을 기록합니다.
-     * 댓글 삭제는 cascadeComments 플래그에 따라 조건적으로 수행됩니다.
+     * 게시글을 삭제 상태로 표시하며, 삭제 이력을 기록합니다.
      *
      * @param postId         삭제할 게시글 ID
      * @param loggedInMemberId 삭제 요청을 보낸 사용자 ID
-     * @param cascadeComments 댓글을 삭제할지 여부를 결정하는 플래그
      * @param removedBy      삭제를 수행한 사용자 정보 (ADMIN 또는 작성자 이름)
      * @throws IllegalArgumentException 유효하지 않은 게시글 ID 또는 권한이 없는 사용자일 경우 예외 발생
      * @throws AccessDeniedException    삭제 권한이 없는 사용자가 요청할 경우 예외 발생
      */
     @Transactional
-    public void deletePost(Integer postId, Integer loggedInMemberId, boolean cascadeComments, String removedBy) {
+    public void deletePost(Integer postId, Integer loggedInMemberId, String removedBy) {
         log.info("Deleting post ID: {} by member ID: {}", postId, loggedInMemberId);
 
         // 1. 게시글 조회
@@ -252,32 +268,16 @@ public class ForumPostService {
             throw new AccessDeniedException("You are not allowed to delete this post.");
         }
 
-        // 3. cascadeComments 플래그에 따라 댓글 처리
-        if (cascadeComments) {
-            // 댓글 백업 및 삭제
-            for (ForumPostComment comment : post.getComments()) {
-                ForumPostCommentHistory history = ForumPostCommentHistory.builder()
-                        .commentId(comment.getId()) // 댓글 ID
-                        .content(comment.getContent()) // 댓글 내용
-                        .authorName(comment.getMember().getName()) // 작성자 이름
-                        .deletedAt(LocalDateTime.now()) // 삭제 시간
-                        .build();
-                commentHistoryRepository.save(history); // 댓글 이력 저장
-                commentRepository.delete(comment); // 댓글 삭제
-                log.info("Comment ID: {} deleted and backed up to history.", comment.getId());
-            }
-        } else {
-            // 댓글 백업만 수행 (삭제하지 않음)
-            for (ForumPostComment comment : post.getComments()) {
-                ForumPostCommentHistory history = ForumPostCommentHistory.builder()
-                        .commentId(comment.getId()) // 댓글 ID
-                        .content(comment.getContent()) // 댓글 내용
-                        .authorName(comment.getMember().getName()) // 작성자 이름
-                        .deletedAt(LocalDateTime.now()) // 삭제 시간
-                        .build();
-                commentHistoryRepository.save(history); // 댓글 이력 저장
-                log.info("Comment ID: {} backed up to history without deletion.", comment.getId());
-            }
+        // 3. 댓글 백업 수행 (삭제하지 않음)
+        for (ForumPostComment comment : post.getComments()) {
+            ForumPostCommentHistory history = ForumPostCommentHistory.builder()
+                    .commentId(comment.getId()) // 댓글 ID
+                    .content(comment.getContent()) // 댓글 내용
+                    .authorName(comment.getMember().getName()) // 작성자 이름
+                    .deletedAt(LocalDateTime.now()) // 삭제 시간
+                    .build();
+            commentHistoryRepository.save(history); // 댓글 이력 저장
+            log.info("Comment ID: {} backed up to history.", comment.getId());
         }
 
         // 4. 게시글 삭제 이력 저장
@@ -386,17 +386,18 @@ public class ForumPostService {
 
         return postRepository.findById(postId)
                 .map(post -> ForumPostResponseDto.builder()
-                        .id(post.getId()) // 게시글 ID
-                        .title(post.getTitle()) // 게시글 제목
-                        .content(post.getContent()) // 게시글 내용
-                        .authorName(post.getMember().getName()) // 작성자 이름
-                        .sticky(post.getSticky()) // 상단 고정 여부
-                        .viewsCount(post.getViewsCount()) // 조회수
-                        .likesCount(post.getLikesCount()) // 좋아요 수
-                        .hidden(post.getHidden()) // 숨김 상태
-                        .removedBy(post.getRemovedBy()) // 삭제자 정보
-                        .createdAt(post.getCreatedAt()) // 생성 시간
-                        .updatedAt(post.getUpdatedAt()) // 수정 시간
+                        .id(post.getId())
+                        .title(post.getTitle())
+                        .content(post.getContent())
+                        .memberId(post.getMember().getId()) // memberId 추가
+                        .authorName(post.getMember().getName())
+                        .sticky(post.getSticky())
+                        .viewsCount(post.getViewsCount())
+                        .likesCount(post.getLikesCount())
+                        .hidden(post.getHidden())
+                        .removedBy(post.getRemovedBy())
+                        .createdAt(post.getCreatedAt())
+                        .updatedAt(post.getUpdatedAt())
                         .build());
     }
 
