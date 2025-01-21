@@ -4,6 +4,8 @@ import com.capstone.project.kedu.dto.edu.response.*;
 import com.capstone.project.kedu.service.KeduService2;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -18,6 +20,36 @@ import java.util.Map;
 public class KeduController2 {
 
     private final KeduService2 keduService2;
+
+    @GetMapping("/list/page")
+    public ResponseEntity<Map<String, Object>> courseList(@RequestParam(value = "page", defaultValue = "0") int page,
+                                                        @RequestParam(value = "size", defaultValue = "5") int size){
+        Map<String, Object> resultMap = new HashMap<>();
+        List<KeduResDTO2> list = keduService2.getCourseList(page, size);
+        resultMap.put("list", list);
+        return ResponseEntity.ok(resultMap);
+    }
+
+    @GetMapping("/count")
+    public ResponseEntity<Map<String, Object>> listBoards(@RequestParam(value = "page", defaultValue = "0") int page,
+                                                          @RequestParam(value = "size", defaultValue = "5") int size) {
+        // PageRequest 객체 생성
+        PageRequest pageRequest = PageRequest.of(page, size);
+
+        // 서비스 로직을 통해 페이지 갯수 가져오기
+        Integer pageCnt = keduService2.getBoards(pageRequest);
+
+        // 결과를 담을 Map 생성
+        Map<String, Object> resultMap = new HashMap<>();
+
+        // 결과 데이터와 추가 정보를 resultMap에 넣음
+        resultMap.put("totalPages", pageCnt);  // 페이지 수
+        resultMap.put("currentPage", page);    // 현재 페이지
+        resultMap.put("size", size);           // 페이지 크기
+
+        // 성공적인 응답 반환
+        return ResponseEntity.ok(resultMap);
+    }
 
     @GetMapping("/list")
     public Map<String, Object> courseList() {
@@ -44,6 +76,8 @@ public class KeduController2 {
         resultMap.put("list", list);
         return resultMap;
     }
+
+
 
     @GetMapping("/district")
     public Map<String , Object> district(@RequestParam(value = "region_name") String region){
