@@ -21,7 +21,7 @@ public interface CourseCommentRepository2 extends JpaRepository<CourseCommentEnt
     List<Object[]> findAverageScoreForCourse(@Param("courseId") Long courseId);
 
     @Query("SELECT new com.capstone.project.kedu.dto.edu.response.CourseDetailResDTO2(" +
-            "ac.job, ac.lecture, ac.facilities, ac.teacher, ac.books, ac.service, " +
+            "cc.member.id, ac.job, ac.lecture, ac.facilities, ac.teacher, ac.books, ac.service, " +
             "cc.job, cc.lecture, cc.teacher, cc.books, cc.newTech, cc.skillUp, " +
             "kb.id, kb.title, kb.user_id, kb.regDate, kb.content, " +
             "s.survey_id, s.teacher, s.lecture, s.facilities, s.comment) " +
@@ -29,8 +29,18 @@ public interface CourseCommentRepository2 extends JpaRepository<CourseCommentEnt
             "LEFT JOIN AcademyCommentEntity2 ac ON ac.academyEntity2.academyId = cc.academyEntity2.academyId " +
             "LEFT JOIN KeduBoardEntity2 kb ON kb.courseEntity2.courseId = cc.courseEntity2.courseId " +
             "LEFT JOIN SurveyEntity2 s ON s.courseEntity2.courseId = cc.courseEntity2.courseId " +
-            "WHERE cc.academyEntity2.academyId = :academyId AND cc.courseEntity2.courseId = :courseId ")
+            "WHERE cc.academyEntity2.academyId = :academyId AND cc.courseEntity2.courseId = :courseId " +
+            "GROUP BY cc.member.id, ac.job, ac.lecture, ac.facilities, ac.teacher, ac.books, ac.service, " +
+            "cc.job, cc.lecture, cc.teacher, cc.books, cc.newTech, cc.skillUp, " +
+            "kb.id, kb.title, kb.user_id, kb.regDate, kb.content, " +
+            "s.survey_id, s.teacher, s.lecture, s.facilities, s.comment")
     List<CourseDetailResDTO2> findReview(@Param("academyId") Long academyId, @Param("courseId") Long courseId);
+
+
+
+
+
+
 
 
 
