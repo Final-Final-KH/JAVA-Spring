@@ -170,9 +170,13 @@ public class MyCourseService2 {
 
             myCourseResDTO2.setAcademy_id(myCourseEntity2.getAcademyEntity2().getAcademyId());
             myCourseResDTO2.setCourse_id(myCourseEntity2.getCourseEntity2().getCourseId());
+            myCourseResDTO2.setCourse(myCourseEntity2.getCourse_name());
+            myCourseResDTO2.setAcademy(myCourseEntity2.getAcademy_name());
             myCourseResDTO.add(myCourseResDTO2);
         }
 
         return myCourseResDTO;
     }
+
+
 }
