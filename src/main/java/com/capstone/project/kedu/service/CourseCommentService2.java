@@ -71,6 +71,8 @@ public class CourseCommentService2 {
                     .orElseThrow(()-> new RuntimeException("해당 회원이 존재하지 않습니다."));
             CourseEntity2 courseEntity2 = courseRepository2.findById(courseCommentReqDTO2.getCourse_id())
                     .orElseThrow(()-> new RuntimeException("해당 강의는 존재하지 않습니다."));
+            AcademyEntity2 academyEntity2 = academyRepository2.findById(courseCommentReqDTO2.getAcademy_id())
+                    .orElseThrow(()-> new RuntimeException("해당 학원이 존재 하지 않습니다."));
             CourseCommentEntity2 courseCommentEntity2 = new CourseCommentEntity2();
             courseCommentEntity2.setCourseEntity2(courseEntity2);
             courseCommentEntity2.setMember(member);
@@ -81,6 +83,7 @@ public class CourseCommentService2 {
             courseCommentEntity2.setNewTech(courseCommentReqDTO2.getNewTech());
             courseCommentEntity2.setSkillUp(courseCommentReqDTO2.getSkillUp());
             courseCommentEntity2.setTeacher(courseCommentReqDTO2.getTeacher());
+            courseCommentEntity2.setAcademyEntity2(academyEntity2);
             courseCommentRepository2.save(courseCommentEntity2);
             return true;
         }catch (Exception e ){

@@ -154,26 +154,33 @@ public class ForumPostService {
     public ForumPostResponseDto updatePost(Integer postId, ForumPostRequestDto requestDto, Integer loggedInMemberId, boolean isAdmin) {
         log.info("Updating post with ID: {}", postId);
 
-        // 1. 게시글 존재 여부 확인
+        // 1. 게시글 조회 / Fetch the post
         var post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Post not found with ID: " + postId));
 
-        // 2. 권한 검증
+        // 2. 권한 검증 / Validate permissions
+        // updatePost 메서드의 isAdmin 확인 로직 덕분에, 관리자 권한이 있는 경우 locked 여부에 관계없이 수정 가능.
         if (!isAdmin && !post.getMember().getId().equals(loggedInMemberId)) {
-            throw new SecurityException("Not authorized to edit this post"); // 권한이 없는 경우 예외 발생
+            throw new SecurityException("Not authorized to edit this post");
         }
 
-        // 3. 게시글 데이터 수정
-        post.setTitle(requestDto.getTitle()); // 제목 업데이트
-        post.setContent(requestDto.getContent()); // 내용 업데이트
+        // 3. 게시글 데이터 수정 / Update post data
+        post.setTitle(requestDto.getTitle());
+        post.setContent(requestDto.getContent());
         post.setSticky(requestDto.getSticky());
-        post.setFileUrls(requestDto.getFileUrls() != null ? requestDto.getFileUrls() : post.getFileUrls()); // 파일 URL 값 유지
-        post.setUpdatedAt(LocalDateTime.now()); // 수정 시간 업데이트
+        post.setFileUrls(requestDto.getFileUrls() != null ? requestDto.getFileUrls() : post.getFileUrls());
+        post.setUpdatedAt(LocalDateTime.now());
 
-        // 4. 수정된 게시글 저장
+        // 4. 관리자에 의해 수정된 경우 처리 / Handle admin-specific edits
+        if (isAdmin) {
+            post.setEditedBy("ADMIN"); // 수정자 정보를 "ADMIN"으로 설정
+            post.setLocked(true); // 추가 수정 불가 설정
+        }
+
+        // 5. 수정된 게시글 저장 / Save updated post
         var updatedPost = postRepository.save(post);
 
-        // 5. 수정된 데이터 DTO로 반환
+        // 6. 수정된 데이터 DTO로 반환 / Return updated data as DTO
         return ForumPostResponseDto.builder()
                 .id(updatedPost.getId())
                 .title(updatedPost.getTitle())
@@ -185,10 +192,13 @@ public class ForumPostService {
                 .fileUrls(updatedPost.getFileUrls())
                 .hidden(updatedPost.getHidden())
                 .removedBy(updatedPost.getRemovedBy())
+                .editedBy(updatedPost.getEditedBy()) // 수정자 정보 추가
+                .locked(updatedPost.getLocked()) // 잠금 상태 추가
                 .createdAt(updatedPost.getCreatedAt())
                 .updatedAt(updatedPost.getUpdatedAt())
                 .build();
     }
+
 
 
 
@@ -258,48 +268,49 @@ public class ForumPostService {
     public void deletePost(Integer postId, Integer loggedInMemberId, String removedBy) {
         log.info("Deleting post ID: {} by member ID: {}", postId, loggedInMemberId);
 
-        // 1. 게시글 조회
+        // 1. 게시글 조회 / Fetch the post
         ForumPost post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
 
-        // 2. 삭제 권한 확인
+        // 2. 삭제 권한 확인 / Validate deletion permissions
         boolean isAdmin = memberService.isAdmin(loggedInMemberId);
         if (!post.getMember().getId().equals(loggedInMemberId) && !isAdmin) {
             throw new AccessDeniedException("You are not allowed to delete this post.");
         }
 
-        // 3. 댓글 백업 수행 (삭제하지 않음)
+        // 3. 댓글 백업 수행 (삭제하지 않음) / Backup comments
         for (ForumPostComment comment : post.getComments()) {
             ForumPostCommentHistory history = ForumPostCommentHistory.builder()
-                    .commentId(comment.getId()) // 댓글 ID
-                    .content(comment.getContent()) // 댓글 내용
-                    .authorName(comment.getMember().getName()) // 작성자 이름
-                    .deletedAt(LocalDateTime.now()) // 삭제 시간
+                    .commentId(comment.getId())
+                    .content(comment.getContent())
+                    .authorName(comment.getMember().getName())
+                    .deletedAt(LocalDateTime.now())
                     .build();
-            commentHistoryRepository.save(history); // 댓글 이력 저장
+            commentHistoryRepository.save(history);
             log.info("Comment ID: {} backed up to history.", comment.getId());
         }
 
-        // 4. 게시글 삭제 이력 저장
+        // 4. 게시글 삭제 이력 저장 / Log post deletion history
         ForumPostHistory postHistory = ForumPostHistory.builder()
-                .postId(post.getId()) // 게시글 ID
-                .title(post.getTitle()) // 삭제 전 게시글 제목
-                .content(post.getContent()) // 삭제 전 게시글 내용
-                .authorName(post.getMember().getName()) // 작성자 이름
-                .deletedAt(LocalDateTime.now()) // 삭제 시간
+                .postId(post.getId())
+                .title(post.getTitle())
+                .content(post.getContent())
+                .authorName(post.getMember().getName())
+                .deletedAt(LocalDateTime.now())
                 .build();
-        historyRepository.save(postHistory); // 게시글 이력 저장
+        historyRepository.save(postHistory);
         log.info("Post ID: {} backed up to history.", postId);
 
-        // 5. 게시글 상태를 삭제됨으로 업데이트
-        post.setTitle("[Deleted]"); // 제목을 "[Deleted]"로 변경
-        post.setContent("This post has been deleted."); // 내용을 삭제됨으로 표시
-        post.setRemovedBy(isAdmin ? "ADMIN" : post.getMember().getName()); // 삭제자 정보 설정
-        post.setHidden(true); // 게시글 숨김 처리
-        postRepository.save(post); // 업데이트된 게시글 저장
+        // 5. 게시글 상태를 삭제됨으로 업데이트 / Mark post as deleted
+        post.setTitle("[Deleted]");
+        post.setContent("This post has been deleted.");
+        post.setRemovedBy(isAdmin ? "ADMIN" : post.getMember().getName());
+        post.setHidden(true);
+        postRepository.save(post);
 
         log.info("Post ID: {} marked as deleted.", postId);
     }
+
 
 
 

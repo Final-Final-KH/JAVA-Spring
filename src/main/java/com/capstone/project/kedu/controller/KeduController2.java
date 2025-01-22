@@ -5,12 +5,14 @@ import com.capstone.project.kedu.service.KeduService2;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @CrossOrigin(origins = {"http://localhost:3000", "http://192.168.10.25:3000"})  // 두 개의 origin을 추가
@@ -20,6 +22,21 @@ import java.util.Map;
 public class KeduController2 {
 
     private final KeduService2 keduService2;
+
+    @GetMapping("/getId")
+    public ResponseEntity<Map<String, Object>> getId(@RequestParam(value = "region") String region,
+                                                     @RequestParam(value = "academy_name") String academy_name) {
+        Map<String, Object> resultMap = new HashMap<>();
+        Long id = keduService2.getAcademyId(region, academy_name);
+
+        if (id == null) {
+            resultMap.put("message", "Academy not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(resultMap); // 404 Not Found
+        }
+
+        resultMap.put("id", id);
+        return ResponseEntity.ok(resultMap); // 200 OK
+    }
 
     @GetMapping("/list/page")
     public ResponseEntity<Map<String, Object>> courseList(@RequestParam(value = "page", defaultValue = "0") int page,
@@ -103,6 +120,15 @@ public class KeduController2 {
         List<LectureResDTO2> list = keduService2.findLecture(region, academy);
         resultMap.put("list", list);
         return resultMap;
+    }
+
+    @GetMapping("/detail")
+    public ResponseEntity<Map<String, Object>> detail (@RequestParam(value = "academy_id") Long academy_id,
+                                                       @RequestParam(value = "course_id") Long course_id){
+        Map<String, Object> resultMap = new HashMap<>();
+        List<CourseDetailResDTO2> list = keduService2.detail(academy_id, course_id);
+        resultMap.put("list", list);
+        return ResponseEntity.ok(resultMap);
     }
 
 }
