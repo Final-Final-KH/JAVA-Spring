@@ -193,8 +193,10 @@ public class KeduService2 {
         return academyResDTO2List;
     }
     public Long getAcademyId(String region, String academyName) {
-        return academyRepository.findAcademyIdByAcademyNameAndRegion(academyName, region);
+        Optional<Long> academyId = academyRepository.findAcademy_IdByAcademyNameAndRegion(academyName, region);
+        return academyId.orElse(null);  // 값이 없으면 null을 반환
     }
+
     public List<LectureResDTO2> findLecture(String region, String academy) {
         List<CourseEntity2> courseEntity = courseRepository.findByAcademyAndRegion(academy, region);
         List<LectureResDTO2> lectureResDTO2List = new ArrayList<>();

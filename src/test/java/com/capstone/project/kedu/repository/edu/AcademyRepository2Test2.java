@@ -43,8 +43,8 @@ public class AcademyRepository2Test2 {
         String region = "서울 강남구";
         String academyName = "KH정보교육원 강남지원";
 
-       Long id = academyRepository2.findIdByAcademyNameAndRegion(academyName, region);
-        log.info("너의 id는? : {}", id);
+       Optional<Long> id = academyRepository2.findAcademy_IdByAcademyNameAndRegion(academyName, region);
+        log.info("너의 id는? : {}", id.get());
 
     }
 }

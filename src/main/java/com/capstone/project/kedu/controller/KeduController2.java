@@ -5,6 +5,7 @@ import com.capstone.project.kedu.service.KeduService2;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,12 +25,19 @@ public class KeduController2 {
 
     @GetMapping("/getId")
     public ResponseEntity<Map<String, Object>> getId(@RequestParam(value = "region") String region,
-                                                     @RequestParam(value = "academy_name") String academy_name){
+                                                     @RequestParam(value = "academy_name") String academy_name) {
         Map<String, Object> resultMap = new HashMap<>();
         Long id = keduService2.getAcademyId(region, academy_name);
+
+        if (id == null) {
+            resultMap.put("message", "Academy not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(resultMap); // 404 Not Found
+        }
+
         resultMap.put("id", id);
-        return ResponseEntity.ok(resultMap);
+        return ResponseEntity.ok(resultMap); // 200 OK
     }
+
     @GetMapping("/list/page")
     public ResponseEntity<Map<String, Object>> courseList(@RequestParam(value = "page", defaultValue = "0") int page,
                                                         @RequestParam(value = "size", defaultValue = "5") int size){
@@ -116,7 +124,7 @@ public class KeduController2 {
 
     @GetMapping("/detail")
     public ResponseEntity<Map<String, Object>> detail (@RequestParam(value = "academy_id") Long academy_id,
-                                                       @PathVariable(value = "course_id") Long course_id){
+                                                       @RequestParam(value = "course_id") Long course_id){
         Map<String, Object> resultMap = new HashMap<>();
         List<CourseDetailResDTO2> list = keduService2.detail(academy_id, course_id);
         resultMap.put("list", list);
