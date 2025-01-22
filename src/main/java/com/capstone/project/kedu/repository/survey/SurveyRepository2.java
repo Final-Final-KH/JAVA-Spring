@@ -10,4 +10,5 @@ import java.util.List;
 public interface SurveyRepository2 extends JpaRepository<SurveyEntity2, Long> {
 
     List<SurveyEntity2> findByAcademyEntity2AcademyIdAndCourseEntity2CourseId(Long academyId, Long courseId);
+
 }
