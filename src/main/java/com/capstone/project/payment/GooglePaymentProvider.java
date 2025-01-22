@@ -4,6 +4,7 @@ import com.capstone.project.payment.dto.request.PaymentRequestDto;
 import com.capstone.project.payment.dto.response.PaymentResponseDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
+import org.springframework.beans.factory.annotation.Value;  // @Value를 추가
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -12,15 +13,18 @@ import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
 
-@Component
+
 @Slf4j
-@Profile("!test") // The bean will not be loaded during the "test" profile
+ // The bean will not be loaded during the "test" profile
 public class GooglePaymentProvider extends AbstractPaymentProvider {
 
     private final String apiKey;
     private final String requestUrl;
 
-    public GooglePaymentProvider(RestTemplate restTemplate, String apiKey, String requestUrl) {
+    // @Value 애너테이션을 사용하여 application.properties에서 값을 주입
+    public GooglePaymentProvider(RestTemplate restTemplate,
+                                 @Value("${google.payment.api-key}") String apiKey,  // @Value로 프로퍼티 값 주입
+                                 @Value("${google.payment.request-url}") String requestUrl) {  // @Value로 프로퍼티 값 주입
         super(restTemplate);
         if (apiKey == null || apiKey.isBlank() || requestUrl == null || requestUrl.isBlank()) {
             log.warn("Google Payment API key or request URL is missing. Please configure application.properties properly.");
@@ -42,17 +46,17 @@ public class GooglePaymentProvider extends AbstractPaymentProvider {
     @Override
     protected HttpHeaders createHeaders() {
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + apiKey); // API 키로 인증 설정 / Configure authentication with API key
-        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON); // JSON 요청 설정 / Set JSON request
+        headers.set("Authorization", "Bearer " + apiKey); // API 키로 인증 설정
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON); // JSON 요청 설정
         return headers;
     }
 
     @Override
     protected Object createPayload(PaymentRequestDto requestDto) {
         Map<String, Object> payload = new HashMap<>();
-        payload.put("amount", requestDto.getAmount()); // 결제 금액 설정 / Set payment amount
-        payload.put("currency", "USD"); // 통화 설정 (예: USD) / Set currency (e.g., USD)
-        payload.put("description", requestDto.getItemName()); // 설명 추가 / Add description
+        payload.put("amount", requestDto.getAmount()); // 결제 금액 설정
+        payload.put("currency", "USD"); // 통화 설정
+        payload.put("description", requestDto.getItemName()); // 설명 추가
         return payload;
     }
 
@@ -63,9 +67,9 @@ public class GooglePaymentProvider extends AbstractPaymentProvider {
             throw new RuntimeException("Failed to process payment. Response body is null.");
         }
         return PaymentResponseDto.builder()
-                .transactionId(responseBody.get("transactionId").toString()) // Google의 트랜잭션 ID / Transaction ID
-                .redirectUrl(null) // Google은 리디렉션 URL을 제공하지 않을 수 있음 / Google may not provide redirect URL
-                .status(PaymentResponseDto.Status.COMPLETED) // 결제 상태 설정 / Set payment status
+                .transactionId(responseBody.get("transactionId").toString()) // 트랜잭션 ID
+                .redirectUrl(null) // 리디렉션 URL은 제공되지 않을 수 있음
+                .status(PaymentResponseDto.Status.COMPLETED) // 결제 상태
                 .build();
     }
 }
