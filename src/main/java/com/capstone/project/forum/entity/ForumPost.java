@@ -71,6 +71,13 @@ public class ForumPost {
     @Column(name = "removed_by")
     private String removedBy; // 삭제자 정보 ("OP", "ADMIN" 등)
 
+    @Column(name = "edited_by")
+    private String editedBy; // 수정자 정보 (관리자가 수정한 경우 "ADMIN" 설정)
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean locked = false; // 수정 불가능 여부 (관리자 수정 시 true)
+
     @Column(name = "primary_file_url")
     private String fileUrl; // 단일 파일 URL (주요 파일)
 

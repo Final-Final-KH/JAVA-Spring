@@ -26,8 +26,9 @@ public class ForumPostResponseDto {
     private Integer likesCount; // 좋아요 수
     private Boolean hidden; // 숨김 여부
     private String removedBy; // 삭제자 정보
+    private String editedBy; // 수정자 정보 (ADMIN 수정 시 추가)
+    private Boolean locked; // 수정 불가능 여부 (관리자 수정 시 true)
     private LocalDateTime createdAt; // 생성 시간
     private LocalDateTime updatedAt; // 수정 시간
     private List<String> fileUrls; // 첨부 파일 URL 목록 (단일 또는 다중 모두 가능)
 }
-

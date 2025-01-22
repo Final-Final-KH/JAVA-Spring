@@ -133,8 +133,8 @@ public class ForumPostCommentService {
         String sanitizedContent;
         String fileUrl = null; // 초기화된 파일 URL 필드
         if (requestBody.trim().startsWith("{") && requestBody.trim().endsWith("}")) {
-            // JSON 형식인 경우: JSON 필드 추출
             try {
+                // JSON 데이터 파싱 / Parse JSON data
                 ObjectMapper objectMapper = new ObjectMapper();
                 JsonNode jsonNode = objectMapper.readTree(requestBody);
                 sanitizedContent = jsonNode.get("newContent").asText();
@@ -145,46 +145,46 @@ public class ForumPostCommentService {
                 throw new IllegalArgumentException("Invalid JSON format for requestBody");
             }
         } else {
-            // 단순 텍스트인 경우: 그대로 사용
+            // 단순 텍스트 데이터 처리 / Process plain text data
             sanitizedContent = requestBody.trim();
         }
 
-        // 내용이 비어 있는지 확인
+        // 내용 유효성 검사 / Validate content
         if (sanitizedContent == null || sanitizedContent.isEmpty()) {
             throw new IllegalArgumentException("Content cannot be empty.");
         }
 
-        // 댓글 조회
+        // 댓글 조회 / Fetch the comment
         ForumPostComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
 
-        // 댓글 소유자 또는 관리자 권한 확인
-        boolean isAdmin = memberService.isAdmin(loggedInMemberId); // 관리자 여부 확인
+        // 댓글 소유자 또는 관리자 권한 확인 / Check ownership or admin privileges
+        // updateComment 메서드에서 isAdmin 조건이 관리자 권한을 우선 처리하기에 관리자는 잠긴 댓글도 수정 가능
+        boolean isAdmin = memberService.isAdmin(loggedInMemberId);
         if (!comment.getMember().getId().equals(loggedInMemberId) && !isAdmin) {
             throw new SecurityException("You are not allowed to edit this comment.");
         }
 
-        // 숨김 또는 삭제된 댓글 검증
+        // 숨김 또는 삭제된 댓글은 수정 불가 / Prevent editing of hidden or removed comments
         if (comment.getHidden() || "[Removed]".equals(comment.getContent())) {
             throw new IllegalStateException("Cannot edit a hidden or removed comment. Please let ADMIN restore it first.");
         }
 
-        // 댓글 수정
-        comment.setContent(sanitizedContent); // 댓글 내용 업데이트
+        // 댓글 내용 및 파일 URL 수정 / Update comment content and file URL
+        comment.setContent(sanitizedContent);
         if (fileUrl != null) {
-            comment.setFileUrl(fileUrl); // 파일 URL 업데이트 (존재하는 경우에만)
+            comment.setFileUrl(fileUrl);
         }
-        comment.setUpdatedAt(LocalDateTime.now()); // 수정 시간 갱신
+        comment.setUpdatedAt(LocalDateTime.now());
 
-        // 관리자가 수정한 경우 추가 처리
+        // 관리자에 의해 수정된 경우 처리 / Handle admin-specific edits
         if (isAdmin) {
-            comment.setEditedBy("ADMIN"); // ADMIN에 의해 수정됨 표시
-            comment.setLocked(true); // 사용자에 의한 추가 편집 불가
+            comment.setEditedBy("ADMIN"); // 수정자 정보를 "ADMIN"으로 설정
+            comment.setLocked(true); // 사용자에 의한 추가 편집 잠금
         }
 
-        ForumPostComment updatedComment = commentRepository.save(comment); // 저장
-
-        // Response DTO 반환 (Builder 사용)
+        // 수정된 댓글 저장 및 반환 / Save and return the updated comment
+        ForumPostComment updatedComment = commentRepository.save(comment);
         return ForumPostCommentResponseDto.builder()
                 .id(updatedComment.getId())
                 .content(updatedComment.getContent())
@@ -192,13 +192,14 @@ public class ForumPostCommentService {
                 .likesCount(updatedComment.getLikesCount())
                 .hidden(updatedComment.getHidden())
                 .removedBy(updatedComment.getRemovedBy())
-                .editedBy(updatedComment.getEditedBy()) // 수정자 정보 추가
-                .locked(updatedComment.getLocked()) // 편집 잠금 상태 포함
+                .editedBy(updatedComment.getEditedBy())
+                .locked(updatedComment.getLocked())
                 .createdAt(updatedComment.getCreatedAt())
                 .updatedAt(updatedComment.getUpdatedAt())
-                .fileUrl(updatedComment.getFileUrl()) // 파일 URL 응답에 포함
+                .fileUrl(updatedComment.getFileUrl())
                 .build();
     }
+
 
 
 
@@ -320,15 +321,17 @@ public class ForumPostCommentService {
     public void deleteComment(Integer commentId, Integer loggedInMemberId) {
         log.info("Deleting comment ID: {} by member ID: {}", commentId, loggedInMemberId);
 
+        // 댓글 조회 / Fetch the comment
         ForumPostComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
 
+        // 댓글 소유자 또는 관리자 권한 확인 / Check ownership or admin privileges
         boolean isAdmin = memberService.isAdmin(loggedInMemberId);
         if (!comment.getMember().getId().equals(loggedInMemberId) && !isAdmin) {
             throw new IllegalArgumentException("You are not allowed to delete this comment.");
         }
 
-        // 댓글 히스토리 저장
+        // 댓글 삭제 이력 기록 / Log deletion history
         ForumPostCommentHistory history = ForumPostCommentHistory.builder()
                 .commentId(comment.getId())
                 .content(comment.getContent())
@@ -337,13 +340,17 @@ public class ForumPostCommentService {
                 .build();
         commentHistoryRepository.save(history);
 
-        // 댓글 삭제 처리
+        // 댓글 상태를 삭제됨으로 표시 / Mark the comment as deleted
         comment.setContent("[Removed]");
-        comment.setHidden(true); // 숨김 상태로 전환
+        comment.setHidden(true);
+        if (isAdmin) {
+            comment.setRemovedBy("ADMIN"); // 삭제자가 관리자임을 표시
+        }
         commentRepository.save(comment);
 
         log.info("Comment ID: {} deleted and history recorded.", commentId);
     }
+
 
     /**
      * 댓글 신고
