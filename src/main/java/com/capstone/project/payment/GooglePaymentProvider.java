@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Profile;
+import org.springframework.beans.factory.annotation.Value;  // @Value를 추가
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -13,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 import java.util.Map;
+
 
 /**
  * Google 결제 기능을 구현하기 위한 Provider 클래스
@@ -27,12 +29,15 @@ import java.util.Map;
 @Component
 @Slf4j
 @Conditional(GooglePaymentCondition.class) // 조건부로 로드
+
 public class GooglePaymentProvider extends AbstractPaymentProvider {
 
     private final String apiKey;
     private final String requestUrl;
 
+
     public GooglePaymentProvider(RestTemplate restTemplate, @Qualifier("googleApiKey") String apiKey, @Qualifier("googleRequestUrl") String requestUrl) {
+
         super(restTemplate);
         this.apiKey = apiKey;
         this.requestUrl = requestUrl;
@@ -63,6 +68,7 @@ public class GooglePaymentProvider extends AbstractPaymentProvider {
     @Override
     protected Object createPayload(PaymentRequestDto requestDto) {
         Map<String, Object> payload = new HashMap<>();
+
         payload.put("amount", requestDto.getAmount()); // 결제 금액
         payload.put("currency", "USD"); // 통화 설정
         payload.put("description", requestDto.getItemName()); // 결제 설명
@@ -76,8 +82,10 @@ public class GooglePaymentProvider extends AbstractPaymentProvider {
             throw new RuntimeException("결제 처리 실패: 응답 본문이 비어있습니다.");
         }
         return PaymentResponseDto.builder()
+
                 .transactionId(responseBody.get("transactionId").toString()) // Google의 트랜잭션 ID
                 .redirectUrl(null) // 리디렉션 URL (Google은 제공하지 않을 수 있음)
+
                 .status(PaymentResponseDto.Status.COMPLETED) // 결제 상태
                 .build();
     }

@@ -14,8 +14,6 @@ public class CourseDetailResDTO2 {
 
     // 공통 코드
     private int member_id; // member_id
-    private Long academy_id; // academy_id
-    private Long course_id; // course_id
 
     // 학원 리뷰 AcademyCommentRepository2 이 레포지토리에는 course_id가 없음
     private int academy_avgJob; // job 평균 // job
@@ -49,7 +47,7 @@ public class CourseDetailResDTO2 {
 
     // 생성자 추가
     public CourseDetailResDTO2(
-            int academy_avgJob, int academy_avgLecture, int academy_avgFacilities, int academy_avgTeacher,
+            Integer member_id, int academy_avgJob, int academy_avgLecture, int academy_avgFacilities, int academy_avgTeacher,
             int academy_avgBooks, int academy_avgService,
             int lecture_job, int lecture_lecture, int lecture_teacher, int lecture_books,
             int lecture_newTech, int lecture_skillUp,
@@ -58,6 +56,7 @@ public class CourseDetailResDTO2 {
             Long survey_id, String survey_teacher, String survey_lecture,
             String survey_facilities, String survey_comment
     ) {
+        this.member_id = member_id;
         this.academy_avgJob = academy_avgJob;
         this.academy_avgLecture = academy_avgLecture;
         this.academy_avgFacilities = academy_avgFacilities;
@@ -80,5 +79,34 @@ public class CourseDetailResDTO2 {
         this.survey_lecture = survey_lecture;
         this.survey_facilities = survey_facilities;
         this.survey_comment = survey_comment;
+    }
+
+    @Override
+    public String toString() {
+        return "CourseDetailResDTO2{" +
+                "member_id='" + member_id + '\'' +
+                ", academy_avgJob=" + academy_avgJob +
+                ", academy_avgLecture=" + academy_avgLecture +
+                ", academy_avgFacilities=" + academy_avgFacilities +
+                ", academy_avgTeacher=" + academy_avgTeacher +
+                ", academy_avgBooks=" + academy_avgBooks +
+                ", academy_avgService=" + academy_avgService +
+                ", lecture_job=" + lecture_job +
+                ", lecture_lecture=" + lecture_lecture +
+                ", lecture_teacher=" + lecture_teacher +
+                ", lecture_books=" + lecture_books +
+                ", lecture_newTech=" + lecture_newTech +
+                ", lecture_skillUp=" + lecture_skillUp +
+                ", comment_id=" + comment_id +
+                ", comment_title='" + comment_title + '\'' +
+                ", comment_user_id='" + comment_user_id + '\'' +
+                ", comment_regDate=" + comment_regDate +
+                ", comment_content='" + comment_content + '\'' +
+                ", survey_id=" + survey_id +
+                ", survey_teacher='" + survey_teacher + '\'' +
+                ", survey_lecture='" + survey_lecture + '\'' +
+                ", survey_facilities='" + survey_facilities + '\'' +
+                ", survey_comment='" + survey_comment + '\'' +
+                '}';
     }
 }
