@@ -154,25 +154,31 @@ public class ForumPostService {
         // 1. 게시글 조회
         var post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Post not found with ID: " + postId));
+        log.info("Fetched post for title update: {}", post);
 
         // 2. 권한 검증
         if (!isAdmin && !post.getMember().getId().equals(loggedInMemberId)) {
+            log.warn("Unauthorized attempt to update title by user ID: {}", loggedInMemberId);
             throw new SecurityException("Not authorized to edit this post's title");
         }
 
         // 3. 제목 업데이트
+        log.info("Updating title from '{}' to '{}'", post.getTitle(), title);
         post.setTitle(title);
         post.setUpdatedAt(LocalDateTime.now());
 
         // 4. 수정자 정보 설정
         if (isAdmin) {
+            log.info("Setting editedByTitle as 'ADMIN' for post ID: {}", postId);
             post.setEditedByTitle("ADMIN"); // 제목 수정자를 ADMIN으로 설정
         } else {
+            log.info("Setting editedByTitle as '{}' for post ID: {}", post.getMember().getName(), postId);
             post.setEditedByTitle(post.getMember().getName()); // 제목 수정자를 작성자로 설정
         }
 
         // 5. 저장 및 DTO 반환
         var updatedPost = postRepository.save(post);
+        log.info("Post title updated successfully. New post data: {}", updatedPost);
 
         return ForumPostResponseDto.builder()
                 .id(updatedPost.getId())
@@ -203,26 +209,32 @@ public class ForumPostService {
         // 1. 게시글 조회
         var post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Post not found with ID: " + postId));
+        log.info("Fetched post for content update: {}", post);
 
         // 2. 권한 검증
         if (!isAdmin && !post.getMember().getId().equals(loggedInMemberId)) {
+            log.warn("Unauthorized attempt to update content by user ID: {}", loggedInMemberId);
             throw new SecurityException("Not authorized to edit this post's content");
         }
 
         // 3. 내용 업데이트
+        log.info("Updating content from '{}' to '{}'", post.getContent(), content);
         post.setContent(content);
         post.setUpdatedAt(LocalDateTime.now());
 
         // 4. 수정자 정보 설정
         if (isAdmin) {
+            log.info("Setting editedByContent as 'ADMIN' for post ID: {}", postId);
             post.setEditedByContent("ADMIN"); // 내용 수정자를 ADMIN으로 설정
             post.setLocked(true); // 관리자 수정 시 잠금
         } else {
+            log.info("Setting editedByContent as '{}' for post ID: {}", post.getMember().getName(), postId);
             post.setEditedByContent(post.getMember().getName()); // 내용 수정자를 작성자로 설정
         }
 
         // 5. 저장 및 DTO 반환
         var updatedPost = postRepository.save(post);
+        log.info("Post content updated successfully. New post data: {}", updatedPost);
 
         return ForumPostResponseDto.builder()
                 .id(updatedPost.getId())
