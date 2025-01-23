@@ -119,6 +119,7 @@ public class ForumPostController {
         boolean isAdmin = memberService.isAdmin(loggedInMemberId); // 관리자 여부 확인
         try {
             var updatedPost = postService.updatePostTitle(postId, body.get("title"), loggedInMemberId, isAdmin);
+            log.info("Updated Post Response: {}", updatedPost); // Add log for debugging
             return ResponseEntity.ok(updatedPost); // 성공적으로 업데이트된 데이터 반환
         } catch (SecurityException e) {
             log.error("Unauthorized edit attempt: {}", e.getMessage());
@@ -150,6 +151,7 @@ public class ForumPostController {
         boolean isAdmin = memberService.isAdmin(loggedInMemberId); // 관리자 여부 확인
         try {
             var updatedPost = postService.updatePostContent(postId, body.get("content"), loggedInMemberId, isAdmin);
+            log.info("Updated Post Response: {}", updatedPost); // Add log for debugging
             return ResponseEntity.ok(updatedPost); // 성공적으로 업데이트된 데이터 반환
         } catch (SecurityException e) {
             log.error("Unauthorized edit attempt: {}", e.getMessage());
