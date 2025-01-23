@@ -1,6 +1,8 @@
 package com.capstone.project.member.service;
 
 import com.capstone.project.jwt.TokenProvider;
+import com.capstone.project.jwt.entity.RefreshToken;
+import com.capstone.project.jwt.repository.RefreshTokenRepository;
 import com.capstone.project.member.dto.TokenDto;
 import com.capstone.project.member.dto.request.LoginRequestDto;
 import com.capstone.project.member.dto.request.MemberRequestDto;
@@ -35,6 +37,7 @@ import java.util.Optional;
 public class AuthService {
 
     private final MemberRepository memberRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenProvider tokenProvider;
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
@@ -141,6 +144,35 @@ public class AuthService {
             throw new RuntimeException("리프레시 토큰 저장에 실패했습니다.");
         }
         return loginToken;
+
+    }
+
+    public TokenDto reissueAccessToken(String refreshToken) {
+        log.info("토큰 재발급 요청 - 리프레시 토큰: {}", refreshToken);
+
+
+        // 리프레시 토큰 유효성 검사
+        if (!tokenProvider.validateToken(refreshToken)) {
+            log.error("유효하지 않은 리프레시 토큰입니다.");
+            throw new IllegalArgumentException("유효하지 않은 리프레시 토큰");
+        }
+        // DB에서 리프레시 토큰 찾기
+        RefreshToken storedToken = refreshTokenRepository.findByRefreshToken(refreshToken)
+                .orElseThrow(()-> new IllegalArgumentException("리프레시 토큰이 존재하지 않습니다."));
+
+        // 토큰에 해당하는 맴버 추출
+        Member member = storedToken.getMember();
+        log.info("리프레시 토큰에 해당하는 사용자 ID: {}", member.getMemberId());
+
+        // 새 토큰 발급
+        Authentication authentication = tokenProvider.getAuthentication(refreshToken);
+        TokenDto newToken = tokenProvider.generateTokenDto(authentication);
+
+        // 새 리프레시 토큰 저장
+        tokenProvider.saveRefreshToken(member, newToken.getRefreshToken(),
+                LocalDateTime.now(ZoneId.of("Asia/Seoul")).plusDays(7));
+
+        return newToken;
 
     }
 
