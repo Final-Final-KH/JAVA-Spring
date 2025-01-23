@@ -20,6 +20,8 @@ public class CourseCommentEntity2 {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long course_comment_id;
 
+    private String courseName;
+
     private boolean employee_outcome;
 
     private int job; // 실무적이었는지
