@@ -47,9 +47,9 @@ public class AuthController {
 
     // Refresh token
     @PostMapping("/refresh")
-    public ResponseEntity<String> refreshToken(@RequestBody String refreshToken) {
-        String newAccessToken = authService.createAccessToken(refreshToken);
-        return ResponseEntity.ok(newAccessToken);
+    public ResponseEntity<TokenDto> refreshToken(@RequestBody String refreshToken) {
+        TokenDto newTokens = authService.reissueAccessToken(refreshToken);
+        return ResponseEntity.ok(newTokens);
     }
     // 토큰으로 유저 찾기
     @GetMapping("/current-user")
