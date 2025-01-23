@@ -19,8 +19,6 @@ public class AcademyCommentEntity2 {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long academy_comment_id;
 
-    private String academyName;
-
     private int job; // 학원 수강이 취업에 도움이 되었는지
 
     private int lecture; // 강의는 좋았는지
