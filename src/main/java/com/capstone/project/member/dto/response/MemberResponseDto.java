@@ -18,6 +18,7 @@ public class MemberResponseDto {
     private String currentCompany;      // 현재 회사명
     private Boolean showCompany;        // 회사명 표시 여부
     private String profilePictureUrl;   // 프로필 사진 URL (새로운 필드 추가)
+    private String role;
 
     // 기본 생성자
     public MemberResponseDto(Member member) {
@@ -28,5 +29,6 @@ public class MemberResponseDto {
         this.currentCompany = member.getShowCompany() ? member.getCurrentCompany() : "익명의 회사";
         this.showCompany = member.getShowCompany();
         this.profilePictureUrl = member.getProfilePictureUrl(); // 프로필 사진 URL 추가
+        this.role = member.getRole().name();
     }
 }
