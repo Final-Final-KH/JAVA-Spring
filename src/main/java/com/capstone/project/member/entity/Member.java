@@ -3,6 +3,7 @@ package com.capstone.project.member.entity;
 import javax.persistence.*;
 import com.capstone.project.kedu.entity.board.*;
 import com.capstone.project.kedu.entity.comment.*;
+import com.capstone.project.kedu.entity.edu.MyAcademyEntity2;
 import com.capstone.project.kedu.entity.edu.MyCourseEntity2;
 import com.capstone.project.kedu.entity.mypage.SkillHubEntity2;
 import com.capstone.project.kedu.entity.survey.SurveyEntity2;
@@ -120,6 +121,9 @@ public class Member {
 
     @OneToOne(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private Profile profile;
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MyAcademyEntity2> myAcademy = new ArrayList<>();
 
     /**
      * 사용자 역할 Enum

@@ -1,96 +1,110 @@
 package com.capstone.project.forum.service;
 
+import com.capstone.project.forum.dto.response.ForumPostLikeResponseDto;
 import com.capstone.project.forum.entity.ForumPost;
 import com.capstone.project.forum.entity.ForumPostComment;
 import com.capstone.project.forum.entity.ForumPostLike;
-import com.capstone.project.forum.repository.ForumPostLikeRepository;
+import com.capstone.project.forum.repository.ForumPostCommentRepository;
+import com.capstone.project.forum.repository.ForumPostRepository;
 import com.capstone.project.member.entity.Member;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import com.capstone.project.member.repository.MemberRepository;
+import com.capstone.project.forum.repository.ForumPostLikeRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
-@Slf4j // 로그 기록을 위한 어노테이션 추가
 public class ForumPostLikeService {
+
     private final ForumPostLikeRepository likeRepository;
+    private final ForumPostRepository postRepository;
+    private final ForumPostCommentRepository commentRepository;
+    private final MemberRepository memberRepository;
 
-    // 특정 게시글에 좋아요를 눌렀는지 확인
-    public boolean hasLikedPost(Integer memberId, Integer postId) {
-        log.debug("Checking if member ID: {} liked post ID: {}", memberId, postId); // 좋아요 확인 디버그 로그
-        return likeRepository.findLikeForPostByMember(memberId, postId).isPresent();
+    public ForumPostLikeService(ForumPostLikeRepository likeRepository, ForumPostRepository postRepository, ForumPostCommentRepository commentRepository, MemberRepository memberRepository) {
+        this.likeRepository = likeRepository;
+        this.postRepository = postRepository;
+        this.commentRepository = commentRepository;
+        this.memberRepository = memberRepository;
     }
 
-    // 특정 댓글에 좋아요를 눌렀는지 확인
-    public boolean hasLikedComment(Integer memberId, Integer commentId) {
-        log.debug("Checking if member ID: {} liked comment ID: {}", memberId, commentId); // 댓글 좋아요 확인 디버그 로그
-        return likeRepository.findLikeForCommentByMember(memberId, commentId).isPresent();
-    }
-
-    // 게시글 좋아요 토글
+    /**
+     * 게시글에 대한 좋아요 토글
+     *
+     * @param postId 게시글 ID
+     * @param memberId 요청 사용자 ID
+     * @return 좋아요 결과 DTO
+     */
     @Transactional
-    public void togglePostLike(Integer memberId, Integer postId) {
-        log.info("Toggling like for post ID: {} by member ID: {}", postId, memberId);
+    public ForumPostLikeResponseDto togglePostLike(Integer postId, Integer memberId) {
+        // 회원 정보 조회 (유효성 확인)
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자 ID입니다: " + memberId));
 
-        Optional<ForumPostLike> existingLike = likeRepository.findLikeForPostByMember(memberId, postId);
+        Optional<ForumPostLike> existingLike = likeRepository.findByPostIdAndMemberId(postId, memberId);
+
         if (existingLike.isPresent()) {
-            // 좋아요 취소
-            log.info("Removing like for post ID: {} by member ID: {}", postId, memberId);
+            // 좋아요 취소 처리
             likeRepository.delete(existingLike.get());
+            int totalLikes = likeRepository.countLikesForPost(postId);
+
+            // likesCount를 업데이트
+            ForumPost post = postRepository.findById(postId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 게시글 ID입니다: " + postId));
+            post.setLikesCount(totalLikes);
+            postRepository.save(post);
+
+            return new ForumPostLikeResponseDto(false, totalLikes); // 좋아요 취소
         } else {
-            // 좋아요 추가
-            log.info("Adding like for post ID: {} by member ID: {}", postId, memberId);
-            likeRepository.save(ForumPostLike.builder()
-                    .member(Member.builder().id(memberId).build())
-                    .forumPost(ForumPost.builder().id(postId).build())
-                    .build());
+            // 새로운 좋아요 추가
+            ForumPostLike newLike = new ForumPostLike(postId, member);
+            likeRepository.save(newLike);
+            int totalLikes = likeRepository.countLikesForPost(postId);
+
+            // likesCount를 업데이트
+            ForumPost post = postRepository.findById(postId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 게시글 ID입니다: " + postId));
+            post.setLikesCount(totalLikes);
+            postRepository.save(post);
+
+            return new ForumPostLikeResponseDto(true, totalLikes); // 좋아요 추가
         }
     }
 
-    // 댓글 좋아요 토글
-    @Transactional
-    public void toggleCommentLike(Integer memberId, Integer commentId) {
-        log.info("Toggling like for comment ID: {} by member ID: {}", commentId, memberId);
 
-        Optional<ForumPostLike> existingLike = likeRepository.findLikeForCommentByMember(memberId, commentId);
+    @Transactional
+    public ForumPostLikeResponseDto toggleCommentLike(Integer commentId, Integer memberId) {
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자 ID입니다: " + memberId));
+
+        Optional<ForumPostLike> existingLike = likeRepository.findByCommentIdAndMemberId(commentId, memberId);
+
         if (existingLike.isPresent()) {
-            // 좋아요 취소
-            log.info("Removing like for comment ID: {} by member ID: {}", commentId, memberId);
+            // 좋아요 취소 처리
             likeRepository.delete(existingLike.get());
+            int totalLikes = likeRepository.countLikesForComment(commentId);
+
+            // likesCount를 업데이트
+            ForumPostComment comment = commentRepository.findById(commentId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 댓글 ID입니다: " + commentId));
+            comment.setLikesCount(totalLikes);
+            commentRepository.save(comment);
+
+            return new ForumPostLikeResponseDto(false, totalLikes); // 좋아요 취소
         } else {
-            // 좋아요 추가
-            log.info("Adding like for comment ID: {} by member ID: {}", commentId, memberId);
-            likeRepository.save(ForumPostLike.builder()
-                    .member(Member.builder().id(memberId).build())
-                    .forumPostComment(ForumPostComment.builder().id(commentId).build())
-                    .build());
-        }
-    }
+            // 새로운 좋아요 추가
+            ForumPostLike newLike = new ForumPostLike(commentId, member, true);
+            likeRepository.save(newLike);
+            int totalLikes = likeRepository.countLikesForComment(commentId);
 
-    // 게시글 좋아요 추가 (이전 기능 유지)
-    @Transactional
-    public void likePost(Integer memberId, Integer postId) {
-        log.info("Adding like for post ID: {} by member ID: {}", postId, memberId);
-        if (!hasLikedPost(memberId, postId)) {
-            likeRepository.save(ForumPostLike.builder()
-                    .member(Member.builder().id(memberId).build())
-                    .forumPost(ForumPost.builder().id(postId).build())
-                    .build());
-        }
-    }
+            // likesCount를 업데이트
+            ForumPostComment comment = commentRepository.findById(commentId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 댓글 ID입니다: " + commentId));
+            comment.setLikesCount(totalLikes);
+            commentRepository.save(comment);
 
-    // 댓글 좋아요 추가 (이전 기능 유지)
-    @Transactional
-    public void likeComment(Integer memberId, Integer commentId) {
-        log.info("Adding like for comment ID: {} by member ID: {}", commentId, memberId);
-        if (!hasLikedComment(memberId, commentId)) {
-            likeRepository.save(ForumPostLike.builder()
-                    .member(Member.builder().id(memberId).build())
-                    .forumPostComment(ForumPostComment.builder().id(commentId).build())
-                    .build());
+            return new ForumPostLikeResponseDto(true, totalLikes); // 좋아요 추가
         }
     }
 }

@@ -4,11 +4,15 @@ import com.capstone.project.kedu.dto.edu.response.*;
 import com.capstone.project.kedu.service.KeduService2;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @CrossOrigin(origins = {"http://localhost:3000", "http://192.168.10.25:3000"})  // 두 개의 origin을 추가
@@ -18,6 +22,51 @@ import java.util.Map;
 public class KeduController2 {
 
     private final KeduService2 keduService2;
+
+    @GetMapping("/getId")
+    public ResponseEntity<Map<String, Object>> getId(@RequestParam(value = "region") String region,
+                                                     @RequestParam(value = "academy_name") String academy_name) {
+        Map<String, Object> resultMap = new HashMap<>();
+        Long id = keduService2.getAcademyId(region, academy_name);
+
+        if (id == null) {
+            resultMap.put("message", "Academy not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(resultMap); // 404 Not Found
+        }
+
+        resultMap.put("id", id);
+        return ResponseEntity.ok(resultMap); // 200 OK
+    }
+
+    @GetMapping("/list/page")
+    public ResponseEntity<Map<String, Object>> courseList(@RequestParam(value = "page", defaultValue = "0") int page,
+                                                        @RequestParam(value = "size", defaultValue = "5") int size){
+        Map<String, Object> resultMap = new HashMap<>();
+        List<KeduResDTO2> list = keduService2.getCourseList(page, size);
+        resultMap.put("list", list);
+        return ResponseEntity.ok(resultMap);
+    }
+
+    @GetMapping("/count")
+    public ResponseEntity<Map<String, Object>> listBoards(@RequestParam(value = "page", defaultValue = "0") int page,
+                                                          @RequestParam(value = "size", defaultValue = "5") int size) {
+        // PageRequest 객체 생성
+        PageRequest pageRequest = PageRequest.of(page, size);
+
+        // 서비스 로직을 통해 페이지 갯수 가져오기
+        Integer pageCnt = keduService2.getBoards(pageRequest);
+
+        // 결과를 담을 Map 생성
+        Map<String, Object> resultMap = new HashMap<>();
+
+        // 결과 데이터와 추가 정보를 resultMap에 넣음
+        resultMap.put("totalPages", pageCnt);  // 페이지 수
+        resultMap.put("currentPage", page);    // 현재 페이지
+        resultMap.put("size", size);           // 페이지 크기
+
+        // 성공적인 응답 반환
+        return ResponseEntity.ok(resultMap);
+    }
 
     @GetMapping("/list")
     public Map<String, Object> courseList() {
@@ -45,6 +94,8 @@ public class KeduController2 {
         return resultMap;
     }
 
+
+
     @GetMapping("/district")
     public Map<String , Object> district(@RequestParam(value = "region_name") String region){
         Map<String, Object> resultMap = new HashMap<>();
@@ -69,6 +120,15 @@ public class KeduController2 {
         List<LectureResDTO2> list = keduService2.findLecture(region, academy);
         resultMap.put("list", list);
         return resultMap;
+    }
+
+    @GetMapping("/detail")
+    public ResponseEntity<Map<String, Object>> detail (@RequestParam(value = "academy_id") Long academy_id,
+                                                       @RequestParam(value = "course_id") Long course_id){
+        Map<String, Object> resultMap = new HashMap<>();
+        List<CourseDetailResDTO2> list = keduService2.detail(academy_id, course_id);
+        resultMap.put("list", list);
+        return ResponseEntity.ok(resultMap);
     }
 
 }

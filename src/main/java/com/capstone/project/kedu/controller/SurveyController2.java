@@ -41,7 +41,7 @@ public class SurveyController2 {
         return ResponseEntity.ok(isSuccess);
     }
 
-    @PostMapping("/list")
+    @GetMapping("/list")
     public Map<String, Object> list (@RequestParam(value = "academy_id")Long academy_id,
                                      @RequestParam(value = "course_id")Long course_id){
         Map<String, Object> resultMap = new HashMap<>();

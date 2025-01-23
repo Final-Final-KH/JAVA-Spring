@@ -15,6 +15,7 @@ import javax.persistence.EntityNotFoundException;
 import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -29,6 +30,46 @@ public class AcademyCommentService2 {
         this.academyRepository2 = academyRepository2;
     }
 
+    // 각 컬럼별 평균 + 총 평균 반환
+    public List<AcademyCommentResDTO2> sub_total_avg(Long academyId) {
+        AcademyEntity2 academyEntity2 = academyRepository2.findById(academyId)
+                .orElseThrow(()-> new RuntimeException("해당학원은 존재하지 않습니다."));
+        // 평균을 계산하는 쿼리 호출
+        List<Object[]> results = academyCommentRepository2.findAverageScoresForAcademy(academyId);
+
+        // 결과 리스트를 저장할 리스트
+        List<AcademyCommentResDTO2> dtoList = new ArrayList<>();
+
+        for (Object[] averages : results) {
+            // DTO 생성
+            AcademyCommentResDTO2 dto = new AcademyCommentResDTO2();
+
+            // 각 컬럼별 평균값 설정
+            dto.setAvgJob((averages[0] != null) ? (double) averages[0] : 0);
+            dto.setAvgLecture((averages[1] != null) ? (double) averages[1] : 0);
+            dto.setAvgFacilities((averages[2] != null) ? (double) averages[2] : 0);
+            dto.setAvgTeacher((averages[3] != null) ? (double) averages[3] : 0);
+            dto.setAvgBooks((averages[4] != null) ? (double) averages[4] : 0);
+            dto.setAvgService((averages[5] != null) ? (double) averages[5] : 0);
+            dto.setAcademy_id(academyEntity2.getAcademyId());
+            // 전체 평균 계산
+            double totalAvg = (dto.getAvgJob() + dto.getAvgLecture() + dto.getAvgFacilities() +
+                    dto.getAvgTeacher() + dto.getAvgBooks() + dto.getAvgService()) / 6.0;
+
+            // 전체 평균 설정
+            dto.setTotalAvg(totalAvg);
+
+            // DTO를 리스트에 추가
+            dtoList.add(dto);
+        }
+
+        return dtoList; // 리스트 반환
+    }
+    // 취업률
+    public Optional<Integer> empl(Long academyId) {
+        Optional<Integer> empl = academyCommentRepository2.findEmploymentOutcomePercentage(academyId);
+        return  empl;
+    }
     // 학원에 대한 간략한 코멘트 생성
     public boolean create(AcademyCommentReqDTO2 academyCommentReqDTO2) {
         try{
@@ -129,13 +170,12 @@ public class AcademyCommentService2 {
         AcademyCommentResDTO2 academyCommentResDTO2 = new AcademyCommentResDTO2();
         academyCommentResDTO2.setAcademy_comment_id(academyCommentEntity.getAcademy_comment_id());
         academyCommentResDTO2.setAcademy_id(academyCommentEntity.getAcademyEntity2().getAcademyId());
-        academyCommentResDTO2.setService(academyCommentEntity.getService());
-        academyCommentResDTO2.setJob(academyCommentEntity.getJob());
-        academyCommentResDTO2.setBooks(academyCommentEntity.getBooks());
-        academyCommentResDTO2.setFacilities(academyCommentEntity.getFacilities());
-        academyCommentResDTO2.setLecture(academyCommentEntity.getLecture());
-        academyCommentResDTO2.setTeacher(academyCommentEntity.getTeacher());
-        academyCommentResDTO2.setEmployee_outcome(academyCommentEntity.isEmployee_outcome());
+        academyCommentResDTO2.setAvgService(academyCommentEntity.getService());
+        academyCommentResDTO2.setAvgJob(academyCommentEntity.getJob());
+        academyCommentResDTO2.setAvgBooks(academyCommentEntity.getBooks());
+        academyCommentResDTO2.setAvgFacilities(academyCommentEntity.getFacilities());
+        academyCommentResDTO2.setAvgLecture(academyCommentEntity.getLecture());
+        academyCommentResDTO2.setAvgTeacher(academyCommentEntity.getTeacher());
         academyCommentResDTO2.setMember_id(academyCommentEntity.getMember().getMemberId());
         return academyCommentResDTO2;
     }

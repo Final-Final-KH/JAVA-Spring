@@ -67,7 +67,7 @@ public class MyPageController2 {
     }
 
     // 나의 학원 코멘트 조회
-    @PostMapping("/my_academy_comment")
+    @GetMapping("/my_academy_comment")
     public Map<String, Object> myAcademyComment(@RequestParam(value = "member_id") int member_id){
         Map<String, Object> resultMap = new HashMap<>();
         List<AcademyCommentResDTO2> list = academyCommentService2.myAcademyComment(member_id);
@@ -76,7 +76,7 @@ public class MyPageController2 {
     }
 
     // 나의 강의 코멘트 조회
-    @PostMapping("/my_course_comment")
+    @GetMapping("/my_course_comment")
     public Map<String, Object> myCourseComment(@RequestParam(value = "member_id") int member_id){
         Map<String, Object> resultMap = new HashMap<>();
         List<CourseCommentResDTO2> list = courseCommentService2.myCourseComment(member_id);

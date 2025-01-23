@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 게시글 응답 DTO
@@ -19,6 +20,7 @@ public class ForumPostResponseDto {
     private String title; // 게시글 제목
     private String content; // 게시글 내용
     private String authorName; // 작성자 이름
+    private Integer memberId; // 작성자 ID
     private Boolean sticky; // 상단 고정 여부
     private Integer viewsCount; // 조회수
     private Integer likesCount; // 좋아요 수
@@ -26,4 +28,6 @@ public class ForumPostResponseDto {
     private String removedBy; // 삭제자 정보
     private LocalDateTime createdAt; // 생성 시간
     private LocalDateTime updatedAt; // 수정 시간
+    private List<String> fileUrls; // 첨부 파일 URL 목록 (단일 또는 다중 모두 가능)
 }
+

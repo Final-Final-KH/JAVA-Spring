@@ -27,4 +27,6 @@ public class CourseCommentReqDTO2 {
     private int member_id;
 
     private Long course_id;
+
+    private Long academy_id;
 }

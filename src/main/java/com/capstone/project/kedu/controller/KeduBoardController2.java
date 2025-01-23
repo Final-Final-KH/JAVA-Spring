@@ -36,6 +36,15 @@ public class KeduBoardController2 {
         return resultMap;
     }
 
+    // 특정 강의에 대한 한줄 코멘트 출력
+    @GetMapping("/short_comment")
+    public ResponseEntity<Map<String, Object>> list (@RequestParam(value = "academy_id") Long academy_id,
+                                                     @RequestParam(value = "course_id") Long course_id){
+        Map<String, Object> resultMap = new HashMap<>();
+        List<KeduBoardResDTO2> list = keduBoardService2.shortCommentList(academy_id, course_id);
+        resultMap.put("list",list);
+        return ResponseEntity.ok(resultMap);
+    }
     // 게시글 상세 조회  id 로 조회
     @PostMapping("/detail/{id}")
     public Map<String , Object> detail_board(@RequestBody KeduBoardDetailReqDTO2 keduBoardDetailReqDTO2){

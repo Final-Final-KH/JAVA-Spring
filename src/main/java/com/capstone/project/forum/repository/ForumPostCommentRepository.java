@@ -98,4 +98,8 @@ public interface ForumPostCommentRepository extends JpaRepository<ForumPostComme
     @Query("UPDATE ForumPostComment c SET c.content = '[Removed]', c.removedBy = :removedBy WHERE c.id = :commentId")
     void markCommentAsRemoved(@Param("commentId") Integer commentId, @Param("removedBy") String removedBy);
 
+    @Modifying
+    @Query("UPDATE ForumPostComment c SET c.content = :content, c.editedBy = :editedBy, c.locked = :locked WHERE c.id = :commentId")
+    void updateCommentContent(@Param("commentId") Integer commentId, @Param("content") String content, @Param("editedBy") String editedBy, @Param("locked") boolean locked);
+
 }

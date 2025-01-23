@@ -3,6 +3,7 @@ package com.capstone.project.payment;
 import com.capstone.project.payment.dto.request.PaymentRequestDto;
 import com.capstone.project.payment.dto.response.PaymentResponseDto;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -13,19 +14,18 @@ import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
 
-@Component
+
 @Slf4j
-@Profile("!test")
+
 public class KakaoPaymentProvider extends AbstractPaymentProvider {
 
     private final String apiKey;
     private final String requestUrl;
 
-    public KakaoPaymentProvider(RestTemplate restTemplate, String apiKey, String requestUrl) {
+    public KakaoPaymentProvider(RestTemplate restTemplate,
+                                @Qualifier("kakaoApiKey") String apiKey,
+                                @Qualifier("kakaoRequestUrl") String requestUrl) {
         super(restTemplate);
-        if (apiKey == null || apiKey.isBlank() || requestUrl == null || requestUrl.isBlank()) {
-            log.warn("Kakao Payment API key or request URL is missing. Please configure application.properties properly.");
-        }
         this.apiKey = apiKey;
         this.requestUrl = requestUrl;
     }

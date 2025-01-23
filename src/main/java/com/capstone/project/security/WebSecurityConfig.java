@@ -71,7 +71,7 @@ public class WebSecurityConfig implements WebMvcConfigurer {
                 .antMatchers("/course/**",
                         "/academy_comment/**","/my_page/**", "/auth/**","/my_course/**",
                         "/course_comment/**","/board_comment_comment/**","/board_comment/**",
-                        "/kedu_board/**","/survey/**").permitAll()// 로그인하여 인증된 사용자만 되도록 추후 변경
+                        "/kedu_board/**","/survey/**","/order/**").permitAll()// 로그인하여 인증된 사용자만 되도록 추후 변경
                 .antMatchers("/admin/**").hasRole("ADMIN")
                 .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .antMatchers("/favicon.ico", "/manifest.json").permitAll()

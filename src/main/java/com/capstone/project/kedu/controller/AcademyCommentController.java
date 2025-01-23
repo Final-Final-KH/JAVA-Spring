@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @CrossOrigin(origins = {"http://localhost:3000", "http://192.168.10.25:3000"})  // 두 개의 origin을 추가
@@ -24,6 +25,23 @@ public class AcademyCommentController {
     public ResponseEntity<Boolean> create (@RequestBody AcademyCommentReqDTO2 academyCommentReqDTO2){
         boolean isSuccess = academyCommentService2.create(academyCommentReqDTO2);
         return ResponseEntity.ok(isSuccess);
+    }
+
+    // 컬럼별 평균
+    @GetMapping("/sub_total_avg")
+    public ResponseEntity<Map<String, Object>> sub_total_avg(@RequestParam(value = "academy_id") Long academy_id){
+        Map<String, Object> resultMap = new HashMap<>();
+        List<AcademyCommentResDTO2> sub_total_avg = academyCommentService2.sub_total_avg(academy_id);
+        resultMap.put("sub_total_avg",sub_total_avg);
+        return ResponseEntity.ok(resultMap);
+    }
+    // 취업률
+    @GetMapping("/empl")
+    public ResponseEntity<Map<String, Object>> empl(@RequestParam(value = "academy_id") Long academy_id){
+        Map<String, Object> resultMap = new HashMap<>();
+        Optional<Integer> empl = academyCommentService2.empl(academy_id);
+        resultMap.put("empl",empl);
+        return ResponseEntity.ok(resultMap);
     }
 
     @PostMapping("/list")

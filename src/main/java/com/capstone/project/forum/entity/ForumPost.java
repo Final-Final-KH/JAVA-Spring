@@ -71,11 +71,16 @@ public class ForumPost {
     @Column(name = "removed_by")
     private String removedBy; // 삭제자 정보 ("OP", "ADMIN" 등)
 
+    @Column(name = "primary_file_url")
+    private String fileUrl; // 단일 파일 URL (주요 파일)
+
     @ElementCollection
     @CollectionTable(name = "forum_post_files", joinColumns = @JoinColumn(name = "post_id"))
-    @Column(name = "file_url")
+    @Column(name = "additional_file_url")
     @Builder.Default
-    private List<String> fileUrls = new ArrayList<>(); // 첨부 파일 URL 목록
+    private List<String> fileUrls = new ArrayList<>(); // 다중 첨부 파일 URL 목록
+
+
 
     /**
      * 파일 URL 추가 메서드
@@ -84,6 +89,26 @@ public class ForumPost {
      */
     public void addFileUrl(String fileUrl) {
         this.fileUrls.add(fileUrl); // 파일 URL 추가
+    }
+
+    /**
+     * 대표 파일 URL 반환 메서드
+     *
+     * @return 첫 번째 파일 URL 또는 null
+     */
+    public String getFileUrl() {
+        return this.fileUrls.isEmpty() ? null : this.fileUrls.get(0); // 첫 번째 파일 URL 반환, 없으면 null
+    }
+
+    /**
+     * 파일 URL 설정 메서드
+     * 기존 파일 URL 리스트를 초기화하고 새로운 파일 URL을 추가
+     *
+     * @param fileUrl 새로 설정할 파일 URL
+     */
+    public void setFileUrl(String fileUrl) {
+        this.fileUrls.clear(); // 기존 파일 URL 리스트를 초기화
+        this.fileUrls.add(fileUrl); // 새로운 파일 URL 추가
     }
 
     /**
