@@ -138,66 +138,108 @@ public class ForumPostService {
     }
 
 
-
-
-
     /**
-     * 게시글 수정
+     * 게시글 제목 수정
      *
      * @param postId 수정할 게시글 ID
-     * @param requestDto 수정 요청 DTO
+     * @param title 새로운 제목
      * @param loggedInMemberId 요청 사용자 ID
      * @param isAdmin 관리자 여부
      * @return 수정된 게시글 응답 DTO
      */
     @Transactional
-    public ForumPostResponseDto updatePost(Integer postId, ForumPostRequestDto requestDto, Integer loggedInMemberId, boolean isAdmin) {
-        log.info("Updating post with ID: {}", postId);
+    public ForumPostResponseDto updatePostTitle(Integer postId, String title, Integer loggedInMemberId, boolean isAdmin) {
+        log.info("Updating post title for ID: {}", postId);
 
-        // 1. 게시글 조회 / Fetch the post
+        // 1. 게시글 조회
         var post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Post not found with ID: " + postId));
 
-        // 2. 권한 검증 / Validate permissions
-        // updatePost 메서드의 isAdmin 확인 로직 덕분에, 관리자 권한이 있는 경우 locked 여부에 관계없이 수정 가능.
+        // 2. 권한 검증
         if (!isAdmin && !post.getMember().getId().equals(loggedInMemberId)) {
-            throw new SecurityException("Not authorized to edit this post");
+            throw new SecurityException("Not authorized to edit this post's title");
         }
 
-        // 3. 게시글 데이터 수정 / Update post data
-        post.setTitle(requestDto.getTitle());
-        post.setContent(requestDto.getContent());
-        post.setSticky(requestDto.getSticky());
-        post.setFileUrls(requestDto.getFileUrls() != null ? requestDto.getFileUrls() : post.getFileUrls());
+        // 3. 제목 업데이트
+        post.setTitle(title);
         post.setUpdatedAt(LocalDateTime.now());
 
-        // 4. 관리자에 의해 수정된 경우 처리 / Handle admin-specific edits
+        // 4. 수정자 정보 설정
         if (isAdmin) {
-            post.setEditedBy("ADMIN"); // 수정자 정보를 "ADMIN"으로 설정
-            post.setLocked(true); // 추가 수정 불가 설정
+            post.setEditedByTitle("ADMIN"); // 제목 수정자를 ADMIN으로 설정
+        } else {
+            post.setEditedByTitle(post.getMember().getName()); // 제목 수정자를 작성자로 설정
         }
 
-        // 5. 수정된 게시글 저장 / Save updated post
+        // 5. 저장 및 DTO 반환
         var updatedPost = postRepository.save(post);
 
-        // 6. 수정된 데이터 DTO로 반환 / Return updated data as DTO
         return ForumPostResponseDto.builder()
                 .id(updatedPost.getId())
                 .title(updatedPost.getTitle())
                 .content(updatedPost.getContent())
                 .authorName(post.getMember().getName())
-                .sticky(updatedPost.getSticky())
-                .viewsCount(updatedPost.getViewsCount())
-                .likesCount(updatedPost.getLikesCount())
-                .fileUrls(updatedPost.getFileUrls())
-                .hidden(updatedPost.getHidden())
-                .removedBy(updatedPost.getRemovedBy())
-                .editedBy(updatedPost.getEditedBy()) // 수정자 정보 추가
-                .locked(updatedPost.getLocked()) // 잠금 상태 추가
+                .editedByTitle(updatedPost.getEditedByTitle())
+                .editedByContent(updatedPost.getEditedByContent()) // 내용 수정자 정보 유지
                 .createdAt(updatedPost.getCreatedAt())
                 .updatedAt(updatedPost.getUpdatedAt())
                 .build();
     }
+
+
+    /**
+     * 게시글 내용 수정
+     *
+     * @param postId 수정할 게시글 ID
+     * @param content 새로운 내용
+     * @param loggedInMemberId 요청 사용자 ID
+     * @param isAdmin 관리자 여부
+     * @return 수정된 게시글 응답 DTO
+     */
+    @Transactional
+    public ForumPostResponseDto updatePostContent(Integer postId, String content, Integer loggedInMemberId, boolean isAdmin) {
+        log.info("Updating post content for ID: {}", postId);
+
+        // 1. 게시글 조회
+        var post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post not found with ID: " + postId));
+
+        // 2. 권한 검증
+        if (!isAdmin && !post.getMember().getId().equals(loggedInMemberId)) {
+            throw new SecurityException("Not authorized to edit this post's content");
+        }
+
+        // 3. 내용 업데이트
+        post.setContent(content);
+        post.setUpdatedAt(LocalDateTime.now());
+
+        // 4. 수정자 정보 설정
+        if (isAdmin) {
+            post.setEditedByContent("ADMIN"); // 내용 수정자를 ADMIN으로 설정
+            post.setLocked(true); // 관리자 수정 시 잠금
+        } else {
+            post.setEditedByContent(post.getMember().getName()); // 내용 수정자를 작성자로 설정
+        }
+
+        // 5. 저장 및 DTO 반환
+        var updatedPost = postRepository.save(post);
+
+        return ForumPostResponseDto.builder()
+                .id(updatedPost.getId())
+                .title(updatedPost.getTitle()) // 제목 정보 유지
+                .content(updatedPost.getContent())
+                .authorName(post.getMember().getName())
+                .editedByTitle(updatedPost.getEditedByTitle()) // 제목 수정자 정보 유지
+                .editedByContent(updatedPost.getEditedByContent())
+                .createdAt(updatedPost.getCreatedAt())
+                .updatedAt(updatedPost.getUpdatedAt())
+                .build();
+    }
+
+
+
+
+
 
 
 

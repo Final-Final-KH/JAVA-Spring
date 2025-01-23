@@ -119,86 +119,70 @@ public class ForumPostCommentService {
      * 댓글 수정
      *
      * @param commentId 수정할 댓글 ID
-     * @param requestBody 요청 본문 (JSON 형식 또는 단순 텍스트 가능)
+     * @param requestDto 요청 데이터 DTO (JSON 형식으로 새로운 내용 및 파일 URL 포함)
      * @param loggedInMemberId 요청 사용자 ID
+     * @param isAdmin 관리자 여부
      * @return 수정된 댓글 정보가 포함된 응답 DTO
-     * @throws IllegalArgumentException 유효하지 않은 JSON 형식 또는 빈 내용일 경우
+     * @throws IllegalArgumentException 잘못된 요청 데이터 또는 유효하지 않은 JSON 형식일 경우
      * @throws IllegalStateException 숨김 또는 삭제된 댓글을 수정하려는 경우
      */
     @Transactional
-    public ForumPostCommentResponseDto updateComment(Integer commentId, String requestBody, Integer loggedInMemberId) {
+    public ForumPostCommentResponseDto updateComment(Integer commentId, ForumPostCommentRequestDto requestDto, Integer loggedInMemberId, boolean isAdmin) {
         log.info("Updating comment ID: {} by member ID: {}", commentId, loggedInMemberId);
 
-        // 요청 본문에서 JSON 또는 단순 텍스트 처리
-        String sanitizedContent;
-        String fileUrl = null; // 초기화된 파일 URL 필드
-        if (requestBody.trim().startsWith("{") && requestBody.trim().endsWith("}")) {
-            try {
-                // JSON 데이터 파싱 / Parse JSON data
-                ObjectMapper objectMapper = new ObjectMapper();
-                JsonNode jsonNode = objectMapper.readTree(requestBody);
-                sanitizedContent = jsonNode.get("newContent").asText();
-                if (jsonNode.has("fileUrl")) {
-                    fileUrl = jsonNode.get("fileUrl").asText(); // 파일 URL 처리
-                }
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Invalid JSON format for requestBody");
-            }
-        } else {
-            // 단순 텍스트 데이터 처리 / Process plain text data
-            sanitizedContent = requestBody.trim();
+        // 1. 요청 데이터 유효성 검사 / Validate the request data
+        if (requestDto.getContent() == null || requestDto.getContent().trim().isEmpty()) {
+            throw new IllegalArgumentException("Comment content cannot be empty.");
         }
 
-        // 내용 유효성 검사 / Validate content
-        if (sanitizedContent == null || sanitizedContent.isEmpty()) {
-            throw new IllegalArgumentException("Content cannot be empty.");
-        }
-
-        // 댓글 조회 / Fetch the comment
+        // 2. 댓글 조회 / Fetch the comment by ID
         ForumPostComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
 
-        // 댓글 소유자 또는 관리자 권한 확인 / Check ownership or admin privileges
-        // updateComment 메서드에서 isAdmin 조건이 관리자 권한을 우선 처리하기에 관리자는 잠긴 댓글도 수정 가능
-        boolean isAdmin = memberService.isAdmin(loggedInMemberId);
-        if (!comment.getMember().getId().equals(loggedInMemberId) && !isAdmin) {
+        // 3. 권한 확인 / Validate permissions
+        if (!isAdmin && !comment.getMember().getId().equals(loggedInMemberId)) {
             throw new SecurityException("You are not allowed to edit this comment.");
         }
 
-        // 숨김 또는 삭제된 댓글은 수정 불가 / Prevent editing of hidden or removed comments
+        // 4. 숨김 또는 삭제된 댓글은 수정 불가 / Prevent editing of hidden or removed comments
         if (comment.getHidden() || "[Removed]".equals(comment.getContent())) {
-            throw new IllegalStateException("Cannot edit a hidden or removed comment. Please let ADMIN restore it first.");
+            throw new IllegalStateException("Cannot edit a hidden or removed comment.");
         }
 
-        // 댓글 내용 및 파일 URL 수정 / Update comment content and file URL
-        comment.setContent(sanitizedContent);
-        if (fileUrl != null) {
-            comment.setFileUrl(fileUrl);
+        // 5. 댓글 내용 및 파일 URL 수정 / Update comment content and file URL
+        comment.setContent(requestDto.getContent().trim());
+        if (requestDto.getFileUrl() != null) {
+            comment.setFileUrl(requestDto.getFileUrl());
         }
-        comment.setUpdatedAt(LocalDateTime.now());
+        comment.setUpdatedAt(LocalDateTime.now()); // 수정 시간 업데이트
 
-        // 관리자에 의해 수정된 경우 처리 / Handle admin-specific edits
+        // 6. 관리자에 의해 수정된 경우 처리 / Handle admin-specific edits
         if (isAdmin) {
             comment.setEditedBy("ADMIN"); // 수정자 정보를 "ADMIN"으로 설정
-            comment.setLocked(true); // 사용자에 의한 추가 편집 잠금
+            comment.setLocked(true); // 추가 편집 잠금
+        } else {
+            comment.setEditedBy(comment.getMember().getName()); // 일반 사용자의 수정자로 설정
         }
 
-        // 수정된 댓글 저장 및 반환 / Save and return the updated comment
+        // 7. 수정된 댓글 저장 및 반환 / Save and return the updated comment
         ForumPostComment updatedComment = commentRepository.save(comment);
         return ForumPostCommentResponseDto.builder()
-                .id(updatedComment.getId())
-                .content(updatedComment.getContent())
-                .authorName(updatedComment.getMember().getName())
-                .likesCount(updatedComment.getLikesCount())
-                .hidden(updatedComment.getHidden())
-                .removedBy(updatedComment.getRemovedBy())
-                .editedBy(updatedComment.getEditedBy())
-                .locked(updatedComment.getLocked())
-                .createdAt(updatedComment.getCreatedAt())
-                .updatedAt(updatedComment.getUpdatedAt())
-                .fileUrl(updatedComment.getFileUrl())
+                .id(updatedComment.getId()) // 댓글 ID
+                .content(updatedComment.getContent()) // 수정된 내용
+                .authorName(updatedComment.getMember().getName()) // 작성자 이름
+                .memberId(updatedComment.getMember().getId()) // 작성자 ID
+                .likesCount(updatedComment.getLikesCount()) // 좋아요 수
+                .hidden(updatedComment.getHidden()) // 숨김 여부
+                .removedBy(updatedComment.getRemovedBy()) // 삭제자 정보
+                .editedBy(updatedComment.getEditedBy()) // 수정자 정보
+                .locked(updatedComment.getLocked()) // 잠금 상태
+                .createdAt(updatedComment.getCreatedAt()) // 생성 시간
+                .updatedAt(updatedComment.getUpdatedAt()) // 수정 시간
+                .fileUrl(updatedComment.getFileUrl()) // 파일 URL
                 .build();
     }
+
+
 
 
 

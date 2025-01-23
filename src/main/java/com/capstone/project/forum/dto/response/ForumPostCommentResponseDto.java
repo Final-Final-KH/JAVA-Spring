@@ -27,4 +27,9 @@ public class ForumPostCommentResponseDto {
     private LocalDateTime createdAt; // 생성 시간
     private LocalDateTime updatedAt; // 수정 시간
     private String fileUrl; // 첨부 파일 URL
+
+    // Derived field to indicate admin edits
+    public Boolean getEditedByAdmin() {
+        return "ADMIN".equals(this.editedBy);
+    }
 }

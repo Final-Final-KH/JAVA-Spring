@@ -71,8 +71,11 @@ public class ForumPost {
     @Column(name = "removed_by")
     private String removedBy; // 삭제자 정보 ("OP", "ADMIN" 등)
 
-    @Column(name = "edited_by")
-    private String editedBy; // 수정자 정보 (관리자가 수정한 경우 "ADMIN" 설정)
+    @Column(name = "edited_by_title")
+    private String editedByTitle; // 제목 수정자 정보 (관리자가 수정한 경우 "ADMIN" 설정)
+
+    @Column(name = "edited_by_content")
+    private String editedByContent; // 내용 수정자 정보 (관리자가 수정한 경우 "ADMIN" 설정)
 
     @Column(nullable = false)
     @Builder.Default
@@ -86,8 +89,6 @@ public class ForumPost {
     @Column(name = "additional_file_url")
     @Builder.Default
     private List<String> fileUrls = new ArrayList<>(); // 다중 첨부 파일 URL 목록
-
-
 
     /**
      * 파일 URL 추가 메서드
@@ -144,5 +145,23 @@ public class ForumPost {
      */
     public String getAuthorName() {
         return this.member != null ? this.member.getName() : "Unknown"; // 작성자 이름 반환, 없으면 Unknown
+    }
+
+    /**
+     * 제목이 관리자에 의해 수정되었는지 확인
+     *
+     * @return 관리자 수정 여부
+     */
+    public Boolean isTitleEditedByAdmin() {
+        return "ADMIN".equals(this.editedByTitle);
+    }
+
+    /**
+     * 내용이 관리자에 의해 수정되었는지 확인
+     *
+     * @return 관리자 수정 여부
+     */
+    public Boolean isContentEditedByAdmin() {
+        return "ADMIN".equals(this.editedByContent);
     }
 }
