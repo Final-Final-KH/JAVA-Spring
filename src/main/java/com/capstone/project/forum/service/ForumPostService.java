@@ -141,10 +141,10 @@ public class ForumPostService {
     /**
      * 게시글 제목 수정
      *
-     * @param postId 수정할 게시글 ID
-     * @param title 새로운 제목
+     * @param postId           수정할 게시글 ID
+     * @param title            새로운 제목
      * @param loggedInMemberId 요청 사용자 ID
-     * @param isAdmin 관리자 여부
+     * @param isAdmin          관리자 여부
      * @return 수정된 게시글 응답 DTO
      */
     @Transactional
@@ -153,13 +153,13 @@ public class ForumPostService {
 
         // 1. 게시글 조회
         var post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Post not found with ID: " + postId));
+                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 게시글이 존재하지 않습니다: " + postId));
         log.info("Fetched post for title update: {}", post);
 
         // 2. 권한 검증
         if (!isAdmin && !post.getMember().getId().equals(loggedInMemberId)) {
             log.warn("Unauthorized attempt to update title by user ID: {}", loggedInMemberId);
-            throw new SecurityException("Not authorized to edit this post's title");
+            throw new SecurityException("이 게시글의 제목을 수정할 권한이 없습니다.");
         }
 
         // 3. 제목 업데이트
@@ -168,13 +168,7 @@ public class ForumPostService {
         post.setUpdatedAt(LocalDateTime.now());
 
         // 4. 수정자 정보 설정
-        if (isAdmin) {
-            log.info("Setting editedByTitle as 'ADMIN' for post ID: {}", postId);
-            post.setEditedByTitle("ADMIN"); // 제목 수정자를 ADMIN으로 설정
-        } else {
-            log.info("Setting editedByTitle as '{}' for post ID: {}", post.getMember().getName(), postId);
-            post.setEditedByTitle(post.getMember().getName()); // 제목 수정자를 작성자로 설정
-        }
+        post.setEditedByTitle(isAdmin ? "ADMIN" : post.getMember().getName());
 
         // 5. 저장 및 DTO 반환
         var updatedPost = postRepository.save(post);
@@ -186,7 +180,7 @@ public class ForumPostService {
                 .content(updatedPost.getContent())
                 .authorName(post.getMember().getName())
                 .editedByTitle(updatedPost.getEditedByTitle())
-                .editedByContent(updatedPost.getEditedByContent()) // 내용 수정자 정보 유지
+                .editedByContent(updatedPost.getEditedByContent())
                 .createdAt(updatedPost.getCreatedAt())
                 .updatedAt(updatedPost.getUpdatedAt())
                 .build();
@@ -196,10 +190,10 @@ public class ForumPostService {
     /**
      * 게시글 내용 수정
      *
-     * @param postId 수정할 게시글 ID
-     * @param content 새로운 내용
+     * @param postId           수정할 게시글 ID
+     * @param content          새로운 내용
      * @param loggedInMemberId 요청 사용자 ID
-     * @param isAdmin 관리자 여부
+     * @param isAdmin          관리자 여부
      * @return 수정된 게시글 응답 DTO
      */
     @Transactional
@@ -208,13 +202,13 @@ public class ForumPostService {
 
         // 1. 게시글 조회
         var post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Post not found with ID: " + postId));
+                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 게시글이 존재하지 않습니다: " + postId));
         log.info("Fetched post for content update: {}", post);
 
         // 2. 권한 검증
         if (!isAdmin && !post.getMember().getId().equals(loggedInMemberId)) {
             log.warn("Unauthorized attempt to update content by user ID: {}", loggedInMemberId);
-            throw new SecurityException("Not authorized to edit this post's content");
+            throw new SecurityException("이 게시글의 내용을 수정할 권한이 없습니다.");
         }
 
         // 3. 내용 업데이트
@@ -223,14 +217,8 @@ public class ForumPostService {
         post.setUpdatedAt(LocalDateTime.now());
 
         // 4. 수정자 정보 설정
-        if (isAdmin) {
-            log.info("Setting editedByContent as 'ADMIN' for post ID: {}", postId);
-            post.setEditedByContent("ADMIN"); // 내용 수정자를 ADMIN으로 설정
-            post.setLocked(true); // 관리자 수정 시 잠금
-        } else {
-            log.info("Setting editedByContent as '{}' for post ID: {}", post.getMember().getName(), postId);
-            post.setEditedByContent(post.getMember().getName()); // 내용 수정자를 작성자로 설정
-        }
+        post.setEditedByContent(isAdmin ? "ADMIN" : post.getMember().getName());
+        if (isAdmin) post.setLocked(true);
 
         // 5. 저장 및 DTO 반환
         var updatedPost = postRepository.save(post);
@@ -238,21 +226,15 @@ public class ForumPostService {
 
         return ForumPostResponseDto.builder()
                 .id(updatedPost.getId())
-                .title(updatedPost.getTitle()) // 제목 정보 유지
+                .title(updatedPost.getTitle())
                 .content(updatedPost.getContent())
                 .authorName(post.getMember().getName())
-                .editedByTitle(updatedPost.getEditedByTitle()) // 제목 수정자 정보 유지
+                .editedByTitle(updatedPost.getEditedByTitle())
                 .editedByContent(updatedPost.getEditedByContent())
                 .createdAt(updatedPost.getCreatedAt())
                 .updatedAt(updatedPost.getUpdatedAt())
                 .build();
     }
-
-
-
-
-
-
 
 
 
@@ -447,24 +429,32 @@ public class ForumPostService {
      * @return Optional<ForumPostResponseDto> 게시글 상세 정보
      */
     public Optional<ForumPostResponseDto> getPostDetails(Integer postId) {
+        // 1. 로그 기록: 게시글 ID를 기반으로 세부 정보를 가져오는 작업 시작
         log.info("Fetching details for post ID: {}", postId);
 
+        // 2. 게시글을 데이터베이스에서 조회 후, ForumPostResponseDto 형태로 매핑
         return postRepository.findById(postId)
                 .map(post -> ForumPostResponseDto.builder()
-                        .id(post.getId())
-                        .title(post.getTitle())
-                        .content(post.getContent())
-                        .memberId(post.getMember().getId()) // memberId 추가
-                        .authorName(post.getMember().getName())
-                        .sticky(post.getSticky())
-                        .viewsCount(post.getViewsCount())
-                        .likesCount(post.getLikesCount())
-                        .hidden(post.getHidden())
-                        .removedBy(post.getRemovedBy())
-                        .createdAt(post.getCreatedAt())
-                        .updatedAt(post.getUpdatedAt())
-                        .build());
+                        .id(post.getId()) // 게시글 ID 설정
+                        .title(post.getTitle()) // 게시글 제목 설정
+                        .content(post.getContent()) // 게시글 내용 설정
+                        .memberId(post.getMember().getId()) // 작성자 ID 설정
+                        .authorName(post.getMember().getName()) // 작성자 이름 설정
+                        .sticky(post.getSticky()) // 상단 고정 여부 설정
+                        .viewsCount(post.getViewsCount()) // 조회수 설정
+                        .likesCount(post.getLikesCount()) // 좋아요 수 설정
+                        .hidden(post.getHidden()) // 숨김 여부 설정
+                        .removedBy(post.getRemovedBy()) // 삭제자 정보 설정 (있다면)
+                        .editedByTitle(post.getEditedByTitle()) // 제목 수정자 정보 설정
+                        .editedByContent(post.getEditedByContent()) // 내용 수정자 정보 설정
+                        .editedTitleByAdmin("ADMIN".equals(post.getEditedByTitle())) // 제목 수정자가 ADMIN인지 확인하고 설정
+                        .editedContentByAdmin("ADMIN".equals(post.getEditedByContent())) // 내용 수정자가 ADMIN인지 확인하고 설정
+                        .createdAt(post.getCreatedAt()) // 게시글 생성 시간 설정
+                        .updatedAt(post.getUpdatedAt()) // 게시글 수정 시간 설정
+                        .build() // ForumPostResponseDto 객체 빌드
+                );
     }
+
 
 
     /**

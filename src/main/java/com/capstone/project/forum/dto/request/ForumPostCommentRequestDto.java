@@ -19,5 +19,9 @@ public class ForumPostCommentRequestDto {
 
     private Boolean editedByAdmin = false; // 관리자 수정 여부
 
+    private Boolean editedByAdminTitle = false; // 관리자에 의해 제목이 수정되었는지 여부
+    private Boolean editedByAdminContent = false; // 관리자에 의해 내용이 수정되었는지 여부
+
+
     private String fileUrl; // 첨부 파일 URL (Firebase 또는 다른 스토리지 서비스에서 반환된 URL)
 }

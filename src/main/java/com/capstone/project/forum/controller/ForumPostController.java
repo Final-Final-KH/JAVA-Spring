@@ -103,8 +103,8 @@ public class ForumPostController {
     /**
      * 게시글 제목 수정
      *
-     * @param postId 수정할 게시글 ID
-     * @param body 새로운 제목을 포함한 request body (JSON 형식)
+     * @param postId           수정할 게시글 ID
+     * @param body             새로운 제목을 포함한 request body (JSON 형식)
      * @param loggedInMemberId 요청 사용자 ID
      * @return 수정된 게시글 정보
      */
@@ -119,25 +119,24 @@ public class ForumPostController {
         boolean isAdmin = memberService.isAdmin(loggedInMemberId); // 관리자 여부 확인
         try {
             var updatedPost = postService.updatePostTitle(postId, body.get("title"), loggedInMemberId, isAdmin);
-            log.info("Updated Post Response: {}", updatedPost); // Add log for debugging
-            return ResponseEntity.ok(updatedPost); // 성공적으로 업데이트된 데이터 반환
+            return ResponseEntity.ok(updatedPost);
         } catch (SecurityException e) {
             log.error("Unauthorized edit attempt: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null); // 권한 오류 처리
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
         } catch (IllegalArgumentException e) {
             log.error("Error editing post title: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(null); // 잘못된 요청 처리
+            return ResponseEntity.badRequest().body(null);
         } catch (Exception e) {
             log.error("Unexpected error while updating post title: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null); // 기타 예외 처리
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
     /**
      * 게시글 내용 수정
      *
-     * @param postId 수정할 게시글 ID
-     * @param body 새로운 내용을 포함한 request body (JSON)
+     * @param postId           수정할 게시글 ID
+     * @param body             새로운 내용을 포함한 request body (JSON 형식)
      * @param loggedInMemberId 요청 사용자 ID
      * @return 수정된 게시글 정보
      */
@@ -148,20 +147,20 @@ public class ForumPostController {
             @RequestParam Integer loggedInMemberId
     ) {
         log.info("Updating post content for ID: {} by member ID: {}", postId, loggedInMemberId);
+
         boolean isAdmin = memberService.isAdmin(loggedInMemberId); // 관리자 여부 확인
         try {
             var updatedPost = postService.updatePostContent(postId, body.get("content"), loggedInMemberId, isAdmin);
-            log.info("Updated Post Response: {}", updatedPost); // Add log for debugging
-            return ResponseEntity.ok(updatedPost); // 성공적으로 업데이트된 데이터 반환
+            return ResponseEntity.ok(updatedPost);
         } catch (SecurityException e) {
             log.error("Unauthorized edit attempt: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null); // 권한 오류 처리
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
         } catch (IllegalArgumentException e) {
             log.error("Error editing post content: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(null); // 잘못된 요청 처리
+            return ResponseEntity.badRequest().body(null);
         } catch (Exception e) {
             log.error("Unexpected error while updating post content: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null); // 기타 예외 처리
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 

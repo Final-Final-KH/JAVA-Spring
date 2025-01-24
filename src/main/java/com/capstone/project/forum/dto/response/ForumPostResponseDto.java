@@ -35,12 +35,37 @@ public class ForumPostResponseDto {
     private Boolean editedContentByAdmin; // 내용이 관리자에 의해 수정되었는지 여부
     private List<String> fileUrls; // 첨부 파일 URL 목록 (단일 또는 다중 모두 가능)
 
-    // Derived fields to indicate admin edits
+    /**
+     * 제목이 관리자에 의해 수정되었는지 여부를 반환
+     * - editedByTitle 필드가 "ADMIN"인지 확인
+     */
     public Boolean getEditedTitleByAdmin() {
         return "ADMIN".equals(this.editedByTitle);
     }
 
+    /**
+     * 내용이 관리자에 의해 수정되었는지 여부를 반환
+     * - editedByContent 필드가 "ADMIN"인지 확인
+     */
     public Boolean getEditedContentByAdmin() {
         return "ADMIN".equals(this.editedByContent);
+    }
+
+    /**
+     * editedByTitle 값 설정
+     * - 설정 시 editedTitleByAdmin 필드의 값도 자동으로 업데이트
+     */
+    public void setEditedByTitle(String editedByTitle) {
+        this.editedByTitle = editedByTitle;
+        this.editedTitleByAdmin = "ADMIN".equals(editedByTitle);
+    }
+
+    /**
+     * editedByContent 값 설정
+     * - 설정 시 editedContentByAdmin 필드의 값도 자동으로 업데이트
+     */
+    public void setEditedByContent(String editedByContent) {
+        this.editedByContent = editedByContent;
+        this.editedContentByAdmin = "ADMIN".equals(editedByContent);
     }
 }

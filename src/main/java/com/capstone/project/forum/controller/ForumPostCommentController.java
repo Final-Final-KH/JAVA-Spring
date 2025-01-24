@@ -64,6 +64,7 @@ public class ForumPostCommentController {
             @RequestParam Integer loggedInMemberId
     ) {
         log.info("Updating comment ID: {} by member ID: {}", commentId, loggedInMemberId);
+        log.info("Received updateComment request: {}", requestDto);
 
         try {
             boolean isAdmin = memberService.isAdmin(loggedInMemberId); // 관리자 여부 확인
