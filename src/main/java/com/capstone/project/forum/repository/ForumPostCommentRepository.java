@@ -102,4 +102,13 @@ public interface ForumPostCommentRepository extends JpaRepository<ForumPostComme
     @Query("UPDATE ForumPostComment c SET c.content = :content, c.editedBy = :editedBy, c.locked = :locked WHERE c.id = :commentId")
     void updateCommentContent(@Param("commentId") Integer commentId, @Param("content") String content, @Param("editedBy") String editedBy, @Param("locked") boolean locked);
 
+    /**
+     * 특정 게시글에 포함된 모든 댓글 ID를 반환
+     *
+     * @param postId 게시글 ID
+     * @return 댓글 ID 목록
+     */
+    @Query("SELECT c.id FROM ForumPostComment c WHERE c.forumPost.id = :postId")
+    List<Integer> findCommentIdsByPostId(@Param("postId") Integer postId);
+
 }

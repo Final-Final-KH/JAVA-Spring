@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,15 +40,43 @@ public class ForumPostCommentService {
     private static final int REPORT_THRESHOLD = 10; // 신고 누적 기준값
 
     /**
-     * 특정 게시글에 속한 댓글 가져오기
+     * 특정 게시글에 포함된 댓글을 조회하고 DTO 리스트로 변환
      *
      * @param postId 게시글 ID
-     * @return 댓글 리스트 (ForumPostCommentResponseDto)
+     * @return 댓글 응답 DTO 리스트
      */
     public List<ForumPostCommentResponseDto> getCommentsForPost(Integer postId) {
-        log.info("Fetching comments for post ID: {}", postId); // 로그: 댓글 가져오기
-        return commentRepository.findCommentsByPostId(postId) // 게시글 ID로 댓글 조회
-                .stream()
+        log.info("Fetching comments for post ID: {}", postId);
+
+        // 1. 댓글 ID 리스트를 가져오기
+        // 특정 게시글에 포함된 댓글 ID를 조회하여 List<Integer> 형태로 반환합니다.
+        List<Integer> commentIds = commentRepository.findCommentIdsByPostId(postId);
+
+        // 2. 댓글 ID에 대한 신고 횟수 가져오기
+        // CommentReportRepository에서 countByCommentIds 메서드를 사용하여 댓글 ID 목록에 대한 신고 횟수를 Object[] 리스트로 가져옵니다.
+        List<Object[]> rawReportCounts = commentReportRepository.countByCommentIds(commentIds);
+
+        // 3. 로깅: rawReportCounts 데이터 확인
+        // DB로부터 가져온 원본 데이터가 어떤 형태인지 확인하기 위해 로그로 출력합니다.
+        log.info("Raw report counts: {}", rawReportCounts);
+
+        // 4. 신고 횟수 데이터 변환
+        // rawReportCounts(List<Object[]>)를 Map<Integer, Long>으로 변환합니다.
+        // Object 배열의 첫 번째 요소(obj[0])는 댓글 ID이며, 두 번째 요소(obj[1])는 신고 횟수입니다.
+        Map<Integer, Long> reportCounts = rawReportCounts.stream()
+                .collect(Collectors.toMap(
+                        obj -> ((Number) obj[0]).intValue(), // obj[0]을 안전하게 Integer로 변환
+                        obj -> ((Number) obj[1]).longValue() // obj[1]을 Long으로 변환
+                ));
+
+        // 5. 로깅: 변환된 신고 횟수 데이터 확인
+        // 변환된 Map 데이터의 내용을 로그로 출력하여 예상한 형태인지 확인합니다.
+        log.info("Processed report counts: {}", reportCounts);
+
+        // 6. 댓글 데이터를 가져오고 DTO로 변환
+        // 댓글 데이터를 ForumPostCommentRepository에서 조회한 후, DTO로 변환합니다.
+        // 각 댓글에 대해 신고 횟수(reportCount)를 설정하며, 기본값은 0L입니다.
+        return commentRepository.findCommentsByPostId(postId).stream()
                 .map(comment -> ForumPostCommentResponseDto.builder()
                         .id(comment.getId()) // 댓글 ID
                         .content(comment.getContent()) // 댓글 내용
@@ -56,15 +85,19 @@ public class ForumPostCommentService {
                         .likesCount(comment.getLikesCount()) // 좋아요 수
                         .hidden(comment.getHidden()) // 숨김 여부
                         .removedBy(comment.getRemovedBy()) // 삭제자 정보
-                        .editedBy(comment.getEditedBy()) // 수정자 정보 추가
-                        .locked(comment.getLocked()) // 편집 잠금 상태 추가
+                        .editedBy(comment.getEditedBy()) // 수정자 정보
+                        .locked(comment.getLocked()) // 잠금 여부
                         .createdAt(comment.getCreatedAt()) // 생성 시간
                         .updatedAt(comment.getUpdatedAt()) // 수정 시간
                         .fileUrl(comment.getFileUrl()) // 첨부 파일 URL
-                        .build()
-                )
-                .collect(Collectors.toList()); // 결과를 리스트로 변환
+                        .reportCount(reportCounts.getOrDefault(comment.getId(), 0L)) // 신고 횟수 (기본값 0)
+                        .build())
+                .collect(Collectors.toList()); // DTO 리스트로 변환
     }
+
+
+
+
 
     /**
      * 새로운 댓글 생성
@@ -351,6 +384,11 @@ public class ForumPostCommentService {
         ForumPostComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
 
+        // 자신의 댓글 신고 방지
+        if (comment.getMember().getId().equals(reporterId)) {
+            throw new IllegalArgumentException("You cannot report your own comment.");
+        }
+
         // 중복 신고 방지
         boolean alreadyReported = commentReportRepository.existsByCommentIdAndReporterId(commentId, reporterId);
         if (alreadyReported) {
@@ -377,6 +415,7 @@ public class ForumPostCommentService {
             log.info("Comment ID: {} has been hidden due to exceeding report threshold.", commentId);
         }
     }
+
 
 
 

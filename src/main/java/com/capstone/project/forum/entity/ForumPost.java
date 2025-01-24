@@ -164,4 +164,17 @@ public class ForumPost {
     public Boolean isContentEditedByAdmin() {
         return "ADMIN".equals(this.editedByContent);
     }
+
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer reportCount = 0; // 신고 횟수 추가 (기본값 0)
+
+    /**
+     * 신고 횟수 증가 메서드
+     * - 게시글 신고 시 호출됩니다.
+     */
+    public void incrementReportCount() {
+        this.reportCount++; // 신고 횟수를 1 증가
+    }
 }

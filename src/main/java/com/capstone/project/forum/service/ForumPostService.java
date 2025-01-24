@@ -451,9 +451,12 @@ public class ForumPostService {
                         .editedContentByAdmin("ADMIN".equals(post.getEditedByContent())) // 내용 수정자가 ADMIN인지 확인하고 설정
                         .createdAt(post.getCreatedAt()) // 게시글 생성 시간 설정
                         .updatedAt(post.getUpdatedAt()) // 게시글 수정 시간 설정
+                        .fileUrls(post.getFileUrls()) // 첨부 파일 URL 목록 설정
+                        .reportCount(post.getReportCount()) // 신고 횟수 설정 (새롭게 추가)
                         .build() // ForumPostResponseDto 객체 빌드
                 );
     }
+
 
 
 
@@ -545,6 +548,11 @@ public class ForumPostService {
         ForumPost post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
 
+        // 자신의 게시글 신고 방지
+        if (post.getMember().getId().equals(reporterId)) {
+            throw new IllegalArgumentException("You cannot report your own post.");
+        }
+
         // 중복 신고 방지
         boolean alreadyReported = postReportRepository.existsByPostIdAndReporterId(postId, reporterId);
         if (alreadyReported) {
@@ -560,16 +568,20 @@ public class ForumPostService {
                 .build();
         postReportRepository.save(report);
 
-        // 신고 누적 확인 및 게시글 숨김 처리
-        long reportCount = postReportRepository.countByPostId(postId);
-        log.info("Post ID: {} has {} reports.", postId, reportCount);
+        // 신고 횟수 증가 및 저장
+        post.incrementReportCount(); // 신고 횟수 증가
+        postRepository.save(post); // 게시글 저장
 
-        if (reportCount >= REPORT_THRESHOLD) {
+        log.info("Post ID: {} now has {} reports.", postId, post.getReportCount());
+
+        // 신고 누적 확인 및 게시글 숨김 처리
+        if (post.getReportCount() >= REPORT_THRESHOLD) { // REPORT_THRESHOLD: 숨김 기준
             post.setHidden(true); // 신고 임계값 초과 시 게시글 숨김 처리
-            postRepository.save(post);
+            postRepository.save(post); // 업데이트된 게시글 저장
             log.info("Post ID: {} has been hidden due to exceeding report threshold.", postId);
         }
     }
+
 
 
 

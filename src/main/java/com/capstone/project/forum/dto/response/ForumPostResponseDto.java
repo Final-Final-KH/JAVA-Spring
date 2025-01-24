@@ -16,6 +16,7 @@ import java.util.List;
 @AllArgsConstructor
 public class ForumPostResponseDto {
 
+    // 기존 필드
     private Integer id; // 게시글 ID
     private String title; // 게시글 제목
     private String content; // 게시글 내용
@@ -28,44 +29,12 @@ public class ForumPostResponseDto {
     private String removedBy; // 삭제자 정보
     private String editedByTitle; // 제목 수정자 정보
     private String editedByContent; // 내용 수정자 정보
-    private Boolean locked; // 수정 불가능 여부 (관리자 수정 시 true)
+    private Boolean locked; // 수정 불가능 여부
     private LocalDateTime createdAt; // 생성 시간
     private LocalDateTime updatedAt; // 수정 시간
     private Boolean editedTitleByAdmin; // 제목이 관리자에 의해 수정되었는지 여부
     private Boolean editedContentByAdmin; // 내용이 관리자에 의해 수정되었는지 여부
-    private List<String> fileUrls; // 첨부 파일 URL 목록 (단일 또는 다중 모두 가능)
+    private List<String> fileUrls; // 첨부 파일 URL 목록
 
-    /**
-     * 제목이 관리자에 의해 수정되었는지 여부를 반환
-     * - editedByTitle 필드가 "ADMIN"인지 확인
-     */
-    public Boolean getEditedTitleByAdmin() {
-        return "ADMIN".equals(this.editedByTitle);
-    }
-
-    /**
-     * 내용이 관리자에 의해 수정되었는지 여부를 반환
-     * - editedByContent 필드가 "ADMIN"인지 확인
-     */
-    public Boolean getEditedContentByAdmin() {
-        return "ADMIN".equals(this.editedByContent);
-    }
-
-    /**
-     * editedByTitle 값 설정
-     * - 설정 시 editedTitleByAdmin 필드의 값도 자동으로 업데이트
-     */
-    public void setEditedByTitle(String editedByTitle) {
-        this.editedByTitle = editedByTitle;
-        this.editedTitleByAdmin = "ADMIN".equals(editedByTitle);
-    }
-
-    /**
-     * editedByContent 값 설정
-     * - 설정 시 editedContentByAdmin 필드의 값도 자동으로 업데이트
-     */
-    public void setEditedByContent(String editedByContent) {
-        this.editedByContent = editedByContent;
-        this.editedContentByAdmin = "ADMIN".equals(editedByContent);
-    }
+    private Integer reportCount; // 신고 횟수 추가
 }
