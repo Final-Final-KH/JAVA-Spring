@@ -31,4 +31,14 @@ public class MemberResponseDto {
         this.profilePictureUrl = member.getProfilePictureUrl(); // 프로필 사진 URL 추가
         this.role = member.getRole().name();
     }
+
+    @Override
+    public String toString() {
+        return "MemberResponseDto{" +
+                "memberId=" + memberId +
+                ", name='" + name + '\'' +
+                ", email='" + email + '\'' +
+                ", phoneNumber='" + phoneNumber + '\'' +
+                '}';
+    }
 }

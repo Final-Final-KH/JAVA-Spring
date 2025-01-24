@@ -14,9 +14,9 @@ import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.Map;
 
-@Component
+
 @Slf4j
-@Profile("!test")
+
 public class KakaoPaymentProvider extends AbstractPaymentProvider {
 
     private final String apiKey;
