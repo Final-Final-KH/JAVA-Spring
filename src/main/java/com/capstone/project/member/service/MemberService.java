@@ -21,15 +21,28 @@ public class MemberService {
 
     // Fetch member profile
     public MemberResponseDto getMemberProfile(Integer memberId) {
+        // Fetch the member entity by ID
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new EntityNotFoundException("Member not found with ID: " + memberId));
+
+        // Fetch or set a default profile picture URL
         String profilePictureUrl = member.getProfilePictureUrl();
         if (profilePictureUrl == null || profilePictureUrl.isEmpty()) {
             profilePictureUrl = "https://firebasestorage.googleapis.com/v0/b/kh-react-firebase.firebasestorage.app/o/default-profile-picture-url.jpg?alt=media&token=16b39451-4ee9-4bdd-adc9-78b6cda4d4bb";
             // 디폴트 사진 값 -- 내가 올린 파이어 베이스에서 실험적 적용
         }
-        return new MemberResponseDto(member.getId(), member.getEmail(), member.getName(),
-                member.getPhoneNumber(), member.getCurrentCompany(), member.getShowCompany(), profilePictureUrl);
+
+        // Return the updated MemberResponseDto, including the role
+        return new MemberResponseDto(
+                member.getId(),
+                member.getEmail(),
+                member.getName(),
+                member.getPhoneNumber(),
+                member.getCurrentCompany(),
+                member.getShowCompany(),
+                profilePictureUrl,
+                member.getRole().name() // Pass the role as a String
+        );
     }
 
     // Update member profile

@@ -138,53 +138,99 @@ public class ForumPostService {
     }
 
 
-
-
-
     /**
-     * 게시글 수정
+     * 게시글 제목 수정
      *
-     * @param postId 수정할 게시글 ID
-     * @param requestDto 수정 요청 DTO
+     * @param postId           수정할 게시글 ID
+     * @param title            새로운 제목
      * @param loggedInMemberId 요청 사용자 ID
-     * @param isAdmin 관리자 여부
+     * @param isAdmin          관리자 여부
      * @return 수정된 게시글 응답 DTO
      */
     @Transactional
-    public ForumPostResponseDto updatePost(Integer postId, ForumPostRequestDto requestDto, Integer loggedInMemberId, boolean isAdmin) {
-        log.info("Updating post with ID: {}", postId);
+    public ForumPostResponseDto updatePostTitle(Integer postId, String title, Integer loggedInMemberId, boolean isAdmin) {
+        log.info("Updating post title for ID: {}", postId);
 
-        // 1. 게시글 존재 여부 확인
+        // 1. 게시글 조회
         var post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("Post not found with ID: " + postId));
+                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 게시글이 존재하지 않습니다: " + postId));
+        log.info("Fetched post for title update: {}", post);
 
         // 2. 권한 검증
         if (!isAdmin && !post.getMember().getId().equals(loggedInMemberId)) {
-            throw new SecurityException("Not authorized to edit this post"); // 권한이 없는 경우 예외 발생
+            log.warn("Unauthorized attempt to update title by user ID: {}", loggedInMemberId);
+            throw new SecurityException("이 게시글의 제목을 수정할 권한이 없습니다.");
         }
 
-        // 3. 게시글 데이터 수정
-        post.setTitle(requestDto.getTitle()); // 제목 업데이트
-        post.setContent(requestDto.getContent()); // 내용 업데이트
-        post.setSticky(requestDto.getSticky());
-        post.setFileUrls(requestDto.getFileUrls() != null ? requestDto.getFileUrls() : post.getFileUrls()); // 파일 URL 값 유지
-        post.setUpdatedAt(LocalDateTime.now()); // 수정 시간 업데이트
+        // 3. 제목 업데이트
+        log.info("Updating title from '{}' to '{}'", post.getTitle(), title);
+        post.setTitle(title);
+        post.setUpdatedAt(LocalDateTime.now());
 
-        // 4. 수정된 게시글 저장
+        // 4. 수정자 정보 설정
+        post.setEditedByTitle(isAdmin ? "ADMIN" : post.getMember().getName());
+
+        // 5. 저장 및 DTO 반환
         var updatedPost = postRepository.save(post);
+        log.info("Post title updated successfully. New post data: {}", updatedPost);
 
-        // 5. 수정된 데이터 DTO로 반환
         return ForumPostResponseDto.builder()
                 .id(updatedPost.getId())
                 .title(updatedPost.getTitle())
                 .content(updatedPost.getContent())
                 .authorName(post.getMember().getName())
-                .sticky(updatedPost.getSticky())
-                .viewsCount(updatedPost.getViewsCount())
-                .likesCount(updatedPost.getLikesCount())
-                .fileUrls(updatedPost.getFileUrls())
-                .hidden(updatedPost.getHidden())
-                .removedBy(updatedPost.getRemovedBy())
+                .editedByTitle(updatedPost.getEditedByTitle())
+                .editedByContent(updatedPost.getEditedByContent())
+                .createdAt(updatedPost.getCreatedAt())
+                .updatedAt(updatedPost.getUpdatedAt())
+                .build();
+    }
+
+
+    /**
+     * 게시글 내용 수정
+     *
+     * @param postId           수정할 게시글 ID
+     * @param content          새로운 내용
+     * @param loggedInMemberId 요청 사용자 ID
+     * @param isAdmin          관리자 여부
+     * @return 수정된 게시글 응답 DTO
+     */
+    @Transactional
+    public ForumPostResponseDto updatePostContent(Integer postId, String content, Integer loggedInMemberId, boolean isAdmin) {
+        log.info("Updating post content for ID: {}", postId);
+
+        // 1. 게시글 조회
+        var post = postRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 ID의 게시글이 존재하지 않습니다: " + postId));
+        log.info("Fetched post for content update: {}", post);
+
+        // 2. 권한 검증
+        if (!isAdmin && !post.getMember().getId().equals(loggedInMemberId)) {
+            log.warn("Unauthorized attempt to update content by user ID: {}", loggedInMemberId);
+            throw new SecurityException("이 게시글의 내용을 수정할 권한이 없습니다.");
+        }
+
+        // 3. 내용 업데이트
+        log.info("Updating content from '{}' to '{}'", post.getContent(), content);
+        post.setContent(content);
+        post.setUpdatedAt(LocalDateTime.now());
+
+        // 4. 수정자 정보 설정
+        post.setEditedByContent(isAdmin ? "ADMIN" : post.getMember().getName());
+        if (isAdmin) post.setLocked(true);
+
+        // 5. 저장 및 DTO 반환
+        var updatedPost = postRepository.save(post);
+        log.info("Post content updated successfully. New post data: {}", updatedPost);
+
+        return ForumPostResponseDto.builder()
+                .id(updatedPost.getId())
+                .title(updatedPost.getTitle())
+                .content(updatedPost.getContent())
+                .authorName(post.getMember().getName())
+                .editedByTitle(updatedPost.getEditedByTitle())
+                .editedByContent(updatedPost.getEditedByContent())
                 .createdAt(updatedPost.getCreatedAt())
                 .updatedAt(updatedPost.getUpdatedAt())
                 .build();
@@ -258,48 +304,49 @@ public class ForumPostService {
     public void deletePost(Integer postId, Integer loggedInMemberId, String removedBy) {
         log.info("Deleting post ID: {} by member ID: {}", postId, loggedInMemberId);
 
-        // 1. 게시글 조회
+        // 1. 게시글 조회 / Fetch the post
         ForumPost post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
 
-        // 2. 삭제 권한 확인
+        // 2. 삭제 권한 확인 / Validate deletion permissions
         boolean isAdmin = memberService.isAdmin(loggedInMemberId);
         if (!post.getMember().getId().equals(loggedInMemberId) && !isAdmin) {
             throw new AccessDeniedException("You are not allowed to delete this post.");
         }
 
-        // 3. 댓글 백업 수행 (삭제하지 않음)
+        // 3. 댓글 백업 수행 (삭제하지 않음) / Backup comments
         for (ForumPostComment comment : post.getComments()) {
             ForumPostCommentHistory history = ForumPostCommentHistory.builder()
-                    .commentId(comment.getId()) // 댓글 ID
-                    .content(comment.getContent()) // 댓글 내용
-                    .authorName(comment.getMember().getName()) // 작성자 이름
-                    .deletedAt(LocalDateTime.now()) // 삭제 시간
+                    .commentId(comment.getId())
+                    .content(comment.getContent())
+                    .authorName(comment.getMember().getName())
+                    .deletedAt(LocalDateTime.now())
                     .build();
-            commentHistoryRepository.save(history); // 댓글 이력 저장
+            commentHistoryRepository.save(history);
             log.info("Comment ID: {} backed up to history.", comment.getId());
         }
 
-        // 4. 게시글 삭제 이력 저장
+        // 4. 게시글 삭제 이력 저장 / Log post deletion history
         ForumPostHistory postHistory = ForumPostHistory.builder()
-                .postId(post.getId()) // 게시글 ID
-                .title(post.getTitle()) // 삭제 전 게시글 제목
-                .content(post.getContent()) // 삭제 전 게시글 내용
-                .authorName(post.getMember().getName()) // 작성자 이름
-                .deletedAt(LocalDateTime.now()) // 삭제 시간
+                .postId(post.getId())
+                .title(post.getTitle())
+                .content(post.getContent())
+                .authorName(post.getMember().getName())
+                .deletedAt(LocalDateTime.now())
                 .build();
-        historyRepository.save(postHistory); // 게시글 이력 저장
+        historyRepository.save(postHistory);
         log.info("Post ID: {} backed up to history.", postId);
 
-        // 5. 게시글 상태를 삭제됨으로 업데이트
-        post.setTitle("[Deleted]"); // 제목을 "[Deleted]"로 변경
-        post.setContent("This post has been deleted."); // 내용을 삭제됨으로 표시
-        post.setRemovedBy(isAdmin ? "ADMIN" : post.getMember().getName()); // 삭제자 정보 설정
-        post.setHidden(true); // 게시글 숨김 처리
-        postRepository.save(post); // 업데이트된 게시글 저장
+        // 5. 게시글 상태를 삭제됨으로 업데이트 / Mark post as deleted
+        post.setTitle("[Deleted]");
+        post.setContent("This post has been deleted.");
+        post.setRemovedBy(isAdmin ? "ADMIN" : post.getMember().getName());
+        post.setHidden(true);
+        postRepository.save(post);
 
         log.info("Post ID: {} marked as deleted.", postId);
     }
+
 
 
 
@@ -382,24 +429,35 @@ public class ForumPostService {
      * @return Optional<ForumPostResponseDto> 게시글 상세 정보
      */
     public Optional<ForumPostResponseDto> getPostDetails(Integer postId) {
+        // 1. 로그 기록: 게시글 ID를 기반으로 세부 정보를 가져오는 작업 시작
         log.info("Fetching details for post ID: {}", postId);
 
+        // 2. 게시글을 데이터베이스에서 조회 후, ForumPostResponseDto 형태로 매핑
         return postRepository.findById(postId)
                 .map(post -> ForumPostResponseDto.builder()
-                        .id(post.getId())
-                        .title(post.getTitle())
-                        .content(post.getContent())
-                        .memberId(post.getMember().getId()) // memberId 추가
-                        .authorName(post.getMember().getName())
-                        .sticky(post.getSticky())
-                        .viewsCount(post.getViewsCount())
-                        .likesCount(post.getLikesCount())
-                        .hidden(post.getHidden())
-                        .removedBy(post.getRemovedBy())
-                        .createdAt(post.getCreatedAt())
-                        .updatedAt(post.getUpdatedAt())
-                        .build());
+                        .id(post.getId()) // 게시글 ID 설정
+                        .title(post.getTitle()) // 게시글 제목 설정
+                        .content(post.getContent()) // 게시글 내용 설정
+                        .memberId(post.getMember().getId()) // 작성자 ID 설정
+                        .authorName(post.getMember().getName()) // 작성자 이름 설정
+                        .sticky(post.getSticky()) // 상단 고정 여부 설정
+                        .viewsCount(post.getViewsCount()) // 조회수 설정
+                        .likesCount(post.getLikesCount()) // 좋아요 수 설정
+                        .hidden(post.getHidden()) // 숨김 여부 설정
+                        .removedBy(post.getRemovedBy()) // 삭제자 정보 설정 (있다면)
+                        .editedByTitle(post.getEditedByTitle()) // 제목 수정자 정보 설정
+                        .editedByContent(post.getEditedByContent()) // 내용 수정자 정보 설정
+                        .editedTitleByAdmin("ADMIN".equals(post.getEditedByTitle())) // 제목 수정자가 ADMIN인지 확인하고 설정
+                        .editedContentByAdmin("ADMIN".equals(post.getEditedByContent())) // 내용 수정자가 ADMIN인지 확인하고 설정
+                        .createdAt(post.getCreatedAt()) // 게시글 생성 시간 설정
+                        .updatedAt(post.getUpdatedAt()) // 게시글 수정 시간 설정
+                        .fileUrls(post.getFileUrls()) // 첨부 파일 URL 목록 설정
+                        .reportCount(post.getReportCount()) // 신고 횟수 설정 (새롭게 추가)
+                        .build() // ForumPostResponseDto 객체 빌드
+                );
     }
+
+
 
 
     /**
@@ -490,6 +548,11 @@ public class ForumPostService {
         ForumPost post = postRepository.findById(postId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + postId));
 
+        // 자신의 게시글 신고 방지
+        if (post.getMember().getId().equals(reporterId)) {
+            throw new IllegalArgumentException("You cannot report your own post.");
+        }
+
         // 중복 신고 방지
         boolean alreadyReported = postReportRepository.existsByPostIdAndReporterId(postId, reporterId);
         if (alreadyReported) {
@@ -505,16 +568,20 @@ public class ForumPostService {
                 .build();
         postReportRepository.save(report);
 
-        // 신고 누적 확인 및 게시글 숨김 처리
-        long reportCount = postReportRepository.countByPostId(postId);
-        log.info("Post ID: {} has {} reports.", postId, reportCount);
+        // 신고 횟수 증가 및 저장
+        post.incrementReportCount(); // 신고 횟수 증가
+        postRepository.save(post); // 게시글 저장
 
-        if (reportCount >= REPORT_THRESHOLD) {
+        log.info("Post ID: {} now has {} reports.", postId, post.getReportCount());
+
+        // 신고 누적 확인 및 게시글 숨김 처리
+        if (post.getReportCount() >= REPORT_THRESHOLD) { // REPORT_THRESHOLD: 숨김 기준
             post.setHidden(true); // 신고 임계값 초과 시 게시글 숨김 처리
-            postRepository.save(post);
+            postRepository.save(post); // 업데이트된 게시글 저장
             log.info("Post ID: {} has been hidden due to exceeding report threshold.", postId);
         }
     }
+
 
 
 

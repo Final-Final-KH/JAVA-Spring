@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,15 +40,43 @@ public class ForumPostCommentService {
     private static final int REPORT_THRESHOLD = 10; // 신고 누적 기준값
 
     /**
-     * 특정 게시글에 속한 댓글 가져오기
+     * 특정 게시글에 포함된 댓글을 조회하고 DTO 리스트로 변환
      *
      * @param postId 게시글 ID
-     * @return 댓글 리스트 (ForumPostCommentResponseDto)
+     * @return 댓글 응답 DTO 리스트
      */
     public List<ForumPostCommentResponseDto> getCommentsForPost(Integer postId) {
-        log.info("Fetching comments for post ID: {}", postId); // 로그: 댓글 가져오기
-        return commentRepository.findCommentsByPostId(postId) // 게시글 ID로 댓글 조회
-                .stream()
+        log.info("Fetching comments for post ID: {}", postId);
+
+        // 1. 댓글 ID 리스트를 가져오기
+        // 특정 게시글에 포함된 댓글 ID를 조회하여 List<Integer> 형태로 반환합니다.
+        List<Integer> commentIds = commentRepository.findCommentIdsByPostId(postId);
+
+        // 2. 댓글 ID에 대한 신고 횟수 가져오기
+        // CommentReportRepository에서 countByCommentIds 메서드를 사용하여 댓글 ID 목록에 대한 신고 횟수를 Object[] 리스트로 가져옵니다.
+        List<Object[]> rawReportCounts = commentReportRepository.countByCommentIds(commentIds);
+
+        // 3. 로깅: rawReportCounts 데이터 확인
+        // DB로부터 가져온 원본 데이터가 어떤 형태인지 확인하기 위해 로그로 출력합니다.
+        log.info("Raw report counts: {}", rawReportCounts);
+
+        // 4. 신고 횟수 데이터 변환
+        // rawReportCounts(List<Object[]>)를 Map<Integer, Long>으로 변환합니다.
+        // Object 배열의 첫 번째 요소(obj[0])는 댓글 ID이며, 두 번째 요소(obj[1])는 신고 횟수입니다.
+        Map<Integer, Long> reportCounts = rawReportCounts.stream()
+                .collect(Collectors.toMap(
+                        obj -> ((Number) obj[0]).intValue(), // obj[0]을 안전하게 Integer로 변환
+                        obj -> ((Number) obj[1]).longValue() // obj[1]을 Long으로 변환
+                ));
+
+        // 5. 로깅: 변환된 신고 횟수 데이터 확인
+        // 변환된 Map 데이터의 내용을 로그로 출력하여 예상한 형태인지 확인합니다.
+        log.info("Processed report counts: {}", reportCounts);
+
+        // 6. 댓글 데이터를 가져오고 DTO로 변환
+        // 댓글 데이터를 ForumPostCommentRepository에서 조회한 후, DTO로 변환합니다.
+        // 각 댓글에 대해 신고 횟수(reportCount)를 설정하며, 기본값은 0L입니다.
+        return commentRepository.findCommentsByPostId(postId).stream()
                 .map(comment -> ForumPostCommentResponseDto.builder()
                         .id(comment.getId()) // 댓글 ID
                         .content(comment.getContent()) // 댓글 내용
@@ -56,15 +85,19 @@ public class ForumPostCommentService {
                         .likesCount(comment.getLikesCount()) // 좋아요 수
                         .hidden(comment.getHidden()) // 숨김 여부
                         .removedBy(comment.getRemovedBy()) // 삭제자 정보
-                        .editedBy(comment.getEditedBy()) // 수정자 정보 추가
-                        .locked(comment.getLocked()) // 편집 잠금 상태 추가
+                        .editedBy(comment.getEditedBy()) // 수정자 정보
+                        .locked(comment.getLocked()) // 잠금 여부
                         .createdAt(comment.getCreatedAt()) // 생성 시간
                         .updatedAt(comment.getUpdatedAt()) // 수정 시간
                         .fileUrl(comment.getFileUrl()) // 첨부 파일 URL
-                        .build()
-                )
-                .collect(Collectors.toList()); // 결과를 리스트로 변환
+                        .reportCount(reportCounts.getOrDefault(comment.getId(), 0L)) // 신고 횟수 (기본값 0)
+                        .build())
+                .collect(Collectors.toList()); // DTO 리스트로 변환
     }
+
+
+
+
 
     /**
      * 새로운 댓글 생성
@@ -119,86 +152,71 @@ public class ForumPostCommentService {
      * 댓글 수정
      *
      * @param commentId 수정할 댓글 ID
-     * @param requestBody 요청 본문 (JSON 형식 또는 단순 텍스트 가능)
+     * @param requestDto 요청 데이터 DTO (JSON 형식으로 새로운 내용 및 파일 URL 포함)
      * @param loggedInMemberId 요청 사용자 ID
+     * @param isAdmin 관리자 여부
      * @return 수정된 댓글 정보가 포함된 응답 DTO
-     * @throws IllegalArgumentException 유효하지 않은 JSON 형식 또는 빈 내용일 경우
+     * @throws IllegalArgumentException 잘못된 요청 데이터 또는 유효하지 않은 JSON 형식일 경우
      * @throws IllegalStateException 숨김 또는 삭제된 댓글을 수정하려는 경우
      */
     @Transactional
-    public ForumPostCommentResponseDto updateComment(Integer commentId, String requestBody, Integer loggedInMemberId) {
+    public ForumPostCommentResponseDto updateComment(Integer commentId, ForumPostCommentRequestDto requestDto, Integer loggedInMemberId, boolean isAdmin) {
         log.info("Updating comment ID: {} by member ID: {}", commentId, loggedInMemberId);
 
-        // 요청 본문에서 JSON 또는 단순 텍스트 처리
-        String sanitizedContent;
-        String fileUrl = null; // 초기화된 파일 URL 필드
-        if (requestBody.trim().startsWith("{") && requestBody.trim().endsWith("}")) {
-            // JSON 형식인 경우: JSON 필드 추출
-            try {
-                ObjectMapper objectMapper = new ObjectMapper();
-                JsonNode jsonNode = objectMapper.readTree(requestBody);
-                sanitizedContent = jsonNode.get("newContent").asText();
-                if (jsonNode.has("fileUrl")) {
-                    fileUrl = jsonNode.get("fileUrl").asText(); // 파일 URL 처리
-                }
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Invalid JSON format for requestBody");
-            }
-        } else {
-            // 단순 텍스트인 경우: 그대로 사용
-            sanitizedContent = requestBody.trim();
+        // 1. 요청 데이터 유효성 검사 / Validate the request data
+        if (requestDto.getContent() == null || requestDto.getContent().trim().isEmpty()) {
+            throw new IllegalArgumentException("Comment content cannot be empty.");
         }
 
-        // 내용이 비어 있는지 확인
-        if (sanitizedContent == null || sanitizedContent.isEmpty()) {
-            throw new IllegalArgumentException("Content cannot be empty.");
-        }
-
-        // 댓글 조회
+        // 2. 댓글 조회 / Fetch the comment by ID
         ForumPostComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
 
-        // 댓글 소유자 또는 관리자 권한 확인
-        boolean isAdmin = memberService.isAdmin(loggedInMemberId); // 관리자 여부 확인
-        if (!comment.getMember().getId().equals(loggedInMemberId) && !isAdmin) {
+        // 3. 권한 확인 / Validate permissions
+        if (!isAdmin && !comment.getMember().getId().equals(loggedInMemberId)) {
             throw new SecurityException("You are not allowed to edit this comment.");
         }
 
-        // 숨김 또는 삭제된 댓글 검증
+        // 4. 숨김 또는 삭제된 댓글은 수정 불가 / Prevent editing of hidden or removed comments
         if (comment.getHidden() || "[Removed]".equals(comment.getContent())) {
-            throw new IllegalStateException("Cannot edit a hidden or removed comment. Please let ADMIN restore it first.");
+            throw new IllegalStateException("Cannot edit a hidden or removed comment.");
         }
 
-        // 댓글 수정
-        comment.setContent(sanitizedContent); // 댓글 내용 업데이트
-        if (fileUrl != null) {
-            comment.setFileUrl(fileUrl); // 파일 URL 업데이트 (존재하는 경우에만)
+        // 5. 댓글 내용 및 파일 URL 수정 / Update comment content and file URL
+        comment.setContent(requestDto.getContent().trim());
+        if (requestDto.getFileUrl() != null) {
+            comment.setFileUrl(requestDto.getFileUrl());
         }
-        comment.setUpdatedAt(LocalDateTime.now()); // 수정 시간 갱신
+        comment.setUpdatedAt(LocalDateTime.now()); // 수정 시간 업데이트
 
-        // 관리자가 수정한 경우 추가 처리
+        // 6. 관리자에 의해 수정된 경우 처리 / Handle admin-specific edits
         if (isAdmin) {
-            comment.setEditedBy("ADMIN"); // ADMIN에 의해 수정됨 표시
-            comment.setLocked(true); // 사용자에 의한 추가 편집 불가
+            comment.setEditedBy("ADMIN"); // 수정자 정보를 "ADMIN"으로 설정
+            comment.setLocked(true); // 추가 편집 잠금
+        } else {
+            comment.setEditedBy(comment.getMember().getName()); // 일반 사용자의 수정자로 설정
         }
 
-        ForumPostComment updatedComment = commentRepository.save(comment); // 저장
-
-        // Response DTO 반환 (Builder 사용)
+        // 7. 수정된 댓글 저장 및 반환 / Save and return the updated comment
+        ForumPostComment updatedComment = commentRepository.save(comment);
         return ForumPostCommentResponseDto.builder()
-                .id(updatedComment.getId())
-                .content(updatedComment.getContent())
-                .authorName(updatedComment.getMember().getName())
-                .likesCount(updatedComment.getLikesCount())
-                .hidden(updatedComment.getHidden())
-                .removedBy(updatedComment.getRemovedBy())
-                .editedBy(updatedComment.getEditedBy()) // 수정자 정보 추가
-                .locked(updatedComment.getLocked()) // 편집 잠금 상태 포함
-                .createdAt(updatedComment.getCreatedAt())
-                .updatedAt(updatedComment.getUpdatedAt())
-                .fileUrl(updatedComment.getFileUrl()) // 파일 URL 응답에 포함
+                .id(updatedComment.getId()) // 댓글 ID
+                .content(updatedComment.getContent()) // 수정된 내용
+                .authorName(updatedComment.getMember().getName()) // 작성자 이름
+                .memberId(updatedComment.getMember().getId()) // 작성자 ID
+                .likesCount(updatedComment.getLikesCount()) // 좋아요 수
+                .hidden(updatedComment.getHidden()) // 숨김 여부
+                .removedBy(updatedComment.getRemovedBy()) // 삭제자 정보
+                .editedBy(updatedComment.getEditedBy()) // 수정자 정보
+                .locked(updatedComment.getLocked()) // 잠금 상태
+                .createdAt(updatedComment.getCreatedAt()) // 생성 시간
+                .updatedAt(updatedComment.getUpdatedAt()) // 수정 시간
+                .fileUrl(updatedComment.getFileUrl()) // 파일 URL
                 .build();
     }
+
+
+
 
 
 
@@ -320,15 +338,17 @@ public class ForumPostCommentService {
     public void deleteComment(Integer commentId, Integer loggedInMemberId) {
         log.info("Deleting comment ID: {} by member ID: {}", commentId, loggedInMemberId);
 
+        // 댓글 조회 / Fetch the comment
         ForumPostComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
 
+        // 댓글 소유자 또는 관리자 권한 확인 / Check ownership or admin privileges
         boolean isAdmin = memberService.isAdmin(loggedInMemberId);
         if (!comment.getMember().getId().equals(loggedInMemberId) && !isAdmin) {
             throw new IllegalArgumentException("You are not allowed to delete this comment.");
         }
 
-        // 댓글 히스토리 저장
+        // 댓글 삭제 이력 기록 / Log deletion history
         ForumPostCommentHistory history = ForumPostCommentHistory.builder()
                 .commentId(comment.getId())
                 .content(comment.getContent())
@@ -337,13 +357,17 @@ public class ForumPostCommentService {
                 .build();
         commentHistoryRepository.save(history);
 
-        // 댓글 삭제 처리
+        // 댓글 상태를 삭제됨으로 표시 / Mark the comment as deleted
         comment.setContent("[Removed]");
-        comment.setHidden(true); // 숨김 상태로 전환
+        comment.setHidden(true);
+        if (isAdmin) {
+            comment.setRemovedBy("ADMIN"); // 삭제자가 관리자임을 표시
+        }
         commentRepository.save(comment);
 
         log.info("Comment ID: {} deleted and history recorded.", commentId);
     }
+
 
     /**
      * 댓글 신고
@@ -359,6 +383,11 @@ public class ForumPostCommentService {
         // 댓글 조회
         ForumPostComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
+
+        // 자신의 댓글 신고 방지
+        if (comment.getMember().getId().equals(reporterId)) {
+            throw new IllegalArgumentException("You cannot report your own comment.");
+        }
 
         // 중복 신고 방지
         boolean alreadyReported = commentReportRepository.existsByCommentIdAndReporterId(commentId, reporterId);
@@ -386,6 +415,7 @@ public class ForumPostCommentService {
             log.info("Comment ID: {} has been hidden due to exceeding report threshold.", commentId);
         }
     }
+
 
 
 
