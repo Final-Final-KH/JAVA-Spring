@@ -77,10 +77,17 @@ public interface ForumPostCommentRepository extends JpaRepository<ForumPostComme
     @Query("UPDATE ForumPostComment c SET c.hidden = :hidden WHERE c.id = :commentId")
     void updateHiddenStatus(@Param("commentId") Integer commentId, @Param("hidden") boolean hidden);
 
-    // 특정 댓글 숨김 상태 복구
+    // 댓글 복구 - 특정 댓글 ID로 복구 처리
     @Modifying
-    @Query("UPDATE ForumPostComment c SET c.hidden = false WHERE c.id = :commentId")
-    void restoreCommentById(@Param("commentId") Integer commentId);
+    @Query("UPDATE ForumPostComment c SET c.content = :content, c.hidden = false, c.removedBy = null WHERE c.id = :commentId")
+    void restoreCommentById(
+            @Param("commentId") Integer commentId,
+            @Param("content") String content
+    );
+
+    @Modifying
+    @Query("UPDATE ForumPostComment c SET c.content = :content, c.hidden = false, c.removedBy = null WHERE c.id = :commentId")
+    void restoreComment(@Param("commentId") Integer commentId, @Param("content") String content);
 
     // 특정 댓글 삭제 취소 (복구)
     @Modifying
