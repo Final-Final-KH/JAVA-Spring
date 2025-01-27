@@ -99,9 +99,15 @@ public class ForumPostCommentService {
 
     private String sanitizeHtml(String content) {
         if (content == null || content.isEmpty()) return content;
-        // Use Jsoup with Safelist.basicWithImages() for sanitization
-        return Jsoup.clean(content, Safelist.basicWithImages());
+
+        log.info("Sanitizing content: {}", content);
+        String sanitizedContent = Jsoup.clean(content, Safelist.relaxed()
+                .addAttributes("a", "href", "rel", "target"));
+        log.info("Sanitized content: {}", sanitizedContent);
+
+        return sanitizedContent;
     }
+
 
 
 
@@ -130,6 +136,7 @@ public class ForumPostCommentService {
 
         // 댓글 내용 HTML 정리 및 검사
         String sanitizedContent = sanitizeHtml(requestDto.getContent());
+        log.info("Sanitized content: {}", sanitizedContent);
 
         // 새 댓글 엔티티 생성
         ForumPostComment newComment = ForumPostComment.builder()
