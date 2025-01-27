@@ -41,6 +41,7 @@ public class ForumPostComment {
     @Builder.Default
     private Integer likesCount = 0; // 댓글 좋아요 수
 
+    @Setter
     @Column(nullable = false)
     @Builder.Default
     private Boolean hidden = false; // 숨김 여부 (신고 누적 시 설정)
@@ -110,4 +111,10 @@ public class ForumPostComment {
         this.editedBy = null;
         this.locked = false;
     }
+
+    public Boolean isHidden() {
+        return hidden;
+    }
+
 }
+

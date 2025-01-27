@@ -310,18 +310,20 @@ public class ForumPostController {
      *
      * @param postId 신고할 게시글 ID
      * @param reporterId 신고자 ID
-     * @param reason 신고 이유
-     * @return 성공 상태
+     * @param reason 신고 사유
+     * @return 신고 결과 (업데이트된 게시글 정보 포함)
      */
     @PostMapping("/{postId}/report")
-    public ResponseEntity<Void> reportPost(
+    public ResponseEntity<ForumPostResponseDto> reportPost(
             @PathVariable Integer postId,
             @RequestParam Integer reporterId,
-            @RequestBody String reason
-    ) {
-        postService.reportPost(postId, reporterId, reason);
-        return ResponseEntity.ok().build();
+            @RequestBody String reason) {
+        // 게시글 신고 처리 후 업데이트된 게시글 정보 반환
+        ForumPostResponseDto responseDto = postService.reportPost(postId, reporterId, reason);
+        return ResponseEntity.ok(responseDto); // 반환 시 업데이트된 데이터를 포함
     }
+
+
 
 
 }

@@ -67,6 +67,9 @@ dependencies {
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
 	testImplementation 'org.mockito:mockito-core'
 	testImplementation 'org.mockito:mockito-junit-jupiter'
+
+	// sanitization
+	implementation 'org.jsoup:jsoup:1.15.3'
 }
 
 tasks.named('test') {

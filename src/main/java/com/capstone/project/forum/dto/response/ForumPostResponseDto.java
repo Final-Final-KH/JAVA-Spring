@@ -37,4 +37,5 @@ public class ForumPostResponseDto {
     private List<String> fileUrls; // 첨부 파일 URL 목록
 
     private Integer reportCount; // 신고 횟수 추가
+    private Boolean hasReported; // 신고 여부 추가
 }

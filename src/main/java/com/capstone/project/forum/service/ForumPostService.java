@@ -536,12 +536,13 @@ public class ForumPostService {
     /**
      * 게시글 신고 처리
      *
-     * @param postId 신고 대상 게시글 ID
+     * @param postId 신고할 게시글 ID
      * @param reporterId 신고자 ID
      * @param reason 신고 사유
+     * @return ForumPostResponseDto 업데이트된 게시글 정보 DTO
      */
     @Transactional
-    public void reportPost(Integer postId, Integer reporterId, String reason) {
+    public ForumPostResponseDto reportPost(Integer postId, Integer reporterId, String reason) {
         log.info("Reporting post ID: {} by reporter ID: {}", postId, reporterId);
 
         // 게시글 존재 여부 확인
@@ -568,19 +569,29 @@ public class ForumPostService {
                 .build();
         postReportRepository.save(report);
 
-        // 신고 횟수 증가 및 저장
-        post.incrementReportCount(); // 신고 횟수 증가
-        postRepository.save(post); // 게시글 저장
-
+        // 신고 횟수 증가
+        post.incrementReportCount(); // 게시글 엔티티의 신고 횟수 증가
         log.info("Post ID: {} now has {} reports.", postId, post.getReportCount());
 
-        // 신고 누적 확인 및 게시글 숨김 처리
+        // 신고 임계값 초과 시 게시글 숨김 처리
         if (post.getReportCount() >= REPORT_THRESHOLD) { // REPORT_THRESHOLD: 숨김 기준
-            post.setHidden(true); // 신고 임계값 초과 시 게시글 숨김 처리
-            postRepository.save(post); // 업데이트된 게시글 저장
+            post.setHidden(true); // 게시글 숨김 상태 설정
             log.info("Post ID: {} has been hidden due to exceeding report threshold.", postId);
         }
+
+        postRepository.save(post); // 업데이트된 게시글 저장
+
+        // 업데이트된 게시글 데이터 DTO로 반환
+        return ForumPostResponseDto.builder()
+                .id(post.getId())
+                .title(post.getTitle())
+                .content(post.getContent())
+                .hidden(post.isHidden())
+                .reportCount(post.getReportCount()) // 누적 신고 횟수
+                .hasReported(postReportRepository.existsByPostIdAndReporterId(postId, reporterId))
+                .build();
     }
+
 
 
 
