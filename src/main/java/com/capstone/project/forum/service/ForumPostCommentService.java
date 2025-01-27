@@ -438,37 +438,31 @@ public class ForumPostCommentService {
         log.info("Comment ID: {} marked as hidden.", commentId);
     }
 
-    /**
-     * 댓글 복구
-     * 삭제된 댓글을 삭제 이력을 사용하여 복구합니다.
-     *
-     * @param commentId 복구할 댓글 ID
-     */
+    // 댓글 복원 로직
     @Transactional
     public void restoreComment(Integer commentId) {
         log.info("Restoring comment ID: {}", commentId);
 
-        // 댓글 조회
         ForumPostComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid comment ID: " + commentId));
 
-        // 삭제된 상태 확인
-        if (!"[Removed]".equals(comment.getContent())) {
-            throw new IllegalStateException("The comment is not in a deleted state.");
-        }
-
-        // 삭제 이력 조회 (최신 데이터만 가져오기)
         ForumPostCommentHistory history = commentHistoryRepository.findTopByCommentIdOrderByDeletedAtDesc(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("No history found for comment ID: " + commentId));
 
-        // 댓글 복구
-        comment.setContent(history.getContent()); // 내용 복구
-        comment.setHidden(false); // 숨김 해제
-        comment.setRemovedBy(null); // 삭제자 정보 초기화
-        commentRepository.save(comment); // 데이터베이스에 저장
-
-        log.info("Comment ID: {} successfully restored.", commentId);
+        // 복구된 데이터가 존재할 때만 업데이트 진행
+        if (history.getContent() != null) {
+            comment.setContent(history.getContent());
+            comment.setHidden(false);
+            comment.setRemovedBy(null);
+            commentRepository.save(comment);
+            log.info("Comment ID: {} successfully restored.", commentId);
+        } else {
+            throw new IllegalStateException("No valid history content for restoration.");
+        }
     }
+
+
+
 
 //    게시글/포스팅쪽 이랑 동일한 문제. 중복된 기능으로 판단되서 주석처리
     // 추후에 확정되면 삭제 처리
