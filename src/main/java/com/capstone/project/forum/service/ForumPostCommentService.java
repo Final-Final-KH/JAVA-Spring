@@ -100,10 +100,35 @@ public class ForumPostCommentService {
     private String sanitizeHtml(String content) {
         if (content == null || content.isEmpty()) return content;
 
-        log.info("Sanitizing content: {}", content);
-        String sanitizedContent = Jsoup.clean(content, Safelist.relaxed()
-                .addAttributes("a", "href", "rel", "target"));
-        log.info("Sanitized content: {}", sanitizedContent);
+        // 🔽 로그: 원본 content 확인
+        log.info("Sanitizing content (before): {}", content);
+
+        /**
+         * 1) 기본적인 'relaxed' 정책을 사용하되,
+         * 2) 블록 인용 태그(<blockquote>) 또는 전체 태그(:all)에 대해 'class' 속성을 허용하도록 확장합니다.
+         *
+         * - Safelist.relaxed(): Jsoup가 제공하는 "relaxed" 기본 정책(여러 태그/속성 허용)
+         * - .addAttributes("blockquote", "class"):
+         *     blockquote 태그에 "class" 속성을 허용 (ex. class="reply-quote")
+         * - 만약 모든 태그에 대해 class를 허용하려면 .addAttributes(":all", "class")를 사용
+         */
+        Safelist safelist = Safelist.relaxed()
+                .addAttributes("blockquote", "class") // 또는 .addAttributes(":all", "class")
+                .addAttributes("a", "href", "rel", "target")
+                // 아래 한 줄 추가: "href"에서 "#" (앵커)도 허용
+                .addProtocols("a", "href", "#", "http", "https", "mailto", "tel", "ftp");
+
+
+        // <a> 태그에 href, rel, target 속성 허용 (기존 코드)
+
+        /**
+         * 3) Jsoup.clean(content, safelist)를 이용해 HTML을 세척(sanitize)
+         *    -> 지정된 태그/속성 외에는 모두 제거
+         */
+        String sanitizedContent = Jsoup.clean(content, safelist);
+
+        // 🔽 로그: 최종 세척 후 content 확인
+        log.info("Sanitized content (after): {}", sanitizedContent);
 
         return sanitizedContent;
     }
@@ -111,38 +136,48 @@ public class ForumPostCommentService {
 
 
 
+
     /**
      * 새로운 댓글 생성
      *
-     * @param requestDto 댓글 생성 요청 데이터 (게시글 ID, 작성자 ID, 내용, 파일 URL 등)
+     * @param requestDto 댓글 생성 요청 데이터 (게시글 ID, 작성자 ID, 내용, 파일 URL, 부모 댓글 ID 등)
      * @return 생성된 댓글 정보 (ForumPostCommentResponseDto)
-     * @throws IllegalArgumentException 유효하지 않은 회원 ID 또는 게시글 ID일 경우 예외 발생
+     * @throws IllegalArgumentException 유효하지 않은 회원 ID, 게시글 ID 또는 부모 댓글 ID일 경우 예외 발생
      */
     @Transactional
     public ForumPostCommentResponseDto createComment(ForumPostCommentRequestDto requestDto) {
         log.info("Creating new comment for post ID: {} by member ID: {}", requestDto.getPostId(), requestDto.getMemberId());
 
+        // 1️⃣ 사용자 ID 유효성 검사
         if (requestDto.getMemberId() == null) {
-            throw new IllegalArgumentException("Member ID is null or invalid."); // 사용자 ID 유효성 검사
+            throw new IllegalArgumentException("Member ID is null or invalid.");
         }
 
-        // 게시글 조회
+        // 2️⃣ 게시글 ID 유효성 검사 및 게시글 조회
         ForumPost forumPost = postRepository.findById(requestDto.getPostId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid post ID: " + requestDto.getPostId()));
 
-        // 작성자 조회
+        // 3️⃣ 작성자 ID 유효성 검사 및 작성자 조회
         Member commentAuthor = memberRepository.findById(requestDto.getMemberId())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid member ID: " + requestDto.getMemberId()));
 
-        // 댓글 내용 HTML 정리 및 검사
+        // 4️⃣ 부모 댓글 ID가 존재하는 경우 유효성 검사 및 조회
+        ForumPostComment parentComment = null; // 부모 댓글 초기화
+        if (requestDto.getParentCommentId() != null) {
+            parentComment = commentRepository.findById(requestDto.getParentCommentId())
+                    .orElseThrow(() -> new IllegalArgumentException("Invalid parent comment ID: " + requestDto.getParentCommentId()));
+        }
+
+        // 5️⃣ 댓글 내용 HTML 정리 및 검사
         String sanitizedContent = sanitizeHtml(requestDto.getContent());
         log.info("Sanitized content: {}", sanitizedContent);
 
-        // 새 댓글 엔티티 생성
+        // 6️⃣ 새로운 댓글 엔티티 생성
         ForumPostComment newComment = ForumPostComment.builder()
                 .forumPost(forumPost) // 게시글 매핑
                 .member(commentAuthor) // 작성자 매핑
                 .content(sanitizedContent) // 정리된 내용 설정
+                .parentComment(parentComment) // 부모 댓글 매핑 (답글의 경우)
                 .fileUrl(requestDto.getFileUrl()) // 첨부 파일 URL
                 .likesCount(0) // 초기 좋아요 수
                 .hidden(false) // 숨김 상태 초기화
@@ -150,13 +185,15 @@ public class ForumPostCommentService {
                 .updatedAt(LocalDateTime.now()) // 수정 시간
                 .build();
 
-        // 댓글 저장
+        // 7️⃣ 댓글 저장
         ForumPostComment savedComment = commentRepository.save(newComment);
 
-        // 저장된 댓글 정보 반환
+        // 8️⃣ 저장된 댓글 정보 반환
         return ForumPostCommentResponseDto.builder()
                 .id(savedComment.getId())
                 .content(savedComment.getContent()) // 저장된 댓글 내용 반환
+                .parentCommentId(parentComment != null ? parentComment.getId() : null) // 부모 댓글 ID 포함
+                .parentContent(parentComment != null ? parentComment.getContent() : null) // 부모 댓글 내용 포함 (UI 표시용)
                 .memberId(commentAuthor.getId())
                 .authorName(commentAuthor.getName())
                 .likesCount(savedComment.getLikesCount())
@@ -167,6 +204,7 @@ public class ForumPostCommentService {
                 .fileUrl(savedComment.getFileUrl())
                 .build();
     }
+
 
 
     @Transactional
