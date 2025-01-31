@@ -32,9 +32,14 @@ public class ForumPostResponseDto {
     private Boolean locked; // 수정 불가능 여부
     private LocalDateTime createdAt; // 생성 시간
     private LocalDateTime updatedAt; // 수정 시간
+
+    // ✅ 최신 댓글을 객체로 저장하도록 변경 (기존: String latestComment)
+    private ForumPostCommentResponseDto latestComment;
+
     private Boolean editedTitleByAdmin; // 제목이 관리자에 의해 수정되었는지 여부
     private Boolean editedContentByAdmin; // 내용이 관리자에 의해 수정되었는지 여부
     private List<String> fileUrls; // 첨부 파일 URL 목록
 
     private Integer reportCount; // 신고 횟수 추가
+    private Boolean hasReported; // 신고 여부 추가
 }

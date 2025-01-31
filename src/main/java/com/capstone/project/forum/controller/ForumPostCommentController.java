@@ -103,13 +103,14 @@ public class ForumPostCommentController {
      * 숨겨진 댓글 복구
      *
      * @param commentId 복구할 댓글 ID
-     * @return 성공 상태
+     * @return 복구된 댓글 데이터
      */
     @PostMapping("/{commentId}/restore")
-    public ResponseEntity<Void> restoreComment(@PathVariable Integer commentId) {
-        commentService.restoreComment(commentId); // 댓글 복구
-        return ResponseEntity.ok().build(); // 성공 상태 반환
+    public ResponseEntity<ForumPostCommentResponseDto> restoreComment(@PathVariable Integer commentId) {
+        ForumPostCommentResponseDto restoredComment = commentService.restoreComment(commentId); // 복구된 댓글 정보 반환
+        return ResponseEntity.ok(restoredComment); // 복구된 댓글 데이터 반환
     }
+
 
 
     //    게시글/포스팅쪽 이랑 동일한 문제. 중복된 기능으로 판단되서 주석처리
@@ -151,16 +152,18 @@ public class ForumPostCommentController {
      * @param commentId 신고 대상 댓글 ID
      * @param reporterId 신고자 ID
      * @param reason 신고 사유
-     * @return 성공 상태
+     * @return 신고 결과 (업데이트된 댓글 정보 포함)
      */
     @PostMapping("/{commentId}/report")
-    public ResponseEntity<Void> reportComment(
+    public ResponseEntity<ForumPostCommentResponseDto> reportComment(
             @PathVariable Integer commentId,
             @RequestParam Integer reporterId,
             @RequestBody String reason) {
-        commentService.reportComment(commentId, reporterId, reason);
-        return ResponseEntity.ok().build();
+        // 댓글 신고 처리 후 업데이트된 댓글 정보 반환
+        ForumPostCommentResponseDto responseDto = commentService.reportComment(commentId, reporterId, reason);
+        return ResponseEntity.ok(responseDto); // 반환 시 업데이트된 데이터를 포함
     }
+
 
 
     /**

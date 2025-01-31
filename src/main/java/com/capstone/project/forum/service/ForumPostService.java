@@ -1,6 +1,7 @@
 package com.capstone.project.forum.service;
 
 import com.capstone.project.forum.dto.request.ForumPostRequestDto;
+import com.capstone.project.forum.dto.response.ForumPostCommentResponseDto;
 import com.capstone.project.forum.dto.response.ForumPostResponseDto;
 import com.capstone.project.forum.dto.response.PaginationDto;
 import com.capstone.project.forum.entity.*;
@@ -39,6 +40,28 @@ public class ForumPostService {
 
     private static final int REPORT_THRESHOLD = 10; // 신고 누적 기준값
 
+
+    /**
+     * 특정 게시글의 최신 댓글을 가져오는 메서드
+     *
+     * @param post 조회할 게시글 객체
+     * @return 최신 댓글 객체 (없을 경우 null)
+     */
+    private ForumPostCommentResponseDto getLatestComment(ForumPost post) {
+        return post.getComments().isEmpty() ? null :
+                post.getComments().stream()
+                        .sorted((c1, c2) -> c2.getCreatedAt().compareTo(c1.getCreatedAt())) // 최신 순 정렬
+                        .findFirst()
+                        .map(comment -> ForumPostCommentResponseDto.builder()
+                                .id(comment.getId()) // 댓글 ID
+                                .authorName(comment.getMember().getName()) // 댓글 작성자
+                                .content(comment.getContent()) // 댓글 내용
+                                .createdAt(comment.getCreatedAt()) // 댓글 작성 시간
+                                .build())
+                        .orElse(null);
+    }
+
+
     /**
      * 특정 카테고리에 속한 게시글을 페이지네이션하여 가져오는 메서드
      *
@@ -56,23 +79,25 @@ public class ForumPostService {
         List<ForumPostResponseDto> postDtos = postPage.getContent()
                 .stream()
                 .map(post -> ForumPostResponseDto.builder()
-                        .id(post.getId())
-                        .title(post.getTitle())
-                        .content(post.getContent())
-                        .memberId(post.getMember().getId()) // memberId 추가
-                        .authorName(post.getMember().getName())
-                        .sticky(post.getSticky())
-                        .viewsCount(post.getViewsCount())
-                        .likesCount(post.getLikesCount())
-                        .hidden(post.getHidden())
-                        .removedBy(post.getRemovedBy())
-                        .createdAt(post.getCreatedAt())
-                        .updatedAt(post.getUpdatedAt())
+                        .id(post.getId()) // 게시글 ID
+                        .title(post.getTitle()) // 게시글 제목
+                        .content(post.getContent()) // 게시글 내용
+                        .memberId(post.getMember().getId()) // 작성자 ID
+                        .authorName(post.getMember().getName()) // 작성자 이름
+                        .sticky(post.getSticky()) // 고정 여부
+                        .viewsCount(post.getViewsCount()) // 조회수
+                        .likesCount(post.getLikesCount()) // 좋아요 수
+                        .hidden(post.getHidden()) // 숨김 여부
+                        .removedBy(post.getRemovedBy()) // 삭제된 경우 삭제자 정보
+                        .latestComment(getLatestComment(post)) // 최신 댓글 추가
+                        .createdAt(post.getCreatedAt()) // 생성 시간
+                        .updatedAt(post.getUpdatedAt()) // 수정 시간
                         .build())
                 .collect(Collectors.toList());
 
         return new PaginationDto<>(postDtos, postPage.getNumber(), postPage.getTotalPages(), postPage.getTotalElements());
     }
+
 
     /**
      * 게시글 생성
@@ -536,12 +561,13 @@ public class ForumPostService {
     /**
      * 게시글 신고 처리
      *
-     * @param postId 신고 대상 게시글 ID
+     * @param postId 신고할 게시글 ID
      * @param reporterId 신고자 ID
      * @param reason 신고 사유
+     * @return ForumPostResponseDto 업데이트된 게시글 정보 DTO
      */
     @Transactional
-    public void reportPost(Integer postId, Integer reporterId, String reason) {
+    public ForumPostResponseDto reportPost(Integer postId, Integer reporterId, String reason) {
         log.info("Reporting post ID: {} by reporter ID: {}", postId, reporterId);
 
         // 게시글 존재 여부 확인
@@ -568,19 +594,29 @@ public class ForumPostService {
                 .build();
         postReportRepository.save(report);
 
-        // 신고 횟수 증가 및 저장
-        post.incrementReportCount(); // 신고 횟수 증가
-        postRepository.save(post); // 게시글 저장
-
+        // 신고 횟수 증가
+        post.incrementReportCount(); // 게시글 엔티티의 신고 횟수 증가
         log.info("Post ID: {} now has {} reports.", postId, post.getReportCount());
 
-        // 신고 누적 확인 및 게시글 숨김 처리
+        // 신고 임계값 초과 시 게시글 숨김 처리
         if (post.getReportCount() >= REPORT_THRESHOLD) { // REPORT_THRESHOLD: 숨김 기준
-            post.setHidden(true); // 신고 임계값 초과 시 게시글 숨김 처리
-            postRepository.save(post); // 업데이트된 게시글 저장
+            post.setHidden(true); // 게시글 숨김 상태 설정
             log.info("Post ID: {} has been hidden due to exceeding report threshold.", postId);
         }
+
+        postRepository.save(post); // 업데이트된 게시글 저장
+
+        // 업데이트된 게시글 데이터 DTO로 반환
+        return ForumPostResponseDto.builder()
+                .id(post.getId())
+                .title(post.getTitle())
+                .content(post.getContent())
+                .hidden(post.isHidden())
+                .reportCount(post.getReportCount()) // 누적 신고 횟수
+                .hasReported(postReportRepository.existsByPostIdAndReporterId(postId, reporterId))
+                .build();
     }
+
 
 
 

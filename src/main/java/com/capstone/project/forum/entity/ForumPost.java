@@ -56,6 +56,7 @@ public class ForumPost {
     @Builder.Default
     private Integer likesCount = 0; // 좋아요 수
 
+    @Setter
     @Column(nullable = false)
     @Builder.Default
     private Boolean hidden = false; // 숨김 여부 (신고 누적 시 설정)
@@ -177,4 +178,10 @@ public class ForumPost {
     public void incrementReportCount() {
         this.reportCount++; // 신고 횟수를 1 증가
     }
+
+    // Add the following methods in ForumPost.java
+    public Boolean isHidden() {
+        return hidden;
+    }
+
 }
