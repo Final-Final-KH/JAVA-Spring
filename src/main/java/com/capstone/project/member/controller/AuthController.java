@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -89,5 +90,13 @@ public class AuthController {
         Map<String, Boolean> response = new HashMap<>();
         response.put("isAvailable", isAvailable); // 결과를 JSON으로 반환
         return ResponseEntity.ok(response); // HTTP 상태 코드 200과 함께 반환
+    }
+
+    // 중복 전화번호 회원 확인
+    @PostMapping("/check-phone")
+    public ResponseEntity<Map<String, Boolean>> checkPhoneNumber(@RequestBody Map<String, String> request) {
+        String phoneNumber = request.get("phoneNumber");
+        boolean isAvailable = !memberRepository.existsByPhoneNumber(phoneNumber);
+        return ResponseEntity.ok(Collections.singletonMap("isAvailable", isAvailable));
     }
 }
