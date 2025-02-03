@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -100,44 +101,70 @@ public class ForumPostController {
 
 
     /**
-     * 게시글 수정
+     * 게시글 제목 수정
      *
-     * @param postId 수정할 게시글 ID
-     * @param requestDto 게시글 수정 요청 데이터
-     * @param loggedInMemberId 요청한 사용자 ID
+     * @param postId           수정할 게시글 ID
+     * @param body             새로운 제목을 포함한 request body (JSON 형식)
+     * @param loggedInMemberId 요청 사용자 ID
      * @return 수정된 게시글 정보
      */
-    @PutMapping("/{postId}")
-    public ResponseEntity<ForumPostResponseDto> updatePost(
+    @PutMapping("/{postId}/title")
+    public ResponseEntity<ForumPostResponseDto> updatePostTitle(
             @PathVariable Integer postId,
-            @RequestBody ForumPostRequestDto requestDto,
+            @RequestBody Map<String, String> body,
             @RequestParam Integer loggedInMemberId
     ) {
-        log.info("Updating post with ID: {} by member ID: {}", postId, loggedInMemberId);
+        log.info("Updating post title for ID: {} by member ID: {}", postId, loggedInMemberId);
 
-        // 1. 관리자 여부 확인
-        boolean isAdmin = memberService.isAdmin(loggedInMemberId);
-
+        boolean isAdmin = memberService.isAdmin(loggedInMemberId); // 관리자 여부 확인
         try {
-            // 2. 게시글 업데이트 서비스 호출
-            ForumPostResponseDto updatedPost = postService.updatePost(postId, requestDto, loggedInMemberId, isAdmin);
-
-            // 3. 성공적으로 업데이트된 데이터 반환
+            var updatedPost = postService.updatePostTitle(postId, body.get("title"), loggedInMemberId, isAdmin);
             return ResponseEntity.ok(updatedPost);
         } catch (SecurityException e) {
-            // 권한 오류 처리
             log.error("Unauthorized edit attempt: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
         } catch (IllegalArgumentException e) {
-            // 게시글 없음 오류 처리
-            log.error("Error editing post: {}", e.getMessage());
+            log.error("Error editing post title: {}", e.getMessage());
             return ResponseEntity.badRequest().body(null);
         } catch (Exception e) {
-            // 기타 오류 처리
-            log.error("Unexpected error while updating post: {}", e.getMessage());
+            log.error("Unexpected error while updating post title: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+    /**
+     * 게시글 내용 수정
+     *
+     * @param postId           수정할 게시글 ID
+     * @param body             새로운 내용을 포함한 request body (JSON 형식)
+     * @param loggedInMemberId 요청 사용자 ID
+     * @return 수정된 게시글 정보
+     */
+    @PutMapping("/{postId}/content")
+    public ResponseEntity<ForumPostResponseDto> updatePostContent(
+            @PathVariable Integer postId,
+            @RequestBody Map<String, String> body,
+            @RequestParam Integer loggedInMemberId
+    ) {
+        log.info("Updating post content for ID: {} by member ID: {}", postId, loggedInMemberId);
+
+        boolean isAdmin = memberService.isAdmin(loggedInMemberId); // 관리자 여부 확인
+        try {
+            var updatedPost = postService.updatePostContent(postId, body.get("content"), loggedInMemberId, isAdmin);
+            return ResponseEntity.ok(updatedPost);
+        } catch (SecurityException e) {
+            log.error("Unauthorized edit attempt: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
+        } catch (IllegalArgumentException e) {
+            log.error("Error editing post content: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            log.error("Unexpected error while updating post content: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+
 
 
 
@@ -283,18 +310,20 @@ public class ForumPostController {
      *
      * @param postId 신고할 게시글 ID
      * @param reporterId 신고자 ID
-     * @param reason 신고 이유
-     * @return 성공 상태
+     * @param reason 신고 사유
+     * @return 신고 결과 (업데이트된 게시글 정보 포함)
      */
     @PostMapping("/{postId}/report")
-    public ResponseEntity<Void> reportPost(
+    public ResponseEntity<ForumPostResponseDto> reportPost(
             @PathVariable Integer postId,
             @RequestParam Integer reporterId,
-            @RequestBody String reason
-    ) {
-        postService.reportPost(postId, reporterId, reason);
-        return ResponseEntity.ok().build();
+            @RequestBody String reason) {
+        // 게시글 신고 처리 후 업데이트된 게시글 정보 반환
+        ForumPostResponseDto responseDto = postService.reportPost(postId, reporterId, reason);
+        return ResponseEntity.ok(responseDto); // 반환 시 업데이트된 데이터를 포함
     }
+
+
 
 
 }

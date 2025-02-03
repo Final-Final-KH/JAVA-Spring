@@ -3,6 +3,7 @@ package com.capstone.project.forum.controller;
 import com.capstone.project.forum.dto.request.ForumPostCommentRequestDto;
 import com.capstone.project.forum.dto.response.ForumPostCommentResponseDto;
 import com.capstone.project.forum.service.ForumPostCommentService;
+import com.capstone.project.member.service.MemberService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ import java.util.List;
 public class ForumPostCommentController {
 
     private final ForumPostCommentService commentService; // 댓글 서비스 의존성 주입
+    private final MemberService memberService;
 
     /**
      * 특정 게시글의 댓글 가져오기
@@ -31,8 +33,8 @@ public class ForumPostCommentController {
      * @param postId 게시글 ID
      * @return 댓글 리스트
      */
-    @GetMapping
-    public ResponseEntity<List<ForumPostCommentResponseDto>> getCommentsForPost(@RequestParam Integer postId) {
+    @GetMapping("/{postId}")
+    public ResponseEntity<List<ForumPostCommentResponseDto>> getCommentsForPost(@PathVariable Integer postId) {
         // Service 호출로 댓글 리스트 반환
         return ResponseEntity.ok(commentService.getCommentsForPost(postId));
     }
@@ -54,30 +56,32 @@ public class ForumPostCommentController {
     /**
      * 댓글 수정
      *
-     * @param commentId 수정할 댓글 ID
-     * @param requestBody 수정 요청 데이터 (JSON 또는 텍스트)
-     * @param loggedInMemberId 요청 사용자 ID
-     * @return 수정된 댓글 정보
      */
     @PutMapping("/{commentId}")
     public ResponseEntity<ForumPostCommentResponseDto> updateComment(
             @PathVariable Integer commentId,
-            @RequestBody String requestBody,
+            @RequestBody ForumPostCommentRequestDto requestDto,
             @RequestParam Integer loggedInMemberId
     ) {
         log.info("Updating comment ID: {} by member ID: {}", commentId, loggedInMemberId);
+        log.info("Received updateComment request: {}", requestDto);
 
         try {
-            ForumPostCommentResponseDto updatedComment = commentService.updateComment(commentId, requestBody, loggedInMemberId);
+            boolean isAdmin = memberService.isAdmin(loggedInMemberId); // 관리자 여부 확인
+            ForumPostCommentResponseDto updatedComment = commentService.updateComment(commentId, requestDto, loggedInMemberId, isAdmin);
             return ResponseEntity.ok(updatedComment);
         } catch (SecurityException e) {
             log.error("Unauthorized edit attempt: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(null);
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException | IllegalStateException e) {
             log.error("Error editing comment: {}", e.getMessage());
             return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            log.error("Unexpected error while updating comment: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
 
 
 
@@ -99,13 +103,14 @@ public class ForumPostCommentController {
      * 숨겨진 댓글 복구
      *
      * @param commentId 복구할 댓글 ID
-     * @return 성공 상태
+     * @return 복구된 댓글 데이터
      */
     @PostMapping("/{commentId}/restore")
-    public ResponseEntity<Void> restoreComment(@PathVariable Integer commentId) {
-        commentService.restoreComment(commentId); // 댓글 복구
-        return ResponseEntity.ok().build(); // 성공 상태 반환
+    public ResponseEntity<ForumPostCommentResponseDto> restoreComment(@PathVariable Integer commentId) {
+        ForumPostCommentResponseDto restoredComment = commentService.restoreComment(commentId); // 복구된 댓글 정보 반환
+        return ResponseEntity.ok(restoredComment); // 복구된 댓글 데이터 반환
     }
+
 
 
     //    게시글/포스팅쪽 이랑 동일한 문제. 중복된 기능으로 판단되서 주석처리
@@ -147,16 +152,18 @@ public class ForumPostCommentController {
      * @param commentId 신고 대상 댓글 ID
      * @param reporterId 신고자 ID
      * @param reason 신고 사유
-     * @return 성공 상태
+     * @return 신고 결과 (업데이트된 댓글 정보 포함)
      */
     @PostMapping("/{commentId}/report")
-    public ResponseEntity<Void> reportComment(
+    public ResponseEntity<ForumPostCommentResponseDto> reportComment(
             @PathVariable Integer commentId,
             @RequestParam Integer reporterId,
             @RequestBody String reason) {
-        commentService.reportComment(commentId, reporterId, reason);
-        return ResponseEntity.ok().build();
+        // 댓글 신고 처리 후 업데이트된 댓글 정보 반환
+        ForumPostCommentResponseDto responseDto = commentService.reportComment(commentId, reporterId, reason);
+        return ResponseEntity.ok(responseDto); // 반환 시 업데이트된 데이터를 포함
     }
+
 
 
     /**
