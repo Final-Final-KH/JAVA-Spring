@@ -24,6 +24,7 @@ function SignUp() {
   const [isNameFilled, setIsNameFilled] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
+  const [isPhoneNumberAvailable, setIsPhoneNumberAvailable] = useState(null); // 전화번호 중복 확인 (null = 미확인 상태)
 
   useEffect(() => {
     // 이메일 인증, 비밀번호 일치, 이름 입력, 이메일 유효성, 약관 동의 체크
@@ -104,13 +105,26 @@ function SignUp() {
     setIsNameFilled(nameValue.trim().length > 0); // 이름이 비어 있지 않으면 true
   };
 
-  const handlePhoneNumberChange = (e) => {
+  const handlePhoneNumberChange = async (e) => {
     const phoneInput = e.target.value;
     if (/[^0-9-]/.test(phoneInput)) {
-      setIsWarningModalOpen(true); // 경고 모달 열기
+      setIsWarningModalOpen(true);
       return;
     }
     setPhoneNumber(phoneInput);
+
+    if (phoneInput.length >= 10) {
+      try {
+        const response = await AxiosInstance.post("/auth/check-phone", {
+          phoneNumber: phoneInput.replace(/-/g, ""),
+        });
+        setIsPhoneNumberAvailable(response.data.isAvailable);
+      } catch (error) {
+        setIsPhoneNumberAvailable(false);
+      }
+    } else {
+      setIsPhoneNumberAvailable(null); // 입력이 짧으면 상태 초기화
+    }
   };
 
   const closeWarningModal = () => {
@@ -184,7 +198,7 @@ function SignUp() {
               <br />
               {email && !isEmailValid && (
                 <span className="error-message">
-                  이메일 형식에 맞춰 입력해 주십시오.
+                  ❌ 이메일 형식에 맞춰 입력해 주십시오.
                 </span>
               )}
               {email && isEmailValid && (
@@ -194,8 +208,8 @@ function SignUp() {
                   }`}
                 >
                   {isEmailAvailable
-                    ? "회원가입 가능한 이메일입니다."
-                    : "이미 존재하는 회원의 이메일입니다."}
+                    ? "✅ 회원가입 가능한 이메일입니다."
+                    : "❌ 이미 존재하는 회원의 이메일입니다."}
                 </span>
               )}
             </div>
@@ -214,8 +228,8 @@ function SignUp() {
                   className={`message ${isPasswordValid ? "success" : "error"}`}
                 >
                   {isPasswordValid
-                    ? "사용 가능한 비밀번호입니다."
-                    : "비밀번호는 8자리 이상 및 특수문자와 숫자를 포함해야 합니다."}
+                    ? "✅ 사용 가능한 비밀번호입니다."
+                    : "❌ 비밀번호는 8자리 이상 및 특수문자와 숫자를 포함해야 합니다."}
                 </span>
               )}
             </div>
@@ -233,8 +247,8 @@ function SignUp() {
                   className={`message ${isPasswordMatch ? "success" : "error"}`}
                 >
                   {isPasswordMatch
-                    ? "비밀번호가 일치합니다."
-                    : "비밀번호가 일치하지 않습니다."}
+                    ? "✅ 비밀번호가 일치합니다."
+                    : "❌ 비밀번호가 일치하지 않습니다."}
                 </span>
               )}
             </div>
@@ -255,6 +269,17 @@ function SignUp() {
                 onChange={handlePhoneNumberChange}
                 placeholder="010-1234-5678"
               />
+              {phoneNumber && (
+                <span
+                  className={`message ${
+                    isPhoneNumberAvailable ? "success" : "error"
+                  }`}
+                >
+                  {isPhoneNumberAvailable
+                    ? "✅ 사용 가능한 전화번호입니다."
+                    : "❌ 이미 존재하는 전화번호입니다."}
+                </span>
+              )}
             </div>
             <div>
               <label>현재 회사</label>

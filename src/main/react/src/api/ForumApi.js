@@ -19,6 +19,15 @@ const ForumApi = {
     }
   },
 
+  incrementViewCount: async (postId) => {
+    try {
+      // 서버에 해당 게시글 ID의 조회수를 증가시키는 요청을 보냄
+      await AxiosInstance.post(`/api/forums/posts/${postId}/increment-view`);
+    } catch (error) {
+      console.error("조회수 증가 중 오류 발생:", error); // 에러 발생 시 콘솔 출력
+    }
+  },
+
   /**
    * 특정 카테고리의 게시글 가져오기
    * @param {number} categoryId - 카테고리 ID
@@ -209,6 +218,52 @@ const ForumApi = {
   },
 
   /**
+   * 특정 댓글에 대한 답글 (인용) 추가
+   * @param {number} commentId - 부모 댓글 ID
+   * @param {Object} data - 답글 데이터
+   * @param {string} token - 사용자 액세스 토큰
+   * @returns {Promise<Object>} 서버 응답 데이터
+   */
+  replyToComment: async (commentId, data, token) => {
+    try {
+      const response = await AxiosInstance.post(
+        `/api/forums/comments/${commentId}/reply`,
+        data,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("답글 추가 중 오류 발생:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * 게시글(OP)에 대한 답글 (인용) 추가
+   * @param {number} postId - 게시글 ID
+   * @param {Object} data - 답글 데이터
+   * @param {string} token - 사용자 액세스 토큰
+   * @returns {Promise<Object>} 서버 응답 데이터
+   */
+  replyToPost: async (postId, data, token) => {
+    try {
+      const response = await AxiosInstance.post(
+        `/api/forums/comments/post/${postId}/reply`,
+        data,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("게시글 답글 추가 중 오류 발생:", error);
+      throw error;
+    }
+  },
+
+  /**
    * 댓글 수정
    * @param {number} commentId - 수정할 댓글 ID
    * @param {Object} data - 수정 요청 데이터 (새로운 댓글 내용 포함)
@@ -376,6 +431,46 @@ const ForumApi = {
     } catch (error) {
       console.error("신고 상태 확인 중 오류 발생:", error);
       throw error;
+    }
+  },
+
+  /**
+   * 포럼 게시글 복원 API 호출
+   * @param {number} postId - 복원할 게시글 ID
+   * @param {number} adminId - 관리자 ID
+   * @returns {Promise<Object>} 복원된 게시글 데이터 반환
+   */
+  restorePost: async (postId, adminId) => {
+    try {
+      const response = await AxiosInstance.post(
+        `/api/forums/posts/${postId}/restore`,
+        { adminId } // 관리자 ID를 요청 본문에 포함
+      );
+      console.log("API response for restored post:", response.data);
+      return response.data; // 복원된 게시글 데이터 반환
+    } catch (error) {
+      console.error("Error restoring post:", error.response?.data || error); // 에러 로그 출력
+      throw error; // 에러를 호출자에게 전달
+    }
+  },
+
+  /**
+   * 포럼 댓글 복원 API 호출
+   * @param {number} commentId - 복원할 댓글 ID
+   * @param {number} adminId - 관리자 ID
+   * @returns {Promise<Object>} 복원된 댓글 데이터 반환
+   */
+  restoreComment: async (commentId, adminId) => {
+    try {
+      const response = await AxiosInstance.post(
+        `/api/forums/comments/${commentId}/restore`,
+        { adminId } // 관리자 ID를 요청 본문에 포함
+      );
+      console.log("API response for restored comment:", response.data);
+      return response.data; // 복원된 댓글 데이터 반환
+    } catch (error) {
+      console.error("Error restoring comment:", error.response?.data || error); // 에러 로그 출력
+      throw error; // 에러를 호출자에게 전달
     }
   },
 };

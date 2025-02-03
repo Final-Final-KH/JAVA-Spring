@@ -1,6 +1,9 @@
 import styled from "styled-components";
+import { Link } from "react-router-dom";
 
-// Forum Layout
+/**
+ * Forum 레이아웃 컨테이너
+ */
 export const ForumContainer = styled.div`
   background-color: #f5f6f7;
   padding: 20px;
@@ -11,10 +14,13 @@ export const ForumContainer = styled.div`
 
   @media (max-width: 768px) {
     padding: 10px;
+    margin-top: 70px; /* 모바일 환경에서 헤더 높이 조정 */
   }
 `;
 
-// Header (optional for debugging purposes)
+/**
+ * (옵션) 헤더 (디버깅용) - 사용 중이면 그대로 두세요.
+ */
 export const ForumHeader = styled.div`
   background-color: #ffffff;
   padding: 15px 20px;
@@ -35,7 +41,9 @@ export const ForumHeader = styled.div`
   }
 `;
 
-// Categories Section
+/**
+ * Section: 각 블록(카테고리 목록 등)을 감싸는 섹션
+ */
 export const Section = styled.div`
   margin-top: 20px;
   background-color: #ffffff;
@@ -48,6 +56,9 @@ export const Section = styled.div`
   }
 `;
 
+/**
+ * (기존) 섹션 제목 - 이제는 가운데 정렬이 아닌, 아래 새 컴포넌트를 권장
+ */
 export const SectionTitle = styled.h2`
   font-size: 20px;
   font-weight: bold;
@@ -59,7 +70,9 @@ export const SectionTitle = styled.h2`
   }
 `;
 
-// Category Card
+/**
+ * ForumCategoryCard: 각 카테고리 하나의 박스
+ */
 export const ForumCategoryCard = styled.div`
   background-color: #ffffff;
   border: 1px solid #ddd;
@@ -109,5 +122,54 @@ export const CategoryMeta = styled.small`
 
   @media (max-width: 768px) {
     font-size: 11px;
+  }
+`;
+
+/**
+ * SectionHeaderRow:
+ *  - Flex 컨테이너. 가운데에 제목(가변 폭), 오른쪽에 버튼
+ */
+export const SectionHeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  /* justify-content: space-between;  -- 안 쓰고 아래처럼 수동 배치할 것 */
+`;
+
+/**
+ * ForumHeaderTitle:
+ *  - 가운데 정렬, flex: 1
+ *  - 기존 SectionTitle 대신 사용
+ */
+export const ForumHeaderTitle = styled.h2`
+  flex: 1; /* 남은 공간을 모두 차지 */
+  text-align: center; /* 텍스트 가운데 정렬 */
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+  margin: 0; /* 기본 h2 margin 제거 */
+
+  @media (max-width: 768px) {
+    font-size: 18px;
+  }
+`;
+
+/**
+ * 새 글 작성 버튼 (링크)
+ */
+export const CreateButtonLink = styled(Link)`
+  padding: 8px 12px;
+  background-color: #007bff;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 4px;
+
+  &:hover {
+    background-color: #0056b3;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 6px 10px;
   }
 `;

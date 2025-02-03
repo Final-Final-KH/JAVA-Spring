@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom"; // URL에서 postId를 추출
+import { useParams, useNavigate } from "react-router-dom"; // URL에서 postId 추출
 import { getUserInfo } from "../../axios/AxiosInstanse"; // 사용자 정보 가져오기
 import ForumApi from "../../api/ForumApi"; // API 호출
+import { ToastContainer, toast } from "react-toastify"; // Toastify
 import {
   PostDetailContainer,
   PostHeader,
@@ -18,7 +19,10 @@ import {
   AdminEditIndicator,
   DisabledEditButton,
   ReportCountText,
+  InlineBlockContainer,
+  ReplyQuoteGlobalStyle, // 전역 스타일 (blockquote, reply-quote 등)
 } from "../../styles/PostDetailStyles"; // 스타일 컴포넌트
+
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faEdit,
@@ -26,386 +30,669 @@ import {
   faReply,
   faDeleteLeft,
   faCircleExclamation,
+  faUndo,
+  faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
-import ReactTooltip from "react-tooltip";
+import ConfirmationModal from "./ConfirmationModal";
+import DOMPurify from "dompurify";
+
+// 🔽 Tiptap 에디터 관련
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Bold from "@tiptap/extension-bold";
+import Italic from "@tiptap/extension-italic";
+import Underline from "@tiptap/extension-underline";
+import Link from "@tiptap/extension-link";
+import TextStyle from "@tiptap/extension-text-style";
+import Blockquote from "@tiptap/extension-blockquote"; // 인용 노드
 
 const PostDetail = () => {
-  const { postId } = useParams(); // URL에서 postId 추출
-  const navigate = useNavigate(); // 페이지 이동을 위한 네비게이트 훅
-  const [post, setPost] = useState(null); // 게시글 데이터 상태
-  const [comments, setComments] = useState([]); // 댓글 데이터 상태
-  const [prevPost, setPrevPost] = useState(null); // 이전 게시글 상태를 저장
-  const [prevComments, setPrevComments] = useState([]); // 이전 댓글 상태를 저장
-  const [newComment, setNewComment] = useState(""); // 새 댓글 입력 상태
-  const [loading, setLoading] = useState(true); // 로딩 상태
-  const [memberId, setMemberId] = useState(null); // 로그인 사용자 ID
-  const [isAdmin, setIsAdmin] = useState(false); // 관리자 여부 상태
+  const { postId } = useParams();
+  const navigate = useNavigate();
+  // ─────────────────────────
+  // State
+  const [post, setPost] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+  const [prevPost, setPrevPost] = useState(null);
+  const [prevComments, setPrevComments] = useState([]);
+  const [replyingTo, setReplyingTo] = useState(null);
+  // └ 인용 대상(게시글/댓글)의 {id, authorName, content}
+
+  const [memberId, setMemberId] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingCommentId, setLoadingCommentId] = useState(null);
+
+  // 모달 관련
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalData, setModalData] = useState({
+    type: "",
+    id: null,
+    content: "",
+  });
 
   /**
-   * 사용자 정보와 권한을 가져오는 함수
+   * [추가된 useEffect]
+   *  a.jump-to-original 링크 클릭 시, #... 앵커로 스크롤 이동
+   *  만약 http:// 등 외부 링크면 새 탭에서 열기
+   */
+  useEffect(() => {
+    const handleAnchorClick = (e) => {
+      const target = e.target;
+      if (target.matches("a.jump-to-original")) {
+        e.preventDefault();
+        const href = target.getAttribute("href") || "";
+        if (href.startsWith("#")) {
+          const anchorId = href.slice(1); // "#comment-123" -> "comment-123"
+          const anchorEl = document.getElementById(anchorId);
+          if (anchorEl) {
+            anchorEl.scrollIntoView({ behavior: "smooth" });
+          }
+        } else {
+          // 만약 http://, https:// 이라면 새 탭
+          window.open(href, "_blank");
+        }
+      }
+    };
+
+    document.addEventListener("click", handleAnchorClick);
+    return () => {
+      document.removeEventListener("click", handleAnchorClick);
+    };
+  }, []);
+
+  /**
+   * 이미 인용된 <blockquote>를 제거 (중첩 인용 방지)
+   */
+  const stripNestedQuotes = (html = "") => {
+    return html.replace(/<blockquote[\s\S]*?<\/blockquote>/gi, "");
+  };
+
+  /**
+   * Tiptap 에디터 초기화
+   *  - openOnClick: false => 에디터 내부에서 링크 클릭 비활성(편집중)
+   */
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Bold,
+      Italic,
+      Underline,
+      Link.configure({ openOnClick: false }),
+      TextStyle,
+      Blockquote,
+    ],
+    content: "",
+    onUpdate: ({ editor }) => {
+      setNewComment(editor.getHTML());
+    },
+  });
+
+  /**
+   * 댓글 리스트를 날짜순으로 정렬 (오래된 것 먼저)
+   */
+  const sortComments = (arr) => {
+    return arr.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  };
+
+  /**
+   * 현재 로그인 사용자 정보 로딩 & 관리자 여부 확인
    */
   const fetchMemberData = async () => {
     try {
-      const userInfo = await getUserInfo(); // AxiosInstanse에서 사용자 정보 가져오기
+      const userInfo = await getUserInfo();
       if (userInfo && userInfo.memberId) {
-        setMemberId(userInfo.memberId); // 사용자 ID 설정
-        setIsAdmin(userInfo.role === "ADMIN"); // 관리자 여부 설정
+        setMemberId(userInfo.memberId);
+        setIsAdmin(userInfo.role === "ADMIN");
       } else {
-        alert("로그인이 필요합니다."); // 비로그인 사용자 처리
+        toast.error("로그인이 필요합니다.");
         navigate("/login");
       }
     } catch (error) {
-      console.error("사용자 정보를 가져오는 중 오류 발생:", error);
-      alert("사용자 정보를 확인할 수 없습니다.");
+      console.error("사용자 정보를 가져오는 중 오류:", error);
+      toast.error("사용자 정보를 확인할 수 없습니다.");
       navigate("/login");
     }
   };
 
+  /**
+   * postId 기반으로 게시글 & 댓글 데이터 불러오기
+   */
   useEffect(() => {
-    /**
-     * 게시글 및 댓글 데이터를 가져오는 함수
-     * - 서버에서 게시글 및 댓글 데이터를 가져옵니다.
-     * - 가져온 게시글 데이터에 '관리자 수정 여부' 플래그를 추가로 계산합니다.
-     */
     const fetchPostData = async () => {
       try {
-        await fetchMemberData(); // 사용자 정보 가져오기
+        await fetchMemberData();
+        const postData = await ForumApi.getPostById(postId);
+        const commentData = await ForumApi.getCommentsByPostId(postId);
 
-        const postData = await ForumApi.getPostById(postId); // 게시글 데이터 가져오기
-        const commentData = await ForumApi.getCommentsByPostId(postId); // 댓글 데이터 가져오기
-
-        // 관리자 수정 여부 플래그 계산 (백엔드 필드가 없는 경우 기본값 false 설정)
+        // 관리자 수정 여부 플래그
         const processedPost = {
           ...postData,
           editedByAdminTitle: postData.editedByTitle === "ADMIN",
           editedByAdminContent: postData.editedByContent === "ADMIN",
         };
 
-        console.log("Processed Post (With Admin Flags):", processedPost);
-        setPost(processedPost); // 게시글 상태 업데이트
-        setComments(commentData); // 댓글 상태 업데이트
-
-        console.log("Processed Post Data:", processedPost); // 디버깅용 로그
+        console.log("게시글 (관리자 수정 표시 포함):", processedPost);
+        setPost(processedPost);
+        setComments(sortComments(commentData));
       } catch (error) {
-        console.error("게시글 데이터를 가져오는 중 오류 발생:", error);
-        alert("게시글 데이터를 불러오는 중 오류가 발생했습니다."); // 오류 알림
+        console.error("게시글 로딩 중 오류:", error);
+        toast.error("게시글 데이터를 불러오는 중 오류가 발생했습니다.");
       } finally {
-        setLoading(false); // 로딩 상태 해제
+        setLoading(false);
       }
     };
 
-    fetchPostData(); // 함수 호출
-  }, [postId]); // postId가 변경될 때마다 실행
+    fetchPostData();
+  }, [postId]);
 
   /**
-   * 새 댓글 추가 처리
+   * 모달 열기
+   */
+  const openModal = (type, id, content = "") => {
+    setModalData({ type, id, content });
+    setIsModalOpen(true);
+  };
+
+  /**
+   * Link 추가용 (모달 열기)
+   */
+  const handleAddLink = () => {
+    openModal("addLink", null, "");
+  };
+
+  /**
+   * 모달 Confirm 시 처리
+   */
+  const handleModalConfirm = async (content) => {
+    const { type, id } = modalData;
+    try {
+      switch (type) {
+        case "deletePost":
+          {
+            const removedBy =
+              memberId === post.memberId ? post.authorName : "ADMIN";
+            await ForumApi.deletePost(id, memberId, removedBy);
+            toast.success("게시글이 삭제되었습니다.");
+            navigate("/forum");
+          }
+          break;
+
+        case "editPostTitle":
+          {
+            if (!content.trim()) return toast.warning("제목을 입력해 주세요.");
+            const updatedTitle = await ForumApi.updatePostTitle(
+              id,
+              { title: content },
+              memberId
+            );
+            setPost((prev) => ({
+              ...prev,
+              title: updatedTitle.title,
+              editedByAdminTitle: updatedTitle.editedByTitle === "ADMIN",
+            }));
+            toast.success("게시글 제목이 수정되었습니다.");
+          }
+          break;
+
+        case "editPostContent":
+          {
+            if (!content.trim()) return toast.warning("내용을 입력해 주세요.");
+            const updatedContent = await ForumApi.updatePostContent(
+              id,
+              { content },
+              memberId
+            );
+            setPost((prev) => ({
+              ...prev,
+              content: updatedContent.content,
+              editedByAdminContent: updatedContent.editedByContent === "ADMIN",
+            }));
+            toast.success("게시글 내용이 수정되었습니다.");
+          }
+          break;
+
+        case "editComment":
+          {
+            if (!content.trim())
+              return toast.warning("댓글 내용을 입력해 주세요.");
+            const updatedComment = await ForumApi.editComment(
+              id,
+              { newContent: content },
+              memberId
+            );
+            setComments((prevComments) =>
+              prevComments.map((comment) =>
+                comment.id === id
+                  ? {
+                      ...comment,
+                      ...updatedComment,
+                      reportCount: comment.reportCount, // 기존 reportCount 보전
+                    }
+                  : comment
+              )
+            );
+            toast.success("댓글이 성공적으로 수정되었습니다.");
+          }
+          break;
+
+        case "deleteComment":
+          {
+            await ForumApi.deleteComment(id, memberId);
+            setComments((prev) =>
+              prev.map((c) =>
+                c.id === id ? { ...c, content: "[Removed]", hidden: true } : c
+              )
+            );
+            toast.success("댓글이 삭제되었습니다.");
+          }
+          break;
+
+        case "restoreComment":
+          {
+            await ForumApi.restoreComment(id, memberId);
+            setComments((prev) =>
+              prev.map((c) =>
+                c.id === id
+                  ? {
+                      ...c,
+                      content: c.originalContent,
+                      hidden: false,
+                      reportCount: c.reportCount,
+                    }
+                  : c
+              )
+            );
+            toast.success("댓글이 복원되었습니다.");
+          }
+          break;
+
+        case "reportPost":
+          {
+            if (!content.trim())
+              return toast.warning("신고 사유를 입력해 주세요.");
+            const reportedPost = await ForumApi.reportPost(
+              id,
+              memberId,
+              content
+            );
+            setPost((prev) => ({
+              ...prev,
+              reportCount: reportedPost.reportCount,
+              hasReported: reportedPost.hasReported,
+            }));
+            toast.success("게시글이 신고되었습니다.");
+          }
+          break;
+
+        case "reportComment":
+          {
+            if (!content.trim())
+              return toast.warning("신고 사유를 입력해 주세요.");
+            const reportedComment = await ForumApi.reportComment(
+              id,
+              memberId,
+              content
+            );
+            setComments((prev) =>
+              prev.map((c) =>
+                c.id === id
+                  ? {
+                      ...c,
+                      reportCount: reportedComment.reportCount,
+                      hasReported: true,
+                    }
+                  : c
+              )
+            );
+            toast.success("댓글이 신고되었습니다.");
+          }
+          break;
+
+        case "restorePost":
+          {
+            if (!isAdmin) {
+              toast.error("권한이 없습니다. 관리자만 복원할 수 있습니다.");
+              return;
+            }
+            const restoredPost = await ForumApi.restorePost(id, memberId);
+            setPost((prev) => ({
+              ...prev,
+              ...restoredPost,
+              hidden: false,
+            }));
+            toast.success("게시글이 성공적으로 복원되었습니다.");
+          }
+          break;
+
+        case "addLink":
+          {
+            // '#' -> 내부 앵커, 아니면 http://, https://로 보정
+            if (content.trim()) {
+              let formattedUrl = content.trim();
+              if (!formattedUrl.startsWith("#")) {
+                if (
+                  !formattedUrl.startsWith("http://") &&
+                  !formattedUrl.startsWith("https://")
+                ) {
+                  formattedUrl = `https://${formattedUrl}`;
+                }
+              }
+              editor
+                .chain()
+                .focus()
+                .extendMarkRange("link")
+                .setLink({ href: formattedUrl })
+                .run();
+              toast.success("링크가 성공적으로 추가되었습니다.");
+            } else {
+              toast.warning("URL을 입력해주세요.");
+            }
+          }
+          break;
+
+        default:
+          toast.error("알 수 없는 작업입니다.");
+      }
+    } catch (error) {
+      console.error(`${type} 처리 중 오류:`, error);
+      toast.error("작업 처리 중 오류가 발생했습니다.");
+    } finally {
+      setIsModalOpen(false);
+    }
+  };
+
+  /**
+   * blockquote 태그 -> reply-quote 치환
+   * + "원본↑" 링크 삽입
+   */
+  function transformBlockquotesToReplyQuote(html, anchorId, type = "comment") {
+    // 1) class="reply-quote"
+    let replaced = html.replace(
+      /<blockquote([^>]*)>/gi,
+      `<blockquote class="reply-quote"$1>`
+    );
+
+    // 2) post => "#post-123", comment => "#comment-123"
+    const jumpTarget =
+      type === "post" ? `post-${anchorId}` : `comment-${anchorId}`;
+    const jumpLinkHtml = `<a class="jump-to-original" href="#${jumpTarget}" style="margin-left:8px; font-size:0.8rem; color:#444;">[원본↑]</a>`;
+
+    // 3) blockquote 첫 번째 <p>뒤에 jumpLinkHtml 삽입
+    replaced = replaced.replace(
+      /(<blockquote[^>]*>\s*<p[^>]*>[^<]+<\/p>)/gi,
+      `$1 ${jumpLinkHtml}`
+    );
+
+    return replaced;
+  }
+
+  /**
+   * 특정 게시글/댓글에 대한 인용(답글)
+   * - reply(인용) 상태 저장
+   * - Tiptap에 blockquote 노드 삽입
+   */
+  const handleReply = (target, type) => {
+    setReplyingTo((prev) => [
+      ...(prev || []),
+      {
+        type,
+        id: target.id,
+        authorName: target.authorName,
+        content: target.content,
+      },
+    ]);
+
+    // 1) 중첩 blockquote 제거
+    const cleaned = stripNestedQuotes(target.content);
+    // 2) HTML 태그 제거 -> 텍스트만 추출
+    const textOnly = cleaned.replace(/<[^>]*>/g, "");
+
+    // 3) 에디터에 blockquote 노드 삽입
+    editor
+      .chain()
+      .focus()
+      .insertContent([
+        {
+          type: "blockquote",
+          attrs: { class: "reply-quote" },
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: target.authorName,
+                  marks: [{ type: "bold" }],
+                },
+                {
+                  type: "text",
+                  text: `: ${textOnly} `,
+                },
+                {
+                  type: "text",
+                  text: "[원본↑]",
+                  marks: [
+                    {
+                      type: "link",
+                      attrs: {
+                        href: `#comment-${target.id}`,
+                        class: "jump-to-original",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        { type: "paragraph", content: [] },
+      ])
+      .run();
+
+    toast.info(`${target.authorName}님의 댓글을 인용합니다.`);
+  };
+
+  /**
+   * 답글(인용) 상태 초기화
+   */
+  const resetReplying = () => {
+    setReplyingTo([]);
+  };
+
+  /**
+   * 댓글 추가 처리
    */
   const handleAddComment = async () => {
-    if (!newComment.trim()) {
-      return alert("댓글을 입력해 주세요.");
+    const rawHTML = editor?.getHTML();
+    console.log("에디터 원본 HTML:", rawHTML);
+
+    if (!rawHTML || rawHTML.trim() === "" || rawHTML === "<p></p>") {
+      toast.warning("댓글이 비어있거나 잘못된 형식입니다.");
+      return;
     }
+
+    // DOMPurify로 XSS방지, #anchors 등 유지
+    const sanitized = DOMPurify.sanitize(rawHTML.trim(), {
+      ADD_TAGS: ["a"],
+      ADD_ATTR: ["href", "target", "rel"],
+      ALLOWED_URI_REGEXP: /^(?:#|https?:|mailto:|tel:|ftp)/,
+    });
+    console.log("1차 정화된 HTML:", sanitized);
+
+    // 혹시 완전 빈 <p>만 남았나 확인
+    if (
+      sanitized.includes("<p><p></p></p>") ||
+      sanitized.trim() === "<p></p>"
+    ) {
+      toast.warning("유효하지 않은 내용입니다. 다시 확인해주세요.");
+      return;
+    }
+
+    // 모든 <a> 링크를 검사
+    const linkRegex = /<a\s+href=["']([^"']*)["']/g;
+    const allMatches = sanitized.matchAll(linkRegex);
+    for (const match of allMatches) {
+      const href = match[1];
+      // 허용: '#' 시작, 'http://', 'https://'
+      if (
+        !href.startsWith("#") &&
+        !href.startsWith("http://") &&
+        !href.startsWith("https://")
+      ) {
+        toast.warning(
+          "URL은 http:// 또는 https:// 로 시작하거나, '#' 내부 앵커를 사용해야 합니다."
+        );
+        return;
+      }
+    }
+
+    // 인용(replyingTo)이 있다면 마지막 인용 대상 blockquote로 치환
+    let finalHTML = sanitized;
+    if (replyingTo && replyingTo.length > 0) {
+      const lastRef = replyingTo[replyingTo.length - 1];
+      finalHTML = transformBlockquotesToReplyQuote(
+        sanitized,
+        lastRef.id,
+        lastRef.type
+      );
+    }
+
+    console.log("최종 치환된 HTML:", finalHTML);
+
     try {
       const response = await ForumApi.addComment({
         postId: post.id,
         memberId,
-        content: newComment,
+        content: finalHTML,
+        parentCommentId: replyingTo?.parentCommentId || null,
+        opAuthorName: replyingTo?.authorName || null,
+        opContent: replyingTo?.content || null,
       });
-      setComments((prev) => [...prev, response]);
-      setNewComment(""); // 입력 초기화
-      alert("댓글이 성공적으로 추가되었습니다.");
+
+      console.log("서버가 반환한 response:", response);
+
+      const newComment = {
+        ...response,
+        reportCount: response.reportCount || 0,
+      };
+
+      // 댓글 목록 즉시 반영
+      setComments((prev) => {
+        const sorted = sortComments([...prev, newComment]);
+        console.log("새 댓글 목록:", sorted);
+        return sorted;
+      });
+
+      // 에디터/인용 상태 초기화
+      editor?.commands.clearContent();
+      resetReplying();
+      toast.success("댓글이 성공적으로 추가되었습니다.");
     } catch (error) {
-      console.error("댓글 추가 중 오류 발생:", error);
-      alert("댓글 추가에 실패했습니다.");
+      console.error("댓글 추가 중 오류:", error);
+      toast.error("댓글 추가에 실패했습니다.");
     }
   };
 
   /**
-   * 게시글 제목 수정 처리
-   */
-  const handleEditTitle = async () => {
-    const updatedTitle = prompt("Enter new post title:", post.title);
-    if (!updatedTitle) return;
-
-    try {
-      const updatedPost = await ForumApi.updatePostTitle(
-        post.id,
-        { title: updatedTitle },
-        memberId,
-        isAdmin
-      );
-
-      setPost((prevPost) => ({
-        ...prevPost,
-        title: updatedPost.title,
-        editedByAdminTitle: updatedPost.editedByTitle === "ADMIN",
-      }));
-
-      alert("Post title updated successfully.");
-    } catch (error) {
-      console.error("게시글 제목 수정 중 오류 발생:", error);
-      alert("게시글 제목 수정에 실패했습니다.");
-    }
-  };
-
-  /**
-   * 게시글 내용 수정 처리
-   * - 게시글 내용을 업데이트하고 상태를 동기화합니다.
-   * - 관리자는 수정 후 `editedByAdmin` 플래그를 활성화하고 잠금 상태를 유지합니다.
-   * - 작성자는 수정할 수 있지만 관리자에 의해 수정된 경우 수정이 비활성화됩니다.
-   */
-  const handleEditPost = async () => {
-    const updatedContent = prompt("Enter new post content:", post.content);
-    if (!updatedContent) return;
-
-    try {
-      const updatedPost = await ForumApi.updatePostContent(
-        post.id,
-        { content: updatedContent },
-        memberId,
-        isAdmin
-      );
-
-      setPost((prevPost) => ({
-        ...prevPost,
-        content: updatedPost.content,
-        editedByAdminContent: updatedPost.editedByContent === "ADMIN",
-      }));
-
-      alert("Post content updated successfully.");
-    } catch (error) {
-      console.error("게시글 내용 수정 중 오류 발생:", error);
-      alert("게시글 내용 수정에 실패했습니다.");
-    }
-  };
-
-  /**
-   * 댓글 수정 처리
-   */
-  const handleEditComment = async (commentId) => {
-    const updatedContent = prompt("새 댓글 내용을 입력하세요:");
-    if (!updatedContent) return;
-
-    try {
-      const updatedComment = await ForumApi.editComment(
-        commentId,
-        {
-          newContent: updatedContent,
-        },
-        memberId
-      );
-      setComments((prevComments) =>
-        prevComments.map((comment) =>
-          comment.id === commentId ? updatedComment : comment
-        )
-      );
-      alert("댓글이 성공적으로 수정되었습니다.");
-    } catch (error) {
-      console.error("댓글 수정 중 오류 발생:", error);
-      alert("댓글 수정에 실패했습니다.");
-    }
-  };
-
-  /**
-   * 게시글 삭제 처리
-   */
-  const handleDeletePost = async () => {
-    if (window.confirm("게시글을 삭제하시겠습니까?")) {
-      try {
-        const removedBy =
-          memberId === post.memberId ? post.authorName : "ADMIN";
-        await ForumApi.deletePost(post.id, memberId, removedBy);
-        alert("게시글이 삭제되었습니다.");
-        navigate("/forum");
-      } catch (error) {
-        console.error("게시글 삭제 중 오류 발생:", error);
-        alert("게시글 삭제에 실패했습니다.");
-      }
-    }
-  };
-
-  /**
-   * 댓글 삭제 처리 함수
-   * - 사용자에게 삭제 여부를 확인한 후 백엔드 API를 호출하여 댓글 삭제 요청을 보냄.
-   * - 삭제된 댓글은 `[Removed]` 상태로 업데이트되어 UI에 반영.
-   * - 관리자와 댓글 작성자만 댓글을 삭제할 수 있음.
-   * - 비로그인 상태에서는 로그인 페이지로 리다이렉트.
-   */
-  const handleDeleteComment = async (commentId) => {
-    if (window.confirm("댓글을 삭제하시겠습니까?")) {
-      try {
-        // 로그인된 사용자 정보가 없는 경우 가져오기
-        if (!memberId) {
-          await fetchMemberData(); // 사용자 정보 갱신
-        }
-        if (!memberId) return; // 로그인 실패 시 실행 중단
-
-        // 댓글 삭제 API 호출
-        await ForumApi.deleteComment(commentId, memberId);
-
-        // UI 업데이트: 삭제된 댓글을 `[Removed]` 상태로 표시
-        setComments((prevComments) =>
-          prevComments.map((comment) =>
-            comment.id === commentId
-              ? { ...comment, content: "[Removed]", hidden: true }
-              : comment
-          )
-        );
-
-        alert("댓글이 삭제되었습니다."); // 성공 메시지 출력
-      } catch (error) {
-        console.error("댓글 삭제 중 오류 발생:", error); // 오류 로그 출력
-        alert("댓글 삭제에 실패했습니다."); // 실패 메시지 출력
-      }
-    }
-  };
-
-  /**
-   * 게시글 좋아요 토글 처리 함수
-   * - 사용자가 게시글의 좋아요 상태를 토글할 수 있도록 처리.
-   * - 백엔드 API 호출을 통해 좋아요 상태를 업데이트한 후 UI에 반영.
-   * - 사용자가 로그인하지 않은 경우 로그인 페이지로 리다이렉트.
+   * 게시글 좋아요 처리
    */
   const handleLike = async () => {
     try {
-      // 로그인된 사용자 ID 및 역할 정보 가져오기
       if (!memberId) {
-        await fetchMemberData(); // 사용자 정보 갱신
+        await fetchMemberData();
       }
-      if (!memberId) return; // 로그인 실패 시 실행 중단
+      if (!memberId) return;
 
-      const updatedPost = await ForumApi.toggleLikePost(post.id, memberId); // 게시글 좋아요 상태 토글 API 호출
-
-      // 상태 업데이트: likesCount와 liked 상태를 업데이트
-      setPost((prevPost) => ({
-        ...prevPost,
-        likesCount: updatedPost.totalLikes, // 서버에서 반환된 좋아요 수
-        liked: updatedPost.liked, // 좋아요 상태
+      const updatedPost = await ForumApi.toggleLikePost(post.id, memberId);
+      setPost((prev) => ({
+        ...prev,
+        likesCount: updatedPost.totalLikes,
+        liked: updatedPost.liked,
       }));
 
-      console.log("Updated post after like toggle:", updatedPost); // 디버깅용 로그
+      toast.success("좋아요 상태가 변경되었습니다.");
     } catch (error) {
-      console.error("게시글 좋아요 처리 중 오류:", error); // 에러 로그 출력
-      alert("좋아요 처리에 실패했습니다."); // 사용자 알림
+      console.error("게시글 좋아요 오류:", error);
+      toast.error("좋아요 처리에 실패했습니다.");
     }
   };
 
   /**
-   * 댓글 좋아요 토글 처리 함수
-   * - 사용자가 댓글의 좋아요 상태를 토글할 수 있도록 처리.
-   * - 백엔드 API 호출을 통해 좋아요 상태를 업데이트한 후 UI에 반영.
-   * - 사용자가 로그인하지 않은 경우 로그인 페이지로 리다이렉트.
+   * 댓글 좋아요 토글 처리
    */
   const handleLikeComment = async (commentId) => {
     try {
-      // 로그인된 사용자 ID 및 역할 정보 가져오기
       if (!memberId) {
-        await fetchMemberData(); // 사용자 정보 갱신
+        await fetchMemberData();
       }
-      if (!memberId) return; // 로그인 실패 시 실행 중단
+      if (!memberId) return;
 
       const updatedComment = await ForumApi.toggleLikeComment(
         commentId,
         memberId
-      ); // 댓글 좋아요 상태 토글 API 호출
+      );
 
-      // 상태 업데이트: 특정 댓글의 likesCount와 liked 상태를 업데이트
       setComments((prevComments) =>
         prevComments.map((comment) =>
           comment.id === commentId
             ? {
                 ...comment,
-                likesCount: updatedComment.totalLikes, // 서버에서 반환된 좋아요 수
-                liked: updatedComment.liked, // 좋아요 상태
+                likesCount: updatedComment.totalLikes,
+                liked: updatedComment.liked,
               }
             : comment
         )
       );
 
-      console.log("Updated comment after like toggle:", updatedComment); // 디버깅용 로그
+      toast.success("댓글 좋아요 상태가 변경되었습니다.");
     } catch (error) {
-      console.error("댓글 좋아요 처리 중 오류:", error); // 에러 로그 출력
-      alert("댓글 좋아요 처리에 실패했습니다."); // 사용자 알림
+      console.error("댓글 좋아요 오류:", error);
+      toast.error("좋아요 처리에 실패했습니다.");
     }
   };
 
-  const handleReportPost = async (postId, reporterId) => {
-    console.log("Post ID and Reporter ID:", { postId, reporterId }); // Debugging log
-
-    const reason = prompt("게시글 신고 사유를 입력하세요:");
-    if (!reason) return;
-
-    try {
-      await ForumApi.reportPost(postId, reporterId, reason);
-      alert("게시글이 성공적으로 신고되었습니다.");
-    } catch (error) {
-      console.error("Error reporting post:", error);
-      alert(
-        error.response?.data?.message ||
-          "신고 중 오류가 발생했습니다. 다시 시도해주세요."
-      );
-    }
-  };
-
-  const handleReportComment = async (commentId, reporterId) => {
-    console.log("Comment ID and Reporter ID:", { commentId, reporterId }); // Debugging log
-    const reason = prompt("댓글 신고 사유를 입력하세요:");
-    if (!reason) return;
-
-    try {
-      await ForumApi.reportComment(commentId, reporterId, reason);
-      alert("댓글이 성공적으로 신고되었습니다.");
-    } catch (error) {
-      console.error("Error reporting comment:", error);
-      alert(
-        error.response?.data?.message ||
-          "신고 중 오류가 발생했습니다. 다시 시도해주세요."
-      );
-    }
-  };
-
+  // post 상태 변화 시 prevPost도 업데이트
   useEffect(() => {
     if (post) {
       setPrevPost(post);
     }
   }, [post]);
 
-  /**
-   * 댓글 데이터(comments)가 업데이트되면 상태를 동기화합니다.
-   * - 기존 댓글 데이터(prevComments)를 업데이트합니다.
-   * - 각 댓글의 '관리자 수정 여부' 플래그를 재계산하여 상태를 업데이트합니다.
-   */
+  // comments 상태 변화 시 prevComments도 업데이트
+  // + 관리자 수정 플래그 세팅
   useEffect(() => {
     if (
-      comments.length > 0 && // 댓글 데이터가 존재하고
-      JSON.stringify(prevComments) !== JSON.stringify(comments) // 새로운 댓글 데이터와 기존 데이터가 다른 경우
+      comments.length > 0 &&
+      JSON.stringify(prevComments) !== JSON.stringify(comments)
     ) {
-      setPrevComments(comments); // 이전 댓글 상태를 업데이트
-
-      // 각 댓글의 상태를 플래그와 함께 업데이트
+      setPrevComments(comments);
       setComments(
         comments.map((comment) => ({
           ...comment,
-          editedByAdmin: comment.editedBy === "ADMIN", // 관리자에 의한 수정 여부 플래그 설정
+          editedByAdmin: comment.editedBy === "ADMIN",
         }))
       );
     }
-  }, [comments, prevComments]); // comments 또는 prevComments 변경 시 실행
+  }, [comments, prevComments]);
 
   if (loading) return <div>로딩 중...</div>;
   if (!post) return <div>게시글을 찾을 수 없습니다.</div>;
 
   return (
     <PostDetailContainer>
-      {/* 게시글 제목 섹션 */}
+      {/* 전역 스타일 (blockquote, reply-quote 등) */}
+      <ReplyQuoteGlobalStyle />
+
+      {/* --- 게시글 제목 섹션 --- */}
       <PostTitle>
-        {/* 게시글이 숨김 상태일 경우 알림 표시 */}
         {post.hidden ? (
           <HiddenCommentNotice>
             NOTICE: 해당 게시글은 삭제되거나 숨김 처리되었습니다.
           </HiddenCommentNotice>
         ) : (
           <>
-            {/* 게시글 제목 및 관리자 수정 표시 */}
             <span>
               {post.title}
               {post.editedByAdminTitle && (
@@ -414,25 +701,30 @@ const PostDetail = () => {
                 </AdminEditIndicator>
               )}
             </span>
-
-            {/* 작성자가 수정 가능한 경우 */}
+            {/* 작성자/관리자 Title 수정 로직은 그대로 유지 */}
             {!post.editedByAdminTitle &&
               memberId === post.memberId &&
               !isAdmin && (
-                <EditButton onClick={handleEditTitle} aria-label="Edit Title">
+                <EditButton
+                  onClick={() =>
+                    openModal("editPostTitle", post.id, post.title)
+                  }
+                  aria-label="Edit Title"
+                >
                   <FontAwesomeIcon icon={faEdit} />
                 </EditButton>
               )}
-
-            {/* 관리자가 수정 가능한 경우 (관리자가 OP인 경우 중복 방지) */}
             {isAdmin &&
               (!post.editedByAdminTitle || memberId !== post.memberId) && (
-                <EditButton onClick={handleEditTitle} aria-label="Edit Title">
+                <EditButton
+                  onClick={() =>
+                    openModal("editPostTitle", post.id, post.title)
+                  }
+                  aria-label="Edit Title"
+                >
                   <FontAwesomeIcon icon={faEdit} />
                 </EditButton>
               )}
-
-            {/* 관리자가 수정한 경우 작성자 버튼 비활성화 */}
             {post.editedByAdminTitle &&
               memberId === post.memberId &&
               !isAdmin && (
@@ -444,9 +736,8 @@ const PostDetail = () => {
         )}
       </PostTitle>
 
-      {/* 게시글 헤더 섹션 */}
+      {/* --- 게시글 헤더 (작성자, 날짜, 본문) --- */}
       <PostHeader>
-        {/* 작성자 및 생성일 정보 */}
         <AuthorInfo>
           <p>
             <strong>게시자:</strong> {post.authorName}
@@ -456,30 +747,31 @@ const PostDetail = () => {
           </p>
         </AuthorInfo>
 
-        {/* 게시글 내용 섹션 */}
         <ContentInfo>
-          {/* 게시글이 숨김 처리된 경우 */}
           {post.hidden ? (
             <HiddenCommentNotice>
               NOTICE: 해당 게시글은 삭제되거나 숨김 처리되었습니다.
             </HiddenCommentNotice>
           ) : (
-            <p>
-              {post.content}
+            <InlineBlockContainer>
+              <span
+                dangerouslySetInnerHTML={{
+                  __html: post.content,
+                }}
+              />
               {post.editedByAdminContent && (
                 <AdminEditIndicator>
                   [관리자에 의해 내용 수정됨]
                 </AdminEditIndicator>
               )}
-            </p>
+            </InlineBlockContainer>
           )}
 
-          {/* 액션 버튼 섹션 */}
           <ActionButtons>
             <div className="left">
-              {/* 게시글 신고 버튼 */}
               <report-button
-                onClick={() => handleReportPost(post.id, memberId)}
+                onClick={() => openModal("reportPost", post.id, post.content)}
+                disabled={post.hasReported}
               >
                 <FontAwesomeIcon icon={faCircleExclamation} />
                 {isAdmin && post.reportCount !== undefined && (
@@ -489,176 +781,223 @@ const PostDetail = () => {
                 )}
               </report-button>
 
-              {/* 작성자 전용 버튼 (관리자 수정 시 비활성화) */}
+              {/* 작성자 전용 (게시글 삭제/수정) */}
               {memberId === post.memberId && !isAdmin && (
                 <>
                   {!post.editedByAdminContent ? (
                     <>
-                      <report-button onClick={handleDeletePost}>
-                        <FontAwesomeIcon icon={faDeleteLeft}></FontAwesomeIcon>
+                      <report-button
+                        onClick={() => openModal("deletePost", post.id)}
+                      >
+                        <FontAwesomeIcon icon={faDeleteLeft} />
                       </report-button>
-                      <report-button onClick={handleEditPost}>
-                        <FontAwesomeIcon icon={faEdit}></FontAwesomeIcon>
+                      <report-button
+                        onClick={() =>
+                          openModal("editPostContent", post.id, post.content)
+                        }
+                      >
+                        <FontAwesomeIcon icon={faEdit} />
                       </report-button>
                     </>
                   ) : (
                     <>
                       <disabled-button>
-                        <FontAwesomeIcon icon={faDeleteLeft}></FontAwesomeIcon>
+                        <FontAwesomeIcon icon={faDeleteLeft} />
                       </disabled-button>
                       <disabled-button>
-                        <FontAwesomeIcon icon={faEdit}></FontAwesomeIcon>
+                        <FontAwesomeIcon icon={faEdit} />
                       </disabled-button>
                     </>
                   )}
                 </>
               )}
 
-              {/* 관리자 전용 버튼 */}
+              {/* 관리자 전용 (게시글 삭제/수정) */}
               {isAdmin && (
                 <>
-                  <admin-button onClick={handleDeletePost}>
-                    <FontAwesomeIcon icon={faDeleteLeft}></FontAwesomeIcon>
+                  <admin-button
+                    onClick={() => openModal("deletePost", post.id)}
+                  >
+                    <FontAwesomeIcon icon={faDeleteLeft} />
                   </admin-button>
-                  <admin-button onClick={handleEditPost}>
-                    <FontAwesomeIcon icon={faEdit}></FontAwesomeIcon>
+                  <admin-button
+                    onClick={() =>
+                      openModal("editPostContent", post.id, post.content)
+                    }
+                  >
+                    <FontAwesomeIcon icon={faEdit} />
                   </admin-button>
                 </>
               )}
             </div>
 
             <div className="right">
-              {/* 좋아요 버튼 */}
               <button onClick={handleLike}>
-                <FontAwesomeIcon icon={faThumbsUp}></FontAwesomeIcon>{" "}
-                {post.likesCount} {/* 좋아요 수 */}
+                <FontAwesomeIcon icon={faThumbsUp} /> {post.likesCount}
               </button>
-              {/* 답글 버튼 */}
-              <button>
-                <FontAwesomeIcon icon={faReply}></FontAwesomeIcon>
+              <button onClick={() => handleReply(post, "post")}>
+                <FontAwesomeIcon icon={faReply} />
               </button>
+              {isAdmin && post.hidden && (
+                <button
+                  onClick={() => openModal("restorePost", post.id)}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <FontAwesomeIcon icon={faSpinner} spin />
+                  ) : (
+                    <>
+                      <FontAwesomeIcon icon={faUndo} /> 복원
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </ActionButtons>
         </ContentInfo>
       </PostHeader>
 
-      {/* 댓글 섹션 */}
+      {/* --- 댓글 섹션 --- */}
       <CommentSection>
         <h2>댓글</h2>
         {comments.map((comment) => (
-          <CommentCard key={comment.id}>
-            {/* 댓글 작성자 및 작성일 정보 */}
+          <CommentCard key={comment.id} id={`comment-${comment.id}`}>
             <AuthorInfo>
               <p>{comment.authorName}</p>
               <p>{new Date(comment.createdAt).toLocaleString()}</p>
             </AuthorInfo>
 
-            {/* 댓글 내용 섹션 */}
             <CommentContent>
               {comment.hidden ? (
                 <HiddenCommentNotice>
                   NOTICE: 해당 댓글은 삭제되거나 숨김 처리되었습니다.
                 </HiddenCommentNotice>
               ) : (
-                <p>
-                  {comment.content}
+                <InlineBlockContainer>
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html: comment.content,
+                    }}
+                  />
                   {comment.editedByAdmin && (
-                    <AdminEditIndicator>[관리자 수정]</AdminEditIndicator>
+                    <AdminEditIndicator>
+                      [관리자에 의해 댓글 내용 수정]
+                    </AdminEditIndicator>
                   )}
-                </p>
+                </InlineBlockContainer>
               )}
 
-              {/* 댓글 액션 버튼 */}
               <ActionButtons>
                 <div className="left">
-                  {/* 댓글 신고 버튼 */}
                   <report-button
-                    onClick={() => handleReportComment(comment.id, memberId)}
+                    onClick={() => openModal("reportComment", comment.id, "")}
+                    disabled={comment.hasReported}
                   >
                     <FontAwesomeIcon icon={faCircleExclamation} />
-                    {isAdmin && comment.reportCount !== undefined && (
-                      <ReportCountText>
-                        신고 누적 수: {comment.reportCount}
-                      </ReportCountText>
-                    )}
+                    {isAdmin &&
+                      comment.reportCount !== null &&
+                      comment.reportCount >= 0 && (
+                        <ReportCountText>
+                          신고 누적 수: {comment.reportCount}
+                        </ReportCountText>
+                      )}
                   </report-button>
 
-                  {/* 댓글 작성자 전용 삭제/수정 버튼 */}
+                  {/* 댓글 작성자 전용 (삭제/수정) */}
                   {memberId === comment.memberId && !isAdmin && (
                     <>
                       {!comment.editedByAdmin ? (
                         <>
                           <report-button
-                            onClick={() => handleDeleteComment(comment.id)}
+                            onClick={() =>
+                              openModal("deleteComment", comment.id)
+                            }
                           >
-                            <FontAwesomeIcon
-                              icon={faDeleteLeft}
-                            ></FontAwesomeIcon>
+                            <FontAwesomeIcon icon={faDeleteLeft} />
                           </report-button>
                           <report-button
-                            onClick={() => handleEditComment(comment.id)}
+                            onClick={() =>
+                              openModal(
+                                "editComment",
+                                comment.id,
+                                comment.content
+                              )
+                            }
                           >
-                            <FontAwesomeIcon icon={faEdit}></FontAwesomeIcon>
+                            <FontAwesomeIcon icon={faEdit} />
                           </report-button>
                         </>
                       ) : (
                         <>
                           <disabled-button>
-                            <FontAwesomeIcon
-                              icon={faDeleteLeft}
-                            ></FontAwesomeIcon>
+                            <FontAwesomeIcon icon={faDeleteLeft} />
                           </disabled-button>
                           <disabled-button>
-                            <FontAwesomeIcon icon={faEdit}></FontAwesomeIcon>
+                            <FontAwesomeIcon icon={faEdit} />
                           </disabled-button>
                         </>
                       )}
                     </>
                   )}
 
-                  {/* 관리자 전용 삭제/수정 버튼 */}
+                  {/* 관리자 전용 (삭제/수정) => 작성자와 ID가 다를 때 */}
                   {isAdmin && memberId !== comment.memberId && (
                     <>
                       <admin-button
-                        onClick={() => handleDeleteComment(comment.id)}
+                        onClick={() => openModal("deleteComment", comment.id)}
                       >
-                        <FontAwesomeIcon icon={faDeleteLeft}></FontAwesomeIcon>
+                        <FontAwesomeIcon icon={faDeleteLeft} />
                       </admin-button>
                       <admin-button
-                        onClick={() => handleEditComment(comment.id)}
+                        onClick={() =>
+                          openModal("editComment", comment.id, comment.content)
+                        }
                       >
-                        <FontAwesomeIcon icon={faEdit}></FontAwesomeIcon>
+                        <FontAwesomeIcon icon={faEdit} />
                       </admin-button>
                     </>
                   )}
 
-                  {/* 관리자와 작성자가 동일한 경우 관리자 버튼만 표시 */}
+                  {/* 관리자 + 작성자 동일 시, 관리자 버튼만 표시 */}
                   {isAdmin && memberId === comment.memberId && (
                     <>
                       <admin-button
-                        onClick={() => handleDeleteComment(comment.id)}
+                        onClick={() => openModal("deleteComment", comment.id)}
                       >
-                        <FontAwesomeIcon icon={faDeleteLeft}></FontAwesomeIcon>
+                        <FontAwesomeIcon icon={faDeleteLeft} />
                       </admin-button>
                       <admin-button
-                        onClick={() => handleEditComment(comment.id)}
+                        onClick={() =>
+                          openModal("editComment", comment.id, comment.content)
+                        }
                       >
-                        <FontAwesomeIcon icon={faEdit}></FontAwesomeIcon>
+                        <FontAwesomeIcon icon={faEdit} />
                       </admin-button>
                     </>
                   )}
                 </div>
 
                 <div className="right">
-                  {/* 댓글 좋아요 버튼 */}
                   <button onClick={() => handleLikeComment(comment.id)}>
-                    <FontAwesomeIcon icon={faThumbsUp}></FontAwesomeIcon>{" "}
-                    {comment.likesCount} {/* 좋아요 수 */}
+                    <FontAwesomeIcon icon={faThumbsUp} /> {comment.likesCount}
                   </button>
-                  {/* 답글 버튼 */}
-                  <button>
-                    <FontAwesomeIcon icon={faReply}></FontAwesomeIcon>
+                  <button onClick={() => handleReply(comment, "comment")}>
+                    <FontAwesomeIcon icon={faReply} />
                   </button>
+                  {isAdmin && comment.hidden && (
+                    <button
+                      onClick={() => openModal("restoreComment", comment.id)}
+                      disabled={loadingCommentId === comment.id}
+                    >
+                      {loadingCommentId === comment.id ? (
+                        <FontAwesomeIcon icon={faSpinner} spin />
+                      ) : (
+                        <>
+                          <FontAwesomeIcon icon={faUndo} /> 복원
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </ActionButtons>
             </CommentContent>
@@ -666,15 +1005,54 @@ const PostDetail = () => {
         ))}
       </CommentSection>
 
-      {/* 댓글 입력 섹션 */}
+      <hr />
+
+      {/* --- 댓글 입력 (Tiptap 에디터) 섹션 --- */}
       <CommentInputSection>
-        <textarea
-          placeholder="댓글을 작성하세요..."
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-        />
-        <button onClick={handleAddComment}>Add Comment</button>
+        <div className="toolbar">
+          <button
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            className={editor.isActive("bold") ? "active" : ""}
+          >
+            <strong>B</strong>
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            className={editor.isActive("italic") ? "active" : ""}
+          >
+            <em>I</em>
+          </button>
+          <button
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            className={editor.isActive("underline") ? "active" : ""}
+          >
+            <u>U</u>
+          </button>
+          <button onClick={handleAddLink}>Link</button>
+          <button
+            onClick={() => editor.chain().focus().unsetLink().run()}
+            disabled={!editor.isActive("link")}
+          >
+            Remove Link
+          </button>
+        </div>
+
+        {/* Tiptap Editor 컨테이너 */}
+        <EditorContent editor={editor} className="editor" />
+
+        {/* 댓글 추가 버튼 */}
+        <button onClick={handleAddComment}>댓글 추가</button>
       </CommentInputSection>
+
+      {/* 모달 컴포넌트 */}
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        type={modalData.type}
+        content={modalData.content}
+        message={"진행 하시겠습니까?"}
+        onConfirm={handleModalConfirm}
+        onCancel={() => setIsModalOpen(false)}
+      />
     </PostDetailContainer>
   );
 };

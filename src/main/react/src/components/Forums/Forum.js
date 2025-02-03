@@ -1,67 +1,78 @@
 import React, { useState, useEffect } from "react";
-import ForumApi from "../../api/ForumApi"; // ForumApi 모듈 가져오기
+import ForumApi from "../../api/ForumApi";
 import { Link } from "react-router-dom";
+/* 기존 import + 새 styled 컴포넌트 */
 import {
   ForumContainer,
   Section,
-  SectionTitle,
+  // SectionTitle,  // (이제 사용 안 함)
   ForumCategoryCard,
   CategoryTitle,
   CategoryDescription,
   CategoryMeta,
-} from "../../styles/ForumStyles"; // 스타일 컴포넌트 가져오기
+  SectionHeaderRow,
+  ForumHeaderTitle,
+  CreateButtonLink,
+} from "../../styles/ForumStyles";
 
+/**
+ * 포럼 메인 페이지
+ *  - 카테고리 목록 표시
+ *  - 상단에 "포럼 카테고리" 가운데, "새 글 작성" 버튼 (오른쪽)
+ */
 const Forum = () => {
   useEffect(() => {
-    // 페이지 로드 시 body의 배경 색상을 설정
     document.body.style.backgroundColor = "#f5f6f7";
-  });
-  const [categories, setCategories] = useState([]); // 포럼 카테고리 상태
-  const [loading, setLoading] = useState(true); // 로딩 상태 관리
+  }, []);
+
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 모든 카테고리 데이터 요청
         const categoryData = await ForumApi.fetchCategories();
-        console.log("Fetched Categories:", categoryData); // 디버그 로그 출력
-        setCategories(categoryData); // 카테고리 상태 업데이트
+        console.log("Fetched Categories:", categoryData);
+        setCategories(categoryData);
       } catch (error) {
-        console.error("데이터를 가져오는데 실패했습니다:", error); // 에러 로그 출력
+        console.error("데이터를 가져오는데 실패했습니다:", error);
       } finally {
-        setLoading(false); // 로딩 상태 해제
+        setLoading(false);
       }
     };
-
-    fetchData(); // 데이터 요청 실행
+    fetchData();
   }, []);
 
-  if (loading) return <div>Loading categories...</div>; // 로딩 중일 경우 메시지 표시
+  if (loading) return <div>Loading categories...</div>;
 
   return (
     <ForumContainer>
       <Section>
-        <SectionTitle>포럼 카테고리</SectionTitle> {/* 섹션 제목 */}
+        {/* Header row: 가운데 제목 + 오른쪽 버튼 */}
+        <SectionHeaderRow>
+          <ForumHeaderTitle>포럼 카테고리</ForumHeaderTitle>
+          <CreateButtonLink to="/forum/create-post">
+            새 글 작성
+          </CreateButtonLink>
+        </SectionHeaderRow>
+
+        {/* 카테고리 목록 */}
         <div className="category-grid">
           {categories.map((category) => (
             <ForumCategoryCard key={category.id}>
-              {/* 카테고리 클릭 시 해당 카테고리 페이지로 이동 */}
               <Link
                 to={`/forum/category/${category.id}`}
-                state={{ categoryName: category.title }} // Pass category title as state
+                state={{ categoryName: category.title }}
                 style={{ textDecoration: "none", color: "inherit" }}
               >
-                <CategoryTitle>{category.title}</CategoryTitle>{" "}
-                {/* 카테고리 제목 */}
+                <CategoryTitle>{category.title}</CategoryTitle>
                 <CategoryDescription>
                   {category.description}
-                </CategoryDescription>{" "}
-                {/* 카테고리 설명 */}
+                </CategoryDescription>
                 <CategoryMeta>
-                  {/* 카테고리 포스트 개수 표시 */}
-                  {category.posts?.length > 0
-                    ? `${category.posts.length} posts available`
-                    : "No posts yet"}
+                  {category.postCount > 0
+                    ? `${category.postCount} 개의 게시글이 존재`
+                    : "게시글이 아직 없습니다"}
                 </CategoryMeta>
               </Link>
             </ForumCategoryCard>

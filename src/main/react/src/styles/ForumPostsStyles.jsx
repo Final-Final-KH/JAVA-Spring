@@ -1,13 +1,12 @@
 import styled from "styled-components";
-
 import { Link } from "react-router-dom";
 
 // Link 컴포넌트를 위한 스타일링
 export const StyledLink = styled(Link)`
-  text-decoration: none; /* 기본 텍스트 밑줄 제거 */
-  color: inherit; /* 부모 색상 유지 */
+  text-decoration: none;
+  color: inherit;
   &:hover {
-    text-decoration: none; /* hover 시에도 밑줄 제거 */
+    text-decoration: none;
   }
 `;
 
@@ -79,9 +78,8 @@ export const PostTitle = styled.h3`
   font-weight: bold;
   color: #007bff;
   margin-bottom: 10px;
-  text-decoration: none; /* Remove underline */
   &:hover {
-    text-decoration: underline; /* Optional hover effect */
+    text-decoration: underline;
   }
   @media (max-width: 768px) {
     font-size: 16px;
@@ -129,36 +127,33 @@ export const PostStat = styled.p`
   }
 `;
 
-export const BackButton = styled.button`
-  background-color: #007bff;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  padding: 10px 20px;
-  margin-bottom: 20px;
-  cursor: pointer;
-  font-size: 14px;
+/* ✅ 최신 댓글 스타일 추가 */
+export const LatestCommentContainer = styled.div`
+  font-size: 12px;
+  color: #666;
+  text-align: right;
+  margin-top: 5px;
 
-  &:hover {
-    background-color: #0056b3;
+  .comment-author {
+    font-weight: bold;
+    color: #333;
+  }
+
+  .comment-date {
+    font-style: italic;
+    color: #888;
+  }
+
+  .comment-preview {
+    color: #444;
+  }
+
+  .no-comment {
+    color: #aaa;
   }
 
   @media (max-width: 768px) {
-    font-size: 12px;
-    padding: 8px 16px;
-  }
-`;
-
-export const ViewLink = styled.a`
-  font-size: 14px;
-  color: #007bff;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-
-  @media (max-width: 768px) {
-    font-size: 12px;
+    font-size: 10px;
+    text-align: left;
   }
 `;
