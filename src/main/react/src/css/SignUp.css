@@ -1,0 +1,173 @@
+.signup-container {
+  margin-top: 65px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: #f5f5f5;
+  padding: 20px;
+}
+
+.signup-box {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  width: 100%;
+}
+
+.signup-box h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.signup-box form div {
+  margin-bottom: 15px;
+}
+
+.signup-box label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.signup-box input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.signup-box .error-message {
+  color: red;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.signup-box button[type="submit"] {
+  width: 100%;
+  padding: 10px;
+  background-color: #333;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.signup-box button[type="submit"]:disabled {
+  background-color: #999;
+  cursor: not-allowed;
+}
+
+.signup-box .modal-button {
+  background: none;
+  border: none;
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.signup-box .terms-checkbox {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #ddd; /* 얇은 회색선 */
+  padding: 10px;
+  border-radius: 4px;
+  margin-top: 10px;
+}
+
+.signup-box .terms-checkbox button {
+  background: none;
+  border: none;
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 14px;
+  margin-right: 20px; /* 오른쪽 버튼과의 간격 */
+}
+
+.signup-box .terms-checkbox label {
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* 오른쪽 정렬 */
+}
+
+.signup-box .terms-checkbox label input {
+  margin-left: 8px; /* 체크박스와 텍스트 사이 간격 */
+}
+
+.message {
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.success {
+  color: green;
+}
+
+.error {
+  color: red;
+}
+
+.terms-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+
+.message.success {
+  color: green;
+}
+
+.message.error {
+  color: red;
+}
+
+.signup-box .email-verification {
+  margin-top: 15px;
+}
+
+.signup-box .email-verification button {
+  width: 100%;
+  padding: 10px;
+  background-color: #333;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.signup-box .email-verification button:disabled {
+  background-color: #999;
+  cursor: not-allowed;
+}
+
+.signup-box .email-verification button:hover:not(:disabled) {
+  background-color: #555;
+}
+
+.signup-box .email-verification input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.signup-box .email-verification .timer {
+  font-size: 14px;
+  color: #333;
+  margin-top: 10px;
+}
+
+.signup-box .email-verification .timer span {
+  font-size: 12px;
+  color: #999;
+}

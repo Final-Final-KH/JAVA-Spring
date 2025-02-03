@@ -1,0 +1,27 @@
+.terms-container {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+}
+
+.terms-content {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.terms-scroll-box {
+  border: 1px solid #ddd;
+  padding: 15px;
+  margin-top: 20px;
+  font-size: 16px;
+  max-height: 300px; /* 원하는 높이로 설정 */
+  max-width: 600px;
+  overflow-y: auto; /* 스크롤 가능 */
+}
+
+.terms-scroll-box p {
+  margin-bottom: 10px;
+}
+
+#terms-checkbox {
+  margin-right: 10px;
+}

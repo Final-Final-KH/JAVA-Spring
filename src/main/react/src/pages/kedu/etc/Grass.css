@@ -1,0 +1,44 @@
+/* Grass.css */
+
+.grass-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.grass-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.grass-header-day {
+  width: 40px;
+  text-align: center;
+}
+
+.grass-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.grass-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.grass-cell {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.grass-cell:hover {
+  opacity: 0.7;
+}
