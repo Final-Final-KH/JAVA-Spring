@@ -1,0 +1,6 @@
+.content {
+  position: absolute; /* 부모 요소를 기준으로 절대 위치 */
+  top: 80px; /* 상단에서 74px 아래 */
+  left: 0;
+  right: 0; /* 왼쪽과 오른쪽 끝을 맞추고 싶다면 */
+}

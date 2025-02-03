@@ -1,0 +1,30 @@
+{
+  "files": {
+    "main.css": "/static/css/main.73fa84bb.css",
+    "main.js": "/static/js/main.08947b51.js",
+    "static/media/JobPost003.png": "/static/media/JobPost003.11843f88487c17131e1b.png",
+    "static/media/JobPost006.png": "/static/media/JobPost006.d00bec914b28ab84171f.png",
+    "static/media/JobPost007.png": "/static/media/JobPost007.51c26efcac711455723e.png",
+    "static/media/JobPost005.png": "/static/media/JobPost005.33f6f75878c10e2b54b7.png",
+    "static/media/JobPost002.png": "/static/media/JobPost002.1a9c267d3a79d789570a.png",
+    "static/media/JobPost008.png": "/static/media/JobPost008.bc0b2a600e0386da8019.png",
+    "static/media/JobPost004.png": "/static/media/JobPost004.9bf902928e050b2dab24.png",
+    "static/media/JobPost011.png": "/static/media/JobPost011.73bbabdbd5a6aadfb155.png",
+    "static/media/JobPost010.png": "/static/media/JobPost010.1e3a5f14f3054fc616bb.png",
+    "static/media/JobPost009.png": "/static/media/JobPost009.a9ce2e30db53f020f92e.png",
+    "static/media/EduPicture.webp": "/static/media/EduPicture.8fca013282ff87813c1c.webp",
+    "static/media/JobPost001.png": "/static/media/JobPost001.daa92c0f2a992397cbfe.png",
+    "static/media/JobPost012.png": "/static/media/JobPost012.0907472dc143e614baeb.png",
+    "static/media/RefreshButton.png": "/static/media/RefreshButton.aace2b5d9486fe411e90.png",
+    "static/media/DeveloperMark.jpg": "/static/media/DeveloperMark.fe66cb4a6cf49e7508a8.jpg",
+    "static/media/PictureButton.png": "/static/media/PictureButton.5ddd75740f03a77a82d0.png",
+    "static/media/EditButton.webp": "/static/media/EditButton.15fe14e8dbd5e3713e1e.webp",
+    "index.html": "/index.html",
+    "main.73fa84bb.css.map": "/static/css/main.73fa84bb.css.map",
+    "main.08947b51.js.map": "/static/js/main.08947b51.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.73fa84bb.css",
+    "static/js/main.08947b51.js"
+  ]
+}

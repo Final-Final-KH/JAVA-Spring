@@ -1,0 +1,54 @@
+.modal {
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 70%;
+  height: 70%;
+  background: rgba(0, 0, 0, 0.5); /* 반투명 배경 */
+  z-index: 1000; /* 가장 위에 표시 */
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-open {
+  display: flex; /* 모달이 열릴 때 flex로 배치 */
+  align-items: center;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  position: relative;
+}
+
+.terms-scroll-box {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.agree-button,
+.cancel-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  background-color: #4caf50; /* 기본 버튼 색 */
+  color: white;
+}
+
+.cancel-button {
+  background-color: #f44336; /* 취소 버튼 색 */
+}
