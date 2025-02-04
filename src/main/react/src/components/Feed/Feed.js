@@ -71,7 +71,7 @@ const updateCommentRecursively = (comments, commentId, updatedData) => {
       return {
         ...comment,
         ...updatedData,
-        // 만약 updatedData의 값이 falsy하면 기존 값을 유지
+        // 만약 updatedData에서 memberName, currentCompany, profilePictureUrl이 falsy하면 기존 값을 유지
         memberName: updatedData.memberName || comment.memberName,
         currentCompany: updatedData.currentCompany || comment.currentCompany,
         profilePictureUrl:
@@ -95,12 +95,11 @@ const updateCommentRecursively = (comments, commentId, updatedData) => {
 
 /**
  * Feed 데이터 병합 헬퍼 함수
+ * - API로부터 받은 updatedFeed에 누락된 author 정보나 profilePictureUrl, originalPoster 정보를 기존 feed에서 유지합니다.
  *
- * API로부터 받은 새로운 피드 데이터(newFeed)와 기존 피드(oldFeed)를 병합합니다.
- *
- * @param {object} oldFeed - 기존 피드 객체
- * @param {object} newFeed - API로부터 받은 업데이트된 피드 객체
- * @returns {object} - 병합된 피드 객체
+ * @param {object} oldFeed - 기존 feed 객체
+ * @param {object} newFeed - API로부터 받은 업데이트된 feed 객체
+ * @returns {object} - 병합된 feed 객체
  */
 const mergeFeedData = (oldFeed, newFeed) => {
   return {
@@ -289,12 +288,9 @@ const renderReplies = (
 };
 
 /**
- * 📌 Feed 컴포넌트
- *
- * 이 컴포넌트는 현재 로그인한 회원의 정보를 기반으로 피드를 불러오며,
- * 무한 스크롤, 피드 생성, 좋아요, 댓글 등의 인터랙션을 처리합니다.
- *
- * 주의: 피드와 친구 추천 API 호출은 유효한 memberId가 있을 때만 실행됩니다.
+ * 📌 피드 컴포넌트
+ * - 서버에서 받은 최신 상태를 반영하여 UI를 업데이트합니다.
+ * - 좋아요/취소, 댓글 추가, 리포스트, 피드/댓글 수정 후 UI를 갱신합니다.
  */
 function Feed() {
   useEffect(() => {
@@ -359,30 +355,14 @@ function Feed() {
     fetchMemberData();
   }, []);
 
-  // ─────────────────────────
-  // useEffect: memberId가 설정되면 피드를 불러옵니다.
-  useEffect(() => {
-    if (memberId) {
-      console.log("memberId is set:", memberId, "/ page:", page);
-      fetchFeedPosts();
-    }
-  }, [memberId, page]);
-
-  // ─────────────────────────
-  // 피드 불러오기 함수
-  /**
-   * memberId가 유효할 때, page와 size를 이용해 API 호출을 수행하여 피드를 불러옵니다.
-   * 반환된 데이터가 없으면 hasMore를 false로 설정합니다.
-   */
+  // 피드 불러오기
   const fetchFeedPosts = async () => {
     if (!memberId) return;
     setLoading(true);
     try {
       const data = await FeedApi.fetchFeeds(page, 10, memberId);
       if (data.length === 0) setHasMore(false);
-      // 새로운 피드를 기존 목록 앞에 추가
       setPosts((prevPosts) => [...data, ...prevPosts]);
-      // 좋아요 상태 업데이트
       setLikedPosts((prev) => {
         const newLiked = { ...prev };
         data.forEach((post) => {
@@ -390,7 +370,6 @@ function Feed() {
         });
         return newLiked;
       });
-      // 댓글 좋아요 상태 업데이트
       setLikedComments((prev) => {
         const newLikedComments = { ...prev };
         data.forEach((post) => {
@@ -414,26 +393,20 @@ function Feed() {
     setLoading(false);
   };
 
-  // ─────────────────────────
-  // IntersectionObserver (무한 스크롤)
-  /**
-   * 마지막 게시글 요소를 관찰하여, 화면에 보이면 page를 증가시켜 추가 피드를 로딩합니다.
-   *
-   * @param {HTMLElement} node - 관찰 대상 DOM 요소 (마지막 게시글 요소)
-   */
+  useEffect(() => {
+    fetchFeedPosts();
+  }, [page, memberId]);
+
   const lastPostElementRef = (node) => {
     if (loading) return;
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMore) {
+      if (entries[0].isIntersecting && hasMore)
         setPage((prevPage) => prevPage + 1);
-      }
     });
     if (node) observer.current.observe(node);
   };
 
-  // ─────────────────────────
-  // 핸들러들 (피드 생성, 좋아요, 댓글 추가, 리포스트, 등)
   const handleCreateFeed = async () => {
     if (!newFeed.trim() && !image) return;
     const data = { memberId, content: newFeed, mediaUrl: image };
@@ -741,12 +714,6 @@ function Feed() {
       toast.error("댓글 수정에 실패했습니다.");
     }
   };
-
-  // ─────────────────────────
-  // Logging profile info changes (for debugging)
-  useEffect(() => {
-    console.log("Profile Info updated:", profileInfo);
-  }, [profileInfo]);
 
   return (
     <LayoutContainer>
@@ -1085,8 +1052,7 @@ function Feed() {
 
 /**
  * 친구 추천 컴포넌트
- *
- * 서버에서 랜덤 사용자 정보를 불러와 친구 추천 목록을 표시합니다.
+ * - 서버에서 랜덤 사용자 정보를 불러와 친구 추천 목록을 표시합니다.
  *
  * @param {object} props
  * @param {number} props.memberId - 현재 로그인한 사용자 ID
