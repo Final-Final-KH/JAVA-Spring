@@ -115,7 +115,7 @@ task buildReact(type: Exec) { // 리액트 빌드
 
 task copyReactBuildFiles(type: Copy) { // 리액트 빌드 파일들을 복사해준다.
 	dependsOn "buildReact" // 리액트 빌드가 끝나야 복사를 할 수 있도록 설정
-	from "$reactDir/build" // 리액트 빌드 디렉토리에서
+	from "$reactDir/build/static" // 리액트 빌드 디렉토리에서
 	into "$projectDir/src/main/resources/static" // 스프링 리소스 디렉토리로
 }
 jar { // jar 파일에 리액트 빌드 파일들을 포함시킨다.
