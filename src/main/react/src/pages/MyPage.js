@@ -9,8 +9,15 @@ import KakaoPayButton from "./kedu/etc/KaKaoPay";
 import PaymentPage from "./kedu/etc/TossPay";
 import Modal from "./kedu/etc/Modal2";
 import Grass from "./kedu/etc/Grass";
+import { useProfile } from "./ProfileContext";
 
 const MyPage = () => {
+  const { profileInfo } = useProfile();
+
+  useEffect(() => {
+    console.log(profileInfo); // profileInfo가 제대로 업데이트되었는지 확인
+  }, [profileInfo]);
+
   const [schoolInfo, setSchoolInfo] = useState("학원 정보 또는 기타 관련 내용");
 
   const [courses, setCourses] = useState([
@@ -182,10 +189,8 @@ const MyPage = () => {
         {/* Left Section from Feed */}
         <div className="profile-section">
           <img src={imgLogo1} alt="프로필 이미지" className="profile-image" />
-          <h2>User Name</h2>
-          <p>user@email.com</p>
-          <p>User Age</p>
-          <p>User Location</p>
+          <p>Email: {profileInfo.email}</p>
+          <p>Name: {profileInfo.name}</p>
           <NaverPayButton></NaverPayButton>
           <Button3 onClick={PayButton}>정기구독</Button3>
         </div>

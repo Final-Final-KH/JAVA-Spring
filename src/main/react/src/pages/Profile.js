@@ -204,73 +204,69 @@ const Profile = () => {
 
   return (
     <div className="layout-container">
+      {" "}
       {/* 좌측 섹션: 프로필 및 소개 */}
       <div className="profile-left">
-        <div className="profile-mini">
-          {/* 프로필 이미지 컨테이너 */}
-          <div className="profile-image-container">
-            <div className="profile-image-wrapper">
-              <img
-                src={profileImage}
-                alt="프로필 이미지"
-                className="profile-image"
-              />
-              <div className="my-page-button-container">
-                <button className="my-page-button" onClick={goToMyPage}>
-                  마이페이지
-                </button>
-              </div>
-
-              <label htmlFor="image-upload" className="edit-button">
-                <img
-                  src={imgLogo2}
-                  alt="이미지 업로드"
-                  style={{
-                    width: "20px",
-                    height: "20px",
-                    cursor: "pointer",
-                  }}
-                />
-              </label>
-              <input
-                id="image-upload"
-                type="file"
-                accept="image/*"
-                ref={fileInputRef} // ref로 파일 입력 참조
-                style={{ display: "none" }} // 파일 입력창 숨기기
-                onChange={handleImageChange} // 파일 변경 시 처리
-              />
+        <div className="profile-image-container">
+          <div className="profile-image-wrapper">
+            <img
+              src={profileImage}
+              alt="프로필 이미지"
+              className="profile-image"
+            />
+            <div className="my-page-button-container">
+              <button
+                className="my-page-button"
+                onClick={() => navigate("/profile/mypage")}
+              >
+                마이페이지
+              </button>
             </div>
+            <label htmlFor="image-upload" className="edit-button">
+              <img
+                src={imgLogo2}
+                alt="이미지 업로드"
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  cursor: "pointer",
+                }}
+              />
+            </label>
+            <input
+              id="image-upload"
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              className="hidden-input"
+              onChange={handleImageChange}
+            />
           </div>
-
-          <EditableField
-            content="email"
-            value={profileInfo.email}
-            isEditable={false}
-          />
-
-          <EditableField
-            content="name"
-            value={profileInfo.name}
-            isEditable={true}
-            onSave={(value) => updateProfileField("name", value)}
-          />
-
-          <EditableField
-            content="location"
-            value={profileInfo.location}
-            isEditable={true}
-            onSave={(value) => updateProfileField("location", value)}
-          />
-
-          <EditableField
-            content="phone"
-            value={profileInfo.phone}
-            isEditable={true}
-            onSave={handleSavePhone}
-          />
         </div>
 
+        <EditableField
+          content="email"
+          value={profileInfo.email}
+          isEditable={false}
+        />
+        <EditableField
+          content="name"
+          value={profileInfo.name}
+          isEditable={true}
+          onSave={(value) => updateProfileField("name", value)}
+        />
+        <EditableField
+          content="location"
+          value={profileInfo.location}
+          isEditable={true}
+          onSave={(value) => updateProfileField("location", value)}
+        />
+        <EditableField
+          content="phone"
+          value={profileInfo.phone}
+          isEditable={true}
+          onSave={(value) => updateProfileField("phone", value)}
+        />
         <EditableField
           label="회원 소개"
           content="bio"
@@ -279,7 +275,6 @@ const Profile = () => {
           isEditable={true}
           onSave={(value) => updateProfileField("bio", value)}
         />
-
         <EditableField
           label="전문 분야"
           content="skills"
@@ -288,7 +283,6 @@ const Profile = () => {
           isEditable={true}
           onSave={(value) => updateProfileField("skills", value)}
         />
-
         <EditableField
           label="이력서"
           content="resume"
@@ -298,7 +292,6 @@ const Profile = () => {
           onSave={(value) => updateProfileField("resume", value)}
         />
       </div>
-
       {/* 우측 섹션: 친구 추천 */}
       <div className="profile-right friends-section">
         <h2>친구 추천</h2>
