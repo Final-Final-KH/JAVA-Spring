@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useProfile } from "../../pages/ProfileContext";
 import { ToastContainer, toast } from "react-toastify"; // Toast 메시지용
 import "react-toastify/dist/ReactToastify.css"; // Toast CSS
 import FeedApi from "../../api/FeedApi"; // 피드 API 모듈 추가
@@ -9,7 +10,7 @@ import imgLogo1 from "../../images/RefreshButton.png";
 import imgLogo2 from "../../images/DeveloperMark.jpg";
 import imgLogo3 from "../../images/PictureButton.png";
 
-// Import styled components (CommentInput는 styled.input으로 정의되어 있음)
+// Import styled components
 import {
   LayoutContainer,
   ProfileSection,
@@ -42,22 +43,21 @@ import {
   PostActions,
   ActionButton,
   CommentContainer,
-  CommentInput, // styled input: width 100%, padding, border, border-radius 적용됨
+  CommentInput,
   CommentInputContainer,
   CommentSubmitIcon,
-  CommentCard, // 댓글 카드 컨테이너
+  CommentCard,
   RepostContainer,
   RepostInput,
   RepostSubmitButton,
   OriginalPostContainer,
   OriginalPostHeader,
   OriginalPostContent,
-  ReplyContainer, // 답글 컨테이너
+  ReplyContainer,
 } from "../../styles/FeedStyles";
 
 /**
  * 재귀적으로 comments 배열에서 commentId에 해당하는 댓글을 찾아 업데이트합니다.
- * 업데이트 시, API가 반환한 값이 falsy (예: 빈 문자열)인 경우 기존 댓글 데이터를 보존합니다.
  *
  * @param {Array} comments - 댓글 배열 (또는 reply 배열)
  * @param {number} commentId - 업데이트할 댓글 ID
@@ -70,7 +70,7 @@ const updateCommentRecursively = (comments, commentId, updatedData) => {
       return {
         ...comment,
         ...updatedData,
-        // 만약 updatedData에서 memberName, currentCompany, profilePictureUrl이 falsy하면 기존 값을 유지
+        // 만약 updatedData의 값이 falsy하면 기존 값을 유지
         memberName: updatedData.memberName || comment.memberName,
         currentCompany: updatedData.currentCompany || comment.currentCompany,
         profilePictureUrl:
@@ -94,11 +94,12 @@ const updateCommentRecursively = (comments, commentId, updatedData) => {
 
 /**
  * Feed 데이터 병합 헬퍼 함수
- * - API로부터 받은 updatedFeed에 누락된 author 정보나 profilePictureUrl, originalPoster 정보를 기존 feed에서 유지합니다.
  *
- * @param {object} oldFeed - 기존 feed 객체
- * @param {object} newFeed - API로부터 받은 업데이트된 feed 객체
- * @returns {object} - 병합된 feed 객체
+ * API로부터 받은 새로운 피드 데이터(newFeed)와 기존 피드(oldFeed)를 병합합니다.
+ *
+ * @param {object} oldFeed - 기존 피드 객체
+ * @param {object} newFeed - API로부터 받은 업데이트된 피드 객체
+ * @returns {object} - 병합된 피드 객체
  */
 const mergeFeedData = (oldFeed, newFeed) => {
   return {
@@ -287,19 +288,52 @@ const renderReplies = (
 };
 
 /**
- * 📌 피드 컴포넌트
- * - 서버에서 받은 최신 상태를 반영하여 UI를 업데이트합니다.
- * - 좋아요/취소, 댓글 추가, 리포스트, 피드/댓글 수정 후 UI를 갱신합니다.
+ * 📌 Feed 컴포넌트
+ *
+ * 이 컴포넌트는 현재 로그인한 회원의 정보를 기반으로 피드를 불러오며,
+ * 무한 스크롤, 피드 생성, 좋아요, 댓글 등의 인터랙션을 처리합니다.
+ *
+ * 주의: 피드와 친구 추천 API 호출은 유효한 memberId가 있을 때만 실행됩니다.
  */
 function Feed() {
-  useEffect(() => {
-    document.body.style.backgroundColor = "#f5f6f7";
-  }, []);
+  // ─────────────────────────
+  // State 선언
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [newFeed, setNewFeed] = useState("");
+  const [image, setImage] = useState(null);
+  const observer = useRef();
+  const [refreshing, setRefreshing] = useState(false);
+  const [memberId, setMemberId] = useState(null);
+  const [memberData, setMemberData] = useState(null);
+  const [likedPosts, setLikedPosts] = useState({});
+  const [likeLoading, setLikeLoading] = useState({});
+  const [showCommentInput, setShowCommentInput] = useState({});
+  const [commentInputs, setCommentInputs] = useState({});
+  const [showRepostInput, setShowRepostInput] = useState({});
+  const [repostInputs, setRepostInputs] = useState({});
+  const [likedComments, setLikedComments] = useState({});
+  const [showReplyInput, setShowReplyInput] = useState({});
+  const [replyInputs, setReplyInputs] = useState({});
+  const [editingFeedId, setEditingFeedId] = useState(null);
+  const [editingFeedContent, setEditingFeedContent] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentContent, setEditingCommentContent] = useState("");
+  const { profileInfo } = useProfile();
 
+  // ─────────────────────────
   // 사용자 정보 가져오기
+  /**
+   * 현재 로그인한 사용자의 정보를 가져와 상태를 업데이트합니다.
+   * getUserInfo() API를 호출하여 유효한 회원 정보를 받아오며,
+   * memberId와 기타 사용자 정보를 설정합니다.
+   */
   const fetchMemberData = async () => {
     try {
       const userInfo = await getUserInfo();
+      console.log("Fetched userInfo:", userInfo);
       if (userInfo && userInfo.memberId) {
         setMemberId(userInfo.memberId);
         setMemberData({
@@ -316,47 +350,36 @@ function Feed() {
     }
   };
 
-  // 상태 변수들
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [newFeed, setNewFeed] = useState("");
-  const [image, setImage] = useState(null);
-  const observer = useRef();
-  const [refreshing, setRefreshing] = useState(false);
-  const [memberId, setMemberId] = useState(null);
-  const [memberData, setMemberData] = useState(null);
-
-  // 포스트, 댓글, 답글 관련 상태들
-  const [likedPosts, setLikedPosts] = useState({});
-  const [likeLoading, setLikeLoading] = useState({});
-  const [showCommentInput, setShowCommentInput] = useState({});
-  const [commentInputs, setCommentInputs] = useState({});
-  const [showRepostInput, setShowRepostInput] = useState({});
-  const [repostInputs, setRepostInputs] = useState({});
-  const [likedComments, setLikedComments] = useState({});
-  const [showReplyInput, setShowReplyInput] = useState({});
-  const [replyInputs, setReplyInputs] = useState({});
-
-  // 편집 모드 상태 (피드 및 댓글 수정)
-  const [editingFeedId, setEditingFeedId] = useState(null);
-  const [editingFeedContent, setEditingFeedContent] = useState("");
-  const [editingCommentId, setEditingCommentId] = useState(null);
-  const [editingCommentContent, setEditingCommentContent] = useState("");
-
+  // ─────────────────────────
+  // useEffect: 컴포넌트 마운트 시 사용자 정보 먼저 불러오기
   useEffect(() => {
     fetchMemberData();
   }, []);
 
-  // 피드 불러오기
+  // ─────────────────────────
+  // useEffect: memberId가 설정되면 피드를 불러옵니다.
+  useEffect(() => {
+    if (memberId) {
+      console.log("memberId is set:", memberId, "/ page:", page);
+      fetchFeedPosts();
+    }
+  }, [memberId, page]);
+
+  // ─────────────────────────
+  // 피드 불러오기 함수
+  /**
+   * memberId가 유효할 때, page와 size를 이용해 API 호출을 수행하여 피드를 불러옵니다.
+   * 반환된 데이터가 없으면 hasMore를 false로 설정합니다.
+   */
   const fetchFeedPosts = async () => {
     if (!memberId) return;
     setLoading(true);
     try {
       const data = await FeedApi.fetchFeeds(page, 10, memberId);
       if (data.length === 0) setHasMore(false);
+      // 새로운 피드를 기존 목록 앞에 추가
       setPosts((prevPosts) => [...data, ...prevPosts]);
+      // 좋아요 상태 업데이트
       setLikedPosts((prev) => {
         const newLiked = { ...prev };
         data.forEach((post) => {
@@ -364,6 +387,7 @@ function Feed() {
         });
         return newLiked;
       });
+      // 댓글 좋아요 상태 업데이트
       setLikedComments((prev) => {
         const newLikedComments = { ...prev };
         data.forEach((post) => {
@@ -387,20 +411,26 @@ function Feed() {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchFeedPosts();
-  }, [page, memberId]);
-
+  // ─────────────────────────
+  // IntersectionObserver (무한 스크롤)
+  /**
+   * 마지막 게시글 요소를 관찰하여, 화면에 보이면 page를 증가시켜 추가 피드를 로딩합니다.
+   *
+   * @param {HTMLElement} node - 관찰 대상 DOM 요소 (마지막 게시글 요소)
+   */
   const lastPostElementRef = (node) => {
     if (loading) return;
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMore)
+      if (entries[0].isIntersecting && hasMore) {
         setPage((prevPage) => prevPage + 1);
+      }
     });
     if (node) observer.current.observe(node);
   };
 
+  // ─────────────────────────
+  // 핸들러들 (피드 생성, 좋아요, 댓글 추가, 리포스트, 등)
   const handleCreateFeed = async () => {
     if (!newFeed.trim() && !image) return;
     const data = { memberId, content: newFeed, mediaUrl: image };
@@ -456,7 +486,6 @@ function Feed() {
         await FeedApi.likeFeed(feedId, memberId);
       }
       const updatedFeed = await FeedApi.getFeedById(feedId, memberId);
-      // Merge updated feed with existing data to preserve author info
       setPosts((prevPosts) =>
         prevPosts.map((post) =>
           post.feedId === feedId ? mergeFeedData(post, updatedFeed) : post
@@ -493,6 +522,7 @@ function Feed() {
         comment,
         memberId,
       });
+      // Set default values if missing
       if (!newComment.memberName || newComment.memberName === "Unknown") {
         newComment.memberName = memberData ? memberData.name : "Unknown";
         newComment.currentCompany = memberData
@@ -643,7 +673,6 @@ function Feed() {
         memberId,
         content: editingFeedContent,
       });
-      // Merge the updated feed with the old one to preserve missing author info.
       setPosts((prevPosts) =>
         prevPosts.map((post) =>
           post.feedId === editingFeedId
@@ -658,16 +687,6 @@ function Feed() {
       console.error("❌ 피드 수정 실패:", error);
       toast.error("게시글 수정에 실패했습니다.");
     }
-  };
-
-  // Helper to merge feed data: if the API response is missing author info, keep the old values.
-  const mergeFeedData = (oldFeed, newFeed) => {
-    return {
-      ...oldFeed,
-      ...newFeed,
-      profilePictureUrl: newFeed.profilePictureUrl || oldFeed.profilePictureUrl,
-      originalPoster: newFeed.originalPoster || oldFeed.originalPoster,
-    };
   };
 
   const startEditingComment = (comment) => {
@@ -686,7 +705,6 @@ function Feed() {
         memberId,
         comment: editingCommentContent,
       });
-      // Recursively update the edited comment in all posts.
       setPosts((prevPosts) =>
         prevPosts.map((post) => {
           if (!post.comments) return post;
@@ -709,12 +727,18 @@ function Feed() {
     }
   };
 
+  // ─────────────────────────
+  // Logging profile info changes (for debugging)
+  useEffect(() => {
+    console.log("Profile Info updated:", profileInfo);
+  }, [profileInfo]);
+
   return (
     <LayoutContainer>
       <ProfileSection>
         <ProfileImage src={imgLogo2} alt="프로필 이미지" />
-        <h2>User Name</h2>
-        <p>user@email.com</p>
+        <p>Email: {profileInfo.email}</p>
+        <p>Name: {profileInfo.name}</p>
       </ProfileSection>
 
       <FeedContainer>
@@ -1046,7 +1070,8 @@ function Feed() {
 
 /**
  * 친구 추천 컴포넌트
- * - 서버에서 랜덤 사용자 정보를 불러와 친구 추천 목록을 표시합니다.
+ *
+ * 서버에서 랜덤 사용자 정보를 불러와 친구 추천 목록을 표시합니다.
  *
  * @param {object} props
  * @param {number} props.memberId - 현재 로그인한 사용자 ID
