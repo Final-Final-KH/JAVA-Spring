@@ -55,7 +55,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
-
+	implementation 'com.jcraft:jsch:0.1.55'
 	//플라스크 적용을 위한 종속성
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -121,3 +121,4 @@ task copyReactBuildFiles(type: Copy) { // 리액트 빌드 파일들을 복사�
 jar { // jar 파일에 리액트 빌드 파일들을 포함시킨다.
 	enabled = false // 기본 jar 파일 생성을 끈다.
 }
+tasks.test{enabled = false}

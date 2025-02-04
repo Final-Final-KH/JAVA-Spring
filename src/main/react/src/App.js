@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./pages/Navbar"; // 네비게이터 바 컴포넌트 import
 import Feed from "./components/Feed/Feed";
 import Forum from "./components/Forums/Forum";
