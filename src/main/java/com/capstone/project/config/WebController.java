@@ -7,10 +7,12 @@ import org.springframework.web.servlet.ModelAndView;
 
 @Controller
 public class WebController implements ErrorController {
-    private static final String PATH = "/error";
+    private static final String PATH = "/error"; // 오류 경로
 
     @RequestMapping(value = PATH)
-    public ModelAndView saveLeadQuery() {
-        return new ModelAndView("forward:/");
+    public ModelAndView handleError() {
+        // 모든 요청을 index.html로 포워딩
+        return new ModelAndView("forward:/index.html");
     }
+
 }
