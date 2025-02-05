@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import imgLogo1 from "../images/DeveloperMark.jpg";
 import imgLogo2 from "../images/EditButton.webp";
 import imgLogo3 from "../images/SaveButton.png";
@@ -8,6 +8,8 @@ import "../css/profile.css";
 import AxiosInstance from "../axios/AxiosInstanse";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, storage } from "../utils/FirebaseConfig";
+import { AuthContext } from "../api/context/AuthContext";
+import Modal03 from "../component/Modal03";
 
 const Profile = () => {
   useEffect(() => {
@@ -17,6 +19,8 @@ const Profile = () => {
 
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const { logout } = useContext(AuthContext);
 
   const fileInputRef = useRef(null); // ref로 파일 입력 요소를 참조
 
@@ -198,6 +202,29 @@ const Profile = () => {
     updateProfileField("phone", value);
   };
 
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    console.log(`회원 Id값 : ${profileInfo.memberId}`);
+    try {
+      await AxiosInstance.delete(`/api/members/${profileInfo.memberId}`);
+      alert("회원 탈퇴가 완료되었습니다.");
+
+      // 로그아웃 처리
+      logout();
+
+      // 홈으로 이동
+      navigate("/");
+    } catch (error) {
+      console.error("회원 탈퇴 실패:", error);
+      alert("회원 탈퇴 중 오류가 발생했습니다.");
+    } finally {
+      setShowDeleteModal(false);
+    }
+  };
+
   if (loading) {
     return <div>Loading...</div>; // 로딩 중일 때 표시
   }
@@ -291,6 +318,22 @@ const Profile = () => {
           isEditable={true}
           onSave={(value) => updateProfileField("resume", value)}
         />
+
+        {/* 회원 탈퇴 버튼 */}
+        <button onClick={handleDeleteClick} className="delete-button">
+          회원 탈퇴
+        </button>
+
+        {/* 회원 탈퇴 확인 모달 */}
+        <Modal03
+          open={showDeleteModal}
+          confirm={confirmDelete}
+          close={() => setShowDeleteModal(false)}
+          type="confirm"
+          header="회원 탈퇴 확인"
+        >
+          정말 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+        </Modal03>
       </div>
       {/* 우측 섹션: 친구 추천 */}
       <div className="profile-right friends-section">

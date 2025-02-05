@@ -1,6 +1,8 @@
 package com.capstone.project.member.entity;
 
 import javax.persistence.*;
+
+import com.capstone.project.jwt.entity.RefreshToken;
 import com.capstone.project.kedu.entity.board.*;
 import com.capstone.project.kedu.entity.comment.*;
 import com.capstone.project.kedu.entity.edu.MyAcademyEntity2;
@@ -124,6 +126,9 @@ public class Member {
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MyAcademyEntity2> myAcademy = new ArrayList<>();
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RefreshToken> refreshTokens = new ArrayList<>();
 
     /**
      * 사용자 역할 Enum
