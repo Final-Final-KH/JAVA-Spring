@@ -6,14 +6,18 @@ import styled from "styled-components";
 
 // 스타일 정의
 const Content = styled.div`
-  margin: 100px 100px; /* 양옆 여백 추가 */
   border: 1px solid #ccc;
-  padding: 150px;
+  padding: 150px 0 0 0;
   border-radius: 8px;
-  background-color: rgb(229, 236, 232); /* 어두운 배경 색상 */
-  color: black; /* 글자 색을 흰색으로 */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* 그림자 추가 */
+  background-color: rgb(229, 236, 232);
+  color: black;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+  @media (max-width: 768px) {
+    padding: 100px 0;
+  }
 `;
+
 const SectionTitle = styled.div`
   font-size: 18px;
   font-weight: bold;
@@ -29,25 +33,39 @@ const Divider = styled.div`
 
 const Container = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* 4열로 표시 */
-  gap: 15px; /* 카드 간 간격 */
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
   padding: 20px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(3, 1fr);
+    padding: 10px;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
 `;
 
 const Card = styled.div`
   border: 1px solid #ccc;
   border-radius: 8px;
-  padding: 15px; /* 카드 크기를 줄여서 콤팩트하게 */
+  padding: 15px;
   background-color: rgb(234, 235, 236);
   text-align: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin-bottom: 10px;
-  font-size: 14px; /* 텍스트 크기 줄여서 카드 크기에 맞게 */
-  overflow: hidden; /* 내용이 넘치지 않도록 */
+  font-size: 14px;
+  overflow: hidden;
   cursor: pointer;
 
   &:hover {
     background-color: rgb(189, 192, 190);
+  }
+
+  @media (max-width: 768px) {
+    padding: 10px;
+    font-size: 12px;
   }
 `;
 
@@ -62,6 +80,11 @@ const Button = styled.button`
 
   &:hover {
     background-color: #45a049;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+    padding: 6px 12px;
   }
 `;
 
@@ -83,6 +106,9 @@ const Course = () => {
   const [cityGu, setCityGu] = useState("");
   const { searchKeyword, setSearchKeyword, academyName, setAcademyName } =
     useContext(RegionSearchContext);
+
+  const [selectedRegion, setSelectedRegion] = useState(null);
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
 
   useEffect(() => {
     AcademyList();
@@ -115,6 +141,10 @@ const Course = () => {
     setCity(city);
     const rsp = await AxiosApi2.district(city);
     setDistrict(rsp.data.list);
+    setSelectedRegion(city); // 지역 선택 시 구를 보여주기 위해 설정
+
+    // 지역 선택 후 해당 위치로 스크롤 내리기
+    window.scrollTo({ top: 500, behavior: "smooth" }); // 화면을 아래로 스크롤
   };
 
   const combine = () => {
@@ -122,6 +152,9 @@ const Course = () => {
       setSearchKeyword(city + " " + gu);
       Academy();
     }
+
+    // 구 선택 후 해당 위치로 스크롤 내리기
+    window.scrollTo({ top: 1000, behavior: "smooth" }); // 화면을 아래로 스크롤
   };
 
   const Academy = async () => {
@@ -143,7 +176,7 @@ const Course = () => {
     <Content>
       <h1>학원을 찾아 주세요</h1>
 
-      {/* Region 섹션 */}
+      {/* 지역 선택 섹션 */}
       <div>
         <SectionTitle>지역 선택</SectionTitle>
         <Container>
@@ -157,63 +190,66 @@ const Course = () => {
         </Container>
       </div>
 
-      {/* Divider */}
       <Divider />
 
-      {/* District 섹션 */}
-      <div>
-        <SectionTitle>구 선택</SectionTitle>
-        <Container>
-          {district.length > 0 ? (
-            district.map((item, index) => (
-              <div key={index}>
-                <Card
-                  onClick={() => {
-                    combine();
-                    setGu(item.district_name);
-                  }}
-                >
-                  <h3>{item.district_name}</h3>
-                </Card>
-              </div>
-            ))
-          ) : (
-            <NoRegionMessage>
-              <p>지역명을 선택해 주세요</p>
-            </NoRegionMessage>
-          )}
-        </Container>
-      </div>
-
-      {/* Divider */}
-      <Divider />
-
-      {/* AcademyList 섹션 */}
-      <div>
-        <SectionTitle>학원 선택</SectionTitle>
-        <Container>
-          {academyList.length > 0 ? (
-            academyList.map((academy, index) => (
-              <div key={index}>
-                <Card>
-                  <h3>{academy.academy_name}</h3>
-                  <Button
-                    onClick={() =>
-                      ToAcademyMain(academy.academy_name, academy.academy_id)
-                    }
+      {/* 구 선택 섹션 (지역을 선택하면 표시) */}
+      {selectedRegion && (
+        <div>
+          <SectionTitle>구 선택</SectionTitle>
+          <Container>
+            {district.length > 0 ? (
+              district.map((item, index) => (
+                <div key={index}>
+                  <Card
+                    onClick={() => {
+                      setGu(item.district_name);
+                      setSelectedDistrict(item.district_name); // 구 선택 시 학원 섹션 보이기
+                      combine();
+                    }}
                   >
-                    학원 정보 보기
-                  </Button>
-                </Card>
-              </div>
-            ))
-          ) : (
-            <NoRegionMessage>
-              <p>지역명을 선택해 주세요</p>
-            </NoRegionMessage>
-          )}
-        </Container>
-      </div>
+                    <h3>{item.district_name}</h3>
+                  </Card>
+                </div>
+              ))
+            ) : (
+              <NoRegionMessage>
+                <p>지역명을 선택해 주세요</p>
+              </NoRegionMessage>
+            )}
+          </Container>
+        </div>
+      )}
+
+      <Divider />
+
+      {/* 학원 선택 섹션 (구를 선택하면 표시) */}
+      {selectedDistrict && (
+        <div>
+          <SectionTitle>학원 선택</SectionTitle>
+          <Container>
+            {academyList.length > 0 ? (
+              academyList.map((academy, index) => (
+                <div key={index}>
+                  <Card>
+                    <h3>{academy.academy_name}</h3>
+                    <Button
+                      onClick={() =>
+                        ToAcademyMain(academy.academy_name, academy.academy_id)
+                      }
+                    >
+                      학원 정보 보기
+                    </Button>
+                  </Card>
+                </div>
+              ))
+            ) : (
+              <NoRegionMessage>
+                <p>지역명을 선택해 주세요</p>
+              </NoRegionMessage>
+            )}
+          </Container>
+        </div>
+      )}
     </Content>
   );
 };

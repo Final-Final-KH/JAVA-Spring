@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT 뉴스 검색</title>
+</head>
+<body>
+    <h1>IT 뉴스 검색</h1>
+    <form method="POST">
+        <input type="text" name="search" placeholder="검색어 입력">
+        <button type="submit">검색</button>
+    </form>
+
+    <ul>
+        {% for item in news %}
+            <li>
+                <a href="{{ item.link }}" target="_blank">{{ item.title }}</a>
+                <p>{{ item.description }}</p>
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

@@ -3,19 +3,17 @@ import AxiosApi2 from "../../../api/AxiosApi2";
 import "./CourseList2.css"; // CSS 파일을 import
 import PageNavigate from "../common/PageNavigate";
 import { useNavigate } from "react-router-dom";
-import { Button2 } from "./style/style2";
 
 const CourseList = () => {
   const [course, setCourse] = useState([]); // 수업 리스트 상태
   const [currentPage, setCurrentPage] = useState(0); // 현재 페이지 상태
   const [totalPage, setTotalPage] = useState(0); // 총 페이지 수 상태
-  const navigate = useNavigate("");
-  // 페이지가 변경될 때마다 호출되는 useEffect
+  const navigate = useNavigate();
+
   useEffect(() => {
     fetchCourseData(); // 페이지에 해당하는 데이터 가져오기
-  }, [currentPage]); // currentPage가 변경될 때마다 호출됨
+  }, [currentPage]);
 
-  // 처음 로드될 때 전체 페이지 수를 가져오는 useEffect
   useEffect(() => {
     const fetchTotalPage = async () => {
       try {
@@ -26,7 +24,7 @@ const CourseList = () => {
       }
     };
     fetchTotalPage();
-  }, []); // 최초 한 번만 호출됨
+  }, []);
 
   // course 데이터를 가져오는 함수
   const fetchCourseData = async () => {
@@ -41,6 +39,7 @@ const CourseList = () => {
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber); // 페이지 번호 업데이트 (1부터 시작)
   };
+
   return (
     <div className="course-table-container">
       <h2>Course List</h2>
@@ -48,9 +47,8 @@ const CourseList = () => {
       <table className="course-table">
         <thead>
           <tr>
-            <th>Course ID</th>
+            <th>Course Name</th> {/* courseName만 표시 */}
             <th>Academy Name</th>
-            <th>Course Name</th>
             <th>Start Date</th>
             <th>End Date</th>
             <th>Region</th>
@@ -73,9 +71,8 @@ const CourseList = () => {
                   )
                 }
               >
-                <td>{item.courseId}</td>
-                <td>{item.academyName}</td>
                 <td>{item.courseName}</td>
+                <td>{item.academyName}</td>
                 <td>{new Date(item.startDate).toLocaleDateString()}</td>
                 <td>{new Date(item.endDate).toLocaleDateString()}</td>
                 <td>{item.region}</td>
