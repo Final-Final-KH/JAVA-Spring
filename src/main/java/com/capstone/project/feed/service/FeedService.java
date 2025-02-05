@@ -267,28 +267,35 @@ public class FeedService {
 
     // 댓글과 대댓글을 매핑하는 메서드
     private CommentResponseDto mapCommentWithReplies(FeedComment comment) {
-        // Fetch the profile picture URL
+        // 작성자 프로필 사진 URL 가져오기
         String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
         if (profilePictureUrl == null || profilePictureUrl.isEmpty()) {
             profilePictureUrl = "https://firebasestorage.googleapis.com/v0/b/kh-react-firebase.firebasestorage.app/o/default-profile-picture-url.jpg?alt=media&token=16b39451-4ee9-4bdd-adc9-78b6cda4d4bb";
         }
 
-        // Fetch the likes count for the comment
+        // 좋아요 수 가져오기
         Long likesCount = commentLikeRepository.countByComment_CommentId(comment.getCommentId());
 
-        // Log information
-        log.info("Mapping commentId: {}, memberId: {}, profilePictureUrl: {}, likesCount: {}",
-                comment.getCommentId(), comment.getMemberId(), profilePictureUrl, likesCount);
+        // 작성자 이름(memberName) 가져오기
+        String memberName = memberService.getMemberProfile(comment.getMemberId()).getName();
 
-        // Map replies recursively
+        // 디버깅용 로그 출력
+        log.info("Mapping commentId: {}, memberId: {}, profilePictureUrl: {}, memberName: {}, likesCount: {}",
+                comment.getCommentId(), comment.getMemberId(), profilePictureUrl, memberName, likesCount);
+
+        // 대댓글들을 재귀적으로 매핑
         List<CommentResponseDto> replies = comment.getReplies().stream()
                 .map(this::mapCommentWithReplies)
                 .collect(Collectors.toList());
 
-        // Create and return the DTO
-        return new CommentResponseDto(comment, profilePictureUrl, true, likesCount).toBuilder()
+        // CommentResponseDto 생성
+        // 주의: 새 생성자는 다음과 같이 호출합니다.
+        // new CommentResponseDto(FeedComment, String profilePictureUrl, boolean includeReplies, String memberName, Long likesCount)
+        return new CommentResponseDto(comment, profilePictureUrl, true, memberName, likesCount)
+                .toBuilder()
                 .replies(replies)
                 .build();
     }
+
 
 }
