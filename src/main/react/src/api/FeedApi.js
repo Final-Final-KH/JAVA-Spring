@@ -8,17 +8,22 @@ const FeedApi = {
   /**
    * 피드 목록 가져오기 (페이징 처리)
    *
+   * 백엔드에서는 페이징 처리를 위한 { content: [...], ... } 형태가 아니라
+   * 직접 FeedResponseDto 객체들의 배열을 반환한다.
+   *
    * @param {number} page - 현재 페이지 번호 (0부터 시작)
    * @param {number} size - 가져올 게시글 수 (기본값: 10)
    * @param {number} currentMemberId - 현재 사용자의 회원 ID (좋아요 상태 판별용)
-   * @returns {Promise<Array>} - 백엔드 Page 객체의 content 배열을 반환
+   * @returns {Promise<Array>} - 백엔드에서 반환한 FeedResponseDto 객체 배열을 반환한다.
    */
   fetchFeeds: async (page, size = 10, currentMemberId) => {
     try {
       const response = await AxiosInstance.get(`/api/feeds`, {
         params: { page, size, currentMemberId },
       });
-      return response.data.content;
+      console.log("API Response from `/api/feeds`", response.data);
+      // 백엔드가 배열 자체를 반환하므로 response.data를 그대로 반환한다.
+      return response.data;
     } catch (error) {
       console.error("❌ 피드 가져오기 실패:", error);
       return [];
@@ -258,17 +263,19 @@ const FeedApi = {
    * 친구 추천 API
    *
    * @param {number} memberId - 현재 로그인된 사용자 ID
-   * @returns {Promise<Array>} - 추천된 사용자 목록을 반환
+   * @returns {Promise<Array>} - 추천된 사용자 목록을 반환 (없을 경우 빈 배열 반환)
    */
   fetchSuggestedFriends: async (memberId) => {
     try {
       const response = await AxiosInstance.get(`/api/members/suggested`, {
         params: { memberId },
       });
-      return response.data;
+      console.log("Response from `/api/members/suggested`", response.data);
+      // response.data가 undefined이면 빈 배열([])를 반환
+      return response.data || [];
     } catch (error) {
       console.error("❌ 친구 추천 가져오기 실패:", error);
-      throw error;
+      return []; // 오류 발생 시 빈 배열을 반환
     }
   },
 };

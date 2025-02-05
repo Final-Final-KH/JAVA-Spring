@@ -204,10 +204,9 @@ public class FeedService {
         feedRepository.save(feed);
     }
 
-    // Feed -> FeedResponseDto 변환
+    // Feed -> FeedResponseDto 변환 메서드 (FeedService 내부)
     private FeedResponseDto mapToResponseDto(Feed feed) {
         MemberInfoDto originalPoster = null;
-
         // 리포스트일 경우, 원본 작성자의 정보를 가져옵니다.
         if (feed.getRepostedFrom() != null) {
             Feed originalFeed = feed.getRepostedFrom();
@@ -217,9 +216,10 @@ public class FeedService {
         // 피드를 작성한 멤버의 프로필 정보를 가져옵니다.
         MemberResponseDto memberResponse = memberService.getMemberProfile(feed.getMemberId());
         String profilePictureUrl = memberResponse.getProfilePictureUrl(); // 프로필 사진 URL 가져오기
+        String authorName = memberResponse.getName(); // 작성자 이름 가져오기
 
-        log.info("Mapping FeedResponseDto: feedId={}, memberId={}, profilePictureUrl={}, originalPoster={}",
-                feed.getFeedId(), feed.getMemberId(), profilePictureUrl, originalPoster);
+        log.info("Mapping FeedResponseDto: feedId={}, memberId={}, profilePictureUrl={}, authorName={}, originalPoster={}",
+                feed.getFeedId(), feed.getMemberId(), profilePictureUrl, authorName, originalPoster);
 
         // 피드에 포함된 댓글(대댓글 포함)을 매핑합니다.
         List<CommentResponseDto> commentsWithReplies = feed.getComments().stream()
@@ -227,25 +227,26 @@ public class FeedService {
                 .map(this::mapCommentWithReplies) // 댓글과 대댓글 매핑
                 .collect(Collectors.toList());
 
-        // FeedResponseDto 객체를 생성하여 반환합니다.
         return FeedResponseDto.builder()
-                .feedId(feed.getFeedId()) // 피드 ID
-                .memberId(feed.getMemberId()) // 작성자 ID
-                .content(feed.getContent()) // 피드 내용
-                .createdAt(feed.getCreatedAt()) // 생성 시간
-                .updatedAt(feed.getUpdatedAt()) // 업데이트 시간
-                .likesCount(feed.getLikesCount()) // 좋아요 수
-                .repostedFrom(feed.getRepostedFrom() != null ? feed.getRepostedFrom().getFeedId() : null) // 리포스트된 피드 ID
-                .repostedFromContent(feed.getRepostedFrom() != null ? feed.getRepostedFrom().getContent() : null) // 원본 피드 내용
-                .reposterId(feed.getReposterId()) // 리포스터 ID
-                .repostCreatedAt(feed.getRepostCreatedAt()) // 리포스트 생성 시간
-                .mediaUrl(feed.getMediaUrl()) // 미디어 URL
-                .profilePictureUrl(profilePictureUrl) // 프로필 사진 URL 추가
-                .originalPoster(originalPoster) // 원본 작성자 정보
-                .comments(commentsWithReplies) // 댓글(대댓글 포함)
-                .isRepost(feed.isRepost()) // 리포스트 여부
+                .feedId(feed.getFeedId())
+                .memberId(feed.getMemberId())
+                .content(feed.getContent())
+                .createdAt(feed.getCreatedAt())
+                .updatedAt(feed.getUpdatedAt())
+                .likesCount(feed.getLikesCount())
+                .repostedFrom(feed.getRepostedFrom() != null ? feed.getRepostedFrom().getFeedId() : null)
+                .repostedFromContent(feed.getRepostedFrom() != null ? feed.getRepostedFrom().getContent() : null)
+                .reposterId(feed.getReposterId())
+                .repostCreatedAt(feed.getRepostCreatedAt())
+                .mediaUrl(feed.getMediaUrl())
+                .profilePictureUrl(profilePictureUrl)
+                .originalPoster(originalPoster)
+                .authorName(authorName) // 새 필드 설정
+                .comments(commentsWithReplies)
+                .isRepost(feed.isRepost())
                 .build();
     }
+
 
 
     // 멤버 정보 가져오기

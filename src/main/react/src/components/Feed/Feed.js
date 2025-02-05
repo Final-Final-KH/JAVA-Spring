@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useProfile } from "../../pages/ProfileContext";
-import { ToastContainer, toast } from "react-toastify"; // Toast 메시지용
-import "react-toastify/dist/ReactToastify.css"; // Toast CSS
-import FeedApi from "../../api/FeedApi"; // 피드 API 모듈 추가
-import { getUserInfo } from "../../axios/AxiosInstanse"; // 현재 사용자 정보 가져오기
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import FeedApi from "../../api/FeedApi";
+import { getUserInfo } from "../../axios/AxiosInstanse";
 
-// 반드시 이미지 임포트를 포함합니다.
+// 이미지 파일 임포트
 import imgLogo1 from "../../images/RefreshButton.png";
 import imgLogo2 from "../../images/DeveloperMark.jpg";
 import imgLogo3 from "../../images/PictureButton.png";
 
-// Import styled components (CommentInput는 styled.input으로 정의되어 있음)
+// 스타일 컴포넌트 임포트
 import {
   LayoutContainer,
   ProfileSection,
@@ -43,26 +43,25 @@ import {
   PostActions,
   ActionButton,
   CommentContainer,
-  CommentInput, // styled input: width 100%, padding, border, border-radius 적용됨
+  CommentInput,
   CommentInputContainer,
   CommentSubmitIcon,
-  CommentCard, // 댓글 카드 컨테이너
+  CommentCard,
   RepostContainer,
   RepostInput,
   RepostSubmitButton,
   OriginalPostContainer,
   OriginalPostHeader,
   OriginalPostContent,
-  ReplyContainer, // 답글 컨테이너
+  ReplyContainer,
 } from "../../styles/FeedStyles";
 
 /**
- * 재귀적으로 comments 배열에서 commentId에 해당하는 댓글을 찾아 업데이트합니다.
- * 업데이트 시, API가 반환한 값이 falsy (예: 빈 문자열)인 경우 기존 댓글 데이터를 보존합니다.
+ * 재귀적으로 댓글 트리 구조 내의 특정 댓글을 찾아 업데이트한다.
  *
- * @param {Array} comments - 댓글 배열 (또는 reply 배열)
+ * @param {Array} comments - 댓글 배열(또는 하위 답글 배열)
  * @param {number} commentId - 업데이트할 댓글 ID
- * @param {object} updatedData - 업데이트된 댓글 데이터 (예: { comment: "새 내용", ... })
+ * @param {object} updatedData - 업데이트할 데이터 (예: { comment: "새 내용" })
  * @returns {Array} - 업데이트된 댓글 배열
  */
 const updateCommentRecursively = (comments, commentId, updatedData) => {
@@ -71,7 +70,6 @@ const updateCommentRecursively = (comments, commentId, updatedData) => {
       return {
         ...comment,
         ...updatedData,
-        // 만약 updatedData에서 memberName, currentCompany, profilePictureUrl이 falsy하면 기존 값을 유지
         memberName: updatedData.memberName || comment.memberName,
         currentCompany: updatedData.currentCompany || comment.currentCompany,
         profilePictureUrl:
@@ -94,12 +92,12 @@ const updateCommentRecursively = (comments, commentId, updatedData) => {
 };
 
 /**
- * Feed 데이터 병합 헬퍼 함수
- * - API로부터 받은 updatedFeed에 누락된 author 정보나 profilePictureUrl, originalPoster 정보를 기존 feed에서 유지합니다.
+ * 기존 피드 데이터와 API에서 받아온 피드 데이터를 병합한다.
+ * 누락된 작성자 정보, 프로필 이미지, 원본 게시자 정보 등은 기존 값을 유지한다.
  *
- * @param {object} oldFeed - 기존 feed 객체
- * @param {object} newFeed - API로부터 받은 업데이트된 feed 객체
- * @returns {object} - 병합된 feed 객체
+ * @param {object} oldFeed - 기존 피드 객체
+ * @param {object} newFeed - 업데이트된 피드 객체
+ * @returns {object} - 병합된 피드 객체
  */
 const mergeFeedData = (oldFeed, newFeed) => {
   return {
@@ -111,25 +109,24 @@ const mergeFeedData = (oldFeed, newFeed) => {
 };
 
 /**
- * [renderReplies]
- * 재귀적으로 하위 답글들을 렌더링하는 헬퍼 함수입니다.
+ * 재귀적으로 답글(하위 댓글)들을 렌더링하는 함수
  *
- * @param {Array} replies - 답글 객체들의 배열
- * @param {number} parentFeedId - 상위 게시글의 feedId (답글 추가 시 사용)
+ * @param {Array} replies - 답글 배열
+ * @param {number} parentFeedId - 상위 피드 ID
  * @param {number} memberId - 현재 로그인한 사용자 ID
- * @param {object} likedComments - 각 답글의 좋아요 상태 객체
- * @param {function} handleCommentLike - 댓글 좋아요 토글 함수
- * @param {function} toggleReplyInput - 답글 입력 필드 토글 함수
- * @param {object} showReplyInput - 답글 입력 필드 표시 상태 객체
+ * @param {object} likedComments - 각 댓글의 좋아요 상태 객체
+ * @param {function} handleCommentLike - 댓글 좋아요 토글 핸들러
+ * @param {function} toggleReplyInput - 답글 입력창 토글 핸들러
+ * @param {object} showReplyInput - 답글 입력창 표시 상태 객체
  * @param {object} replyInputs - 답글 입력값 상태 객체
  * @param {function} setReplyInputs - 답글 입력값 업데이트 함수
- * @param {function} handleReplySubmit - 답글 제출 함수
- * @param {function} startEditingComment - 댓글 수정 모드 시작 핸들러
- * @param {number} editingCommentId - 현재 편집 중인 댓글 ID
- * @param {string} editingCommentContent - 편집 중인 댓글 내용
- * @param {function} setEditingCommentContent - 편집 중인 댓글 내용 업데이트 함수
+ * @param {function} handleReplySubmit - 답글 제출 핸들러
+ * @param {function} startEditingComment - 댓글 수정 모드 시작 함수
+ * @param {number} editingCommentId - 현재 수정 중인 댓글 ID
+ * @param {string} editingCommentContent - 수정 중인 댓글 내용
+ * @param {function} setEditingCommentContent - 수정 중인 댓글 내용 업데이트 함수
  * @param {function} submitCommentEdit - 댓글 수정 제출 함수
- * @returns {JSX.Element} - 재귀적으로 렌더링된 답글 목록
+ * @returns {JSX.Element} - 답글 목록 JSX
  */
 const renderReplies = (
   replies,
@@ -150,7 +147,7 @@ const renderReplies = (
 ) => {
   return (
     <ReplyContainer>
-      {replies.map((reply, idx) => (
+      {(replies || []).map((reply, idx) => (
         <CommentCard
           key={reply.commentId || idx}
           style={{
@@ -288,16 +285,56 @@ const renderReplies = (
 };
 
 /**
- * 📌 피드 컴포넌트
- * - 서버에서 받은 최신 상태를 반영하여 UI를 업데이트합니다.
- * - 좋아요/취소, 댓글 추가, 리포스트, 피드/댓글 수정 후 UI를 갱신합니다.
+ * Feed 컴포넌트
+ * 현재 로그인한 사용자의 정보와 피드 데이터를 가져와서 렌더링한다.
+ *
+ * @returns {JSX.Element} - 피드 페이지 컴포넌트
  */
 function Feed() {
+  // 페이지 배경 색상 설정
   useEffect(() => {
     document.body.style.backgroundColor = "#f5f6f7";
   }, []);
 
-  // 사용자 정보 가져오기
+  // 피드 및 관련 상태 변수 선언
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [newFeed, setNewFeed] = useState("");
+  const [image, setImage] = useState(null);
+  const observer = useRef();
+  const [refreshing, setRefreshing] = useState(false);
+  const [memberId, setMemberId] = useState(null);
+  const [memberData, setMemberData] = useState(null);
+
+  // 피드, 댓글 및 좋아요 관련 상태 변수
+  const [likedPosts, setLikedPosts] = useState({});
+  const [likeLoading, setLikeLoading] = useState({});
+  const [showCommentInput, setShowCommentInput] = useState({});
+  const [commentInputs, setCommentInputs] = useState({});
+  const [showRepostInput, setShowRepostInput] = useState({});
+  const [repostInputs, setRepostInputs] = useState({});
+  const [likedComments, setLikedComments] = useState({});
+  const [showReplyInput, setShowReplyInput] = useState({});
+  const [replyInputs, setReplyInputs] = useState({});
+
+  // 편집 모드 상태 (피드 및 댓글 수정)
+  const [editingFeedId, setEditingFeedId] = useState(null);
+  const [editingFeedContent, setEditingFeedContent] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingCommentContent, setEditingCommentContent] = useState("");
+
+  // ProfileContext를 통한 프로필 정보 (참고용)
+  const { profileInfo } = useProfile();
+  useEffect(() => {
+    console.log("Profile 정보:", profileInfo);
+  }, [profileInfo]);
+
+  /**
+   * 현재 로그인한 사용자의 정보를 가져와서 상태에 저장한다.
+   * API 호출 실패 시 에러 토스트 메시지를 출력한다.
+   */
   const fetchMemberData = async () => {
     try {
       const userInfo = await getUserInfo();
@@ -317,52 +354,24 @@ function Feed() {
     }
   };
 
-  // 상태 변수들
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [newFeed, setNewFeed] = useState("");
-  const [image, setImage] = useState(null);
-  const observer = useRef();
-  const [refreshing, setRefreshing] = useState(false);
-  const [memberId, setMemberId] = useState(null);
-  const [memberData, setMemberData] = useState(null);
-
-  // 포스트, 댓글, 답글 관련 상태들
-  const [likedPosts, setLikedPosts] = useState({});
-  const [likeLoading, setLikeLoading] = useState({});
-  const [showCommentInput, setShowCommentInput] = useState({});
-  const [commentInputs, setCommentInputs] = useState({});
-  const [showRepostInput, setShowRepostInput] = useState({});
-  const [repostInputs, setRepostInputs] = useState({});
-  const [likedComments, setLikedComments] = useState({});
-  const [showReplyInput, setShowReplyInput] = useState({});
-  const [replyInputs, setReplyInputs] = useState({});
-
-  // 편집 모드 상태 (피드 및 댓글 수정)
-  const [editingFeedId, setEditingFeedId] = useState(null);
-  const [editingFeedContent, setEditingFeedContent] = useState("");
-  const [editingCommentId, setEditingCommentId] = useState(null);
-  const [editingCommentContent, setEditingCommentContent] = useState("");
-  const { profileInfo } = useProfile();
-
-  useEffect(() => {
-    console.log(profileInfo); // profileInfo가 제대로 업데이트되었는지 확인
-  }, [profileInfo]);
-
+  // 최초 렌더링 시 사용자 정보를 불러온다.
   useEffect(() => {
     fetchMemberData();
   }, []);
 
-  // 피드 불러오기
+  /**
+   * 페이지 번호와 memberId가 유효할 경우 피드 데이터를 불러온다.
+   */
   const fetchFeedPosts = async () => {
     if (!memberId) return;
     setLoading(true);
     try {
+      // FeedApi.fetchFeeds는 항상 배열을 반환하도록 수정됨
       const data = await FeedApi.fetchFeeds(page, 10, memberId);
       if (data.length === 0) setHasMore(false);
+      // 최신 피드는 목록의 앞쪽에 추가
       setPosts((prevPosts) => [...data, ...prevPosts]);
+      // 각 피드의 좋아요 상태 업데이트
       setLikedPosts((prev) => {
         const newLiked = { ...prev };
         data.forEach((post) => {
@@ -370,6 +379,7 @@ function Feed() {
         });
         return newLiked;
       });
+      // 각 댓글 및 답글의 좋아요 상태 업데이트
       setLikedComments((prev) => {
         const newLikedComments = { ...prev };
         data.forEach((post) => {
@@ -393,20 +403,30 @@ function Feed() {
     setLoading(false);
   };
 
+  // page 또는 memberId가 변경될 때마다 피드를 불러온다.
   useEffect(() => {
     fetchFeedPosts();
   }, [page, memberId]);
 
+  /**
+   * 마지막 피드 요소에 IntersectionObserver를 붙여 무한 스크롤을 구현한다.
+   *
+   * @param {HTMLElement} node - 마지막 피드 요소 DOM 노드
+   */
   const lastPostElementRef = (node) => {
     if (loading) return;
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMore)
+      if (entries[0].isIntersecting && hasMore) {
         setPage((prevPage) => prevPage + 1);
+      }
     });
     if (node) observer.current.observe(node);
   };
 
+  /**
+   * 새 피드를 작성하여 API 호출 후 피드 목록에 추가한다.
+   */
   const handleCreateFeed = async () => {
     if (!newFeed.trim() && !image) return;
     const data = { memberId, content: newFeed, mediaUrl: image };
@@ -422,6 +442,11 @@ function Feed() {
     }
   };
 
+  /**
+   * 지정된 피드를 저장하는 API를 호출한다.
+   *
+   * @param {number} feedId - 저장할 피드 ID
+   */
   const handleSaveFeed = async (feedId) => {
     try {
       await FeedApi.saveFeed(feedId);
@@ -432,6 +457,10 @@ function Feed() {
     }
   };
 
+  /**
+   * 피드를 새로고침한다.
+   * 페이지와 피드 목록을 초기화 후 재호출한다.
+   */
   const handleRefreshFeeds = () => {
     setRefreshing(true);
     setPage(0);
@@ -441,6 +470,11 @@ function Feed() {
     setTimeout(() => setRefreshing(false), 300);
   };
 
+  /**
+   * 이미지 업로드 파일을 읽어 data URL로 변환하여 상태에 저장한다.
+   *
+   * @param {Event} e - 파일 업로드 이벤트
+   */
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -452,6 +486,11 @@ function Feed() {
     }
   };
 
+  /**
+   * 피드 좋아요/취소를 처리하고 업데이트된 피드를 병합한다.
+   *
+   * @param {number} feedId - 좋아요/취소할 피드 ID
+   */
   const handleLike = async (feedId) => {
     if (likeLoading[feedId]) return;
     setLikeLoading((prev) => ({ ...prev, [feedId]: true }));
@@ -461,8 +500,8 @@ function Feed() {
       } else {
         await FeedApi.likeFeed(feedId, memberId);
       }
+      // 업데이트된 피드를 API에서 받아와 병합한다.
       const updatedFeed = await FeedApi.getFeedById(feedId, memberId);
-      // Merge updated feed with existing data to preserve author info
       setPosts((prevPosts) =>
         prevPosts.map((post) =>
           post.feedId === feedId ? mergeFeedData(post, updatedFeed) : post
@@ -480,6 +519,11 @@ function Feed() {
     }
   };
 
+  /**
+   * 댓글 입력창의 표시 상태를 토글한다.
+   *
+   * @param {number} feedId - 해당 피드의 ID
+   */
   const toggleCommentInput = (feedId) => {
     setShowCommentInput((prev) => ({
       ...prev,
@@ -487,10 +531,21 @@ function Feed() {
     }));
   };
 
+  /**
+   * 댓글 입력값을 업데이트한다.
+   *
+   * @param {number} feedId - 해당 피드의 ID
+   * @param {string} value - 입력된 값
+   */
   const handleCommentInputChange = (feedId, value) => {
     setCommentInputs((prev) => ({ ...prev, [feedId]: value }));
   };
 
+  /**
+   * 댓글을 작성하여 API를 호출하고 해당 피드의 댓글 목록에 추가한다.
+   *
+   * @param {number} feedId - 댓글을 추가할 피드 ID
+   */
   const handleCommentSubmit = async (feedId) => {
     const comment = commentInputs[feedId];
     if (!comment || !comment.trim()) return;
@@ -499,6 +554,7 @@ function Feed() {
         comment,
         memberId,
       });
+      // 작성자 정보가 누락된 경우 fallback 처리
       if (!newComment.memberName || newComment.memberName === "Unknown") {
         newComment.memberName = memberData ? memberData.name : "Unknown";
         newComment.currentCompany = memberData
@@ -515,9 +571,10 @@ function Feed() {
           post.feedId === feedId
             ? {
                 ...post,
-                comments: post.comments
-                  ? [newComment, ...post.comments]
-                  : [newComment],
+                comments:
+                  (post.comments || []).length > 0
+                    ? [newComment, ...post.comments]
+                    : [newComment],
               }
             : post
         )
@@ -532,14 +589,30 @@ function Feed() {
     }
   };
 
+  /**
+   * 리포스트 입력창의 표시 상태를 토글한다.
+   *
+   * @param {number} feedId - 해당 피드 ID
+   */
   const toggleRepostInput = (feedId) => {
     setShowRepostInput((prev) => ({ ...prev, [feedId]: !prev[feedId] }));
   };
 
+  /**
+   * 리포스트 입력값을 업데이트한다.
+   *
+   * @param {number} feedId - 해당 피드 ID
+   * @param {string} value - 입력된 리포스트 코멘트
+   */
   const handleRepostInputChange = (feedId, value) => {
     setRepostInputs((prev) => ({ ...prev, [feedId]: value }));
   };
 
+  /**
+   * 리포스트를 처리하여 API 호출 후 완료 메시지를 표시한다.
+   *
+   * @param {number} feedId - 리포스트할 피드 ID
+   */
   const handleRepostSubmit = async (feedId) => {
     const repostComment = repostInputs[feedId] || "";
     try {
@@ -552,6 +625,11 @@ function Feed() {
     }
   };
 
+  /**
+   * 댓글 좋아요 상태를 토글하고 해당 댓글을 업데이트한다.
+   *
+   * @param {number} commentId - 좋아요 토글할 댓글 ID
+   */
   const handleCommentLike = async (commentId) => {
     try {
       if (likedComments[commentId]) {
@@ -598,10 +676,21 @@ function Feed() {
     }
   };
 
+  /**
+   * 특정 댓글의 답글 입력창을 토글한다.
+   *
+   * @param {number} commentId - 해당 댓글 ID
+   */
   const toggleReplyInput = (commentId) => {
     setShowReplyInput((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
   };
 
+  /**
+   * 답글을 작성하여 API 호출 후 해당 댓글의 답글 목록에 추가한다.
+   *
+   * @param {number} commentId - 답글을 추가할 부모 댓글 ID
+   * @param {number} feedId - 부모 피드 ID
+   */
   const handleReplySubmit = async (commentId, feedId) => {
     const reply = replyInputs[commentId];
     if (!reply || !reply.trim()) return;
@@ -618,10 +707,7 @@ function Feed() {
           if (post.feedId !== feedId) return post;
           const updatedComments = post.comments.map((c) =>
             c.commentId === commentId
-              ? {
-                  ...c,
-                  replies: c.replies ? [...c.replies, newReply] : [newReply],
-                }
+              ? { ...c, replies: (c.replies || []).concat(newReply) }
               : c
           );
           return { ...post, comments: updatedComments };
@@ -633,6 +719,11 @@ function Feed() {
     }
   };
 
+  /**
+   * 피드 수정 모드를 시작한다.
+   *
+   * @param {object} feed - 수정할 피드 객체
+   */
   const startEditingFeed = (feed) => {
     if (feed.memberId !== memberId) {
       toast.error("자신의 게시글만 수정할 수 있습니다.");
@@ -642,6 +733,9 @@ function Feed() {
     setEditingFeedContent(feed.content);
   };
 
+  /**
+   * 피드 수정 내용을 제출하여 API 호출 후 피드 데이터를 업데이트한다.
+   */
   const submitFeedEdit = async () => {
     if (!editingFeedContent.trim()) return;
     try {
@@ -649,7 +743,6 @@ function Feed() {
         memberId,
         content: editingFeedContent,
       });
-      // Merge the updated feed with the old one to preserve missing author info.
       setPosts((prevPosts) =>
         prevPosts.map((post) =>
           post.feedId === editingFeedId
@@ -666,16 +759,11 @@ function Feed() {
     }
   };
 
-  // Helper to merge feed data: if the API response is missing author info, keep the old values.
-  const mergeFeedData = (oldFeed, newFeed) => {
-    return {
-      ...oldFeed,
-      ...newFeed,
-      profilePictureUrl: newFeed.profilePictureUrl || oldFeed.profilePictureUrl,
-      originalPoster: newFeed.originalPoster || oldFeed.originalPoster,
-    };
-  };
-
+  /**
+   * 댓글 수정 모드를 시작한다.
+   *
+   * @param {object} comment - 수정할 댓글 객체
+   */
   const startEditingComment = (comment) => {
     if (!comment || comment.memberId !== memberId) {
       toast.error("자신의 댓글만 수정할 수 있습니다.");
@@ -685,6 +773,9 @@ function Feed() {
     setEditingCommentContent(comment.comment);
   };
 
+  /**
+   * 댓글 수정 내용을 제출하여 API 호출 후 댓글 데이터를 업데이트한다.
+   */
   const submitCommentEdit = async () => {
     if (!editingCommentContent.trim()) return;
     try {
@@ -692,7 +783,6 @@ function Feed() {
         memberId,
         comment: editingCommentContent,
       });
-      // Recursively update the edited comment in all posts.
       setPosts((prevPosts) =>
         prevPosts.map((post) => {
           if (!post.comments) return post;
@@ -717,6 +807,7 @@ function Feed() {
 
   return (
     <LayoutContainer>
+      {/* 프로필 섹션 (ProfileContext의 정보를 참조) */}
       <ProfileSection>
         <ProfileImage src={imgLogo2} alt="프로필 이미지" />
         <p>Email: {profileInfo.email}</p>
@@ -724,6 +815,7 @@ function Feed() {
       </ProfileSection>
 
       <FeedContainer>
+        {/* 피드 작성 영역 */}
         <CreateFeedContainer>
           <TextareaContainer>
             <textarea
@@ -747,6 +839,7 @@ function Feed() {
           <button onClick={handleCreateFeed}>피드 작성</button>
         </CreateFeedContainer>
 
+        {/* 새로고침 버튼 */}
         <RefreshButton onClick={handleRefreshFeeds}>
           <RefreshIcon
             className={refreshing ? "refreshing" : ""}
@@ -755,9 +848,10 @@ function Feed() {
           />
         </RefreshButton>
 
+        {/* 피드 목록 렌더링 */}
         <PostList>
-          {posts.map((post, index) => {
-            const isLastPost = posts.length === index + 1;
+          {(posts || []).map((post, index) => {
+            const isLastPost = (posts || []).length === index + 1;
             return (
               <Post
                 key={post.feedId}
@@ -770,9 +864,8 @@ function Feed() {
                   />
                   <AuthorDetails>
                     <AuthorName>
-                      {post.originalPoster
-                        ? post.originalPoster.name
-                        : "Unknown"}
+                      {/* 백엔드에서 전달된 authorName 필드 사용 */}
+                      {post.authorName || "Unknown"}
                     </AuthorName>
                     <PostDate>{post.createdAt}</PostDate>
                   </AuthorDetails>
@@ -848,9 +941,9 @@ function Feed() {
                     </CommentInputContainer>
                   </CommentContainer>
                 )}
-                {post.comments && post.comments.length > 0 && (
+                {post.comments && (post.comments || []).length > 0 && (
                   <div style={{ marginTop: "10px" }}>
-                    {post.comments.map((comment, idx) => (
+                    {(post.comments || []).map((comment, idx) => (
                       <CommentCard
                         key={
                           comment.commentId
@@ -950,23 +1043,26 @@ function Feed() {
                           )}
                         </div>
                         {comment.replies &&
-                          comment.replies.length > 0 &&
-                          renderReplies(
-                            comment.replies,
-                            post.feedId,
-                            memberId,
-                            likedComments,
-                            handleCommentLike,
-                            toggleReplyInput,
-                            showReplyInput,
-                            replyInputs,
-                            setReplyInputs,
-                            handleReplySubmit,
-                            startEditingComment,
-                            editingCommentId,
-                            editingCommentContent,
-                            setEditingCommentContent,
-                            submitCommentEdit
+                          (comment.replies || []).length > 0 && (
+                            <div>
+                              {renderReplies(
+                                comment.replies,
+                                post.feedId,
+                                memberId,
+                                likedComments,
+                                handleCommentLike,
+                                toggleReplyInput,
+                                showReplyInput,
+                                replyInputs,
+                                setReplyInputs,
+                                handleReplySubmit,
+                                startEditingComment,
+                                editingCommentId,
+                                editingCommentContent,
+                                setEditingCommentContent,
+                                submitCommentEdit
+                              )}
+                            </div>
                           )}
                         {showReplyInput[comment.commentId] && (
                           <div
@@ -1038,6 +1134,7 @@ function Feed() {
         </PostList>
       </FeedContainer>
 
+      {/* 친구 추천 섹션 */}
       <FriendsSection>
         <h2>친구 추천</h2>
         <FriendList>
@@ -1052,11 +1149,11 @@ function Feed() {
 
 /**
  * 친구 추천 컴포넌트
- * - 서버에서 랜덤 사용자 정보를 불러와 친구 추천 목록을 표시합니다.
+ * 서버에서 추천 친구 목록을 불러와 렌더링한다.
  *
  * @param {object} props
  * @param {number} props.memberId - 현재 로그인한 사용자 ID
- * @component
+ * @returns {JSX.Element} - 추천 친구 목록 JSX
  */
 function FriendSuggestions({ memberId }) {
   const [friendList, setFriendList] = useState([]);
@@ -1064,18 +1161,19 @@ function FriendSuggestions({ memberId }) {
   useEffect(() => {
     async function fetchFriends() {
       try {
+        // FeedApi.fetchSuggestedFriends는 항상 배열을 반환하도록 수정됨
         const suggestedFriends = await FeedApi.fetchSuggestedFriends(memberId);
         setFriendList(suggestedFriends);
       } catch (error) {
         console.error("❌ 친구 추천 불러오기 실패:", error);
       }
     }
-    fetchFriends();
+    if (memberId) fetchFriends();
   }, [memberId]);
 
   return (
     <>
-      {friendList.map((friend) => (
+      {(friendList || []).map((friend) => (
         <div
           key={friend.memberId}
           style={{
