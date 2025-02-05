@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useProfile } from "../../pages/ProfileContext";
 import { ToastContainer, toast } from "react-toastify"; // Toast 메시지용
 import "react-toastify/dist/ReactToastify.css"; // Toast CSS
 import FeedApi from "../../api/FeedApi"; // 피드 API 모듈 추가
@@ -344,6 +345,11 @@ function Feed() {
   const [editingFeedContent, setEditingFeedContent] = useState("");
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
+  const { profileInfo } = useProfile();
+
+  useEffect(() => {
+    console.log(profileInfo); // profileInfo가 제대로 업데이트되었는지 확인
+  }, [profileInfo]);
 
   useEffect(() => {
     fetchMemberData();
@@ -713,8 +719,8 @@ function Feed() {
     <LayoutContainer>
       <ProfileSection>
         <ProfileImage src={imgLogo2} alt="프로필 이미지" />
-        <h2>User Name</h2>
-        <p>user@email.com</p>
+        <p>Email: {profileInfo.email}</p>
+        <p>Name: {profileInfo.name}</p>
       </ProfileSection>
 
       <FeedContainer>

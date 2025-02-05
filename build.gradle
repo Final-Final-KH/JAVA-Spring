@@ -55,7 +55,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
-
+	implementation 'com.jcraft:jsch:0.1.55'
 	//플라스크 적용을 위한 종속성
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -113,11 +113,27 @@ task buildReact(type: Exec) { // 리액트 빌드
 	}
 }
 
-task copyReactBuildFiles(type: Copy) { // 리액트 빌드 파일들을 복사해준다.
-	dependsOn "buildReact" // 리액트 빌드가 끝나야 복사를 할 수 있도록 설정
-	from "$reactDir/build" // 리액트 빌드 디렉토리에서
-	into "$projectDir/src/main/resources/static" // 스프링 리소스 디렉토리로
+//task copyReactBuildFiles(type: Copy) { // 리액트 빌드 파일들을 복사해준다.
+//	dependsOn "buildReact" // 리액트 빌드가 끝나야 복사를 할 수 있도록 설정
+//	from "$reactDir/build/static" // 리액트 빌드 디렉토리에서
+//	into "$projectDir/src/main/resources/static" // 스프링 리소스 디렉토리로
+//}
+
+task copyReactBuildFiles(type: Copy) {
+	dependsOn "buildReact"
+	// 1. 빌드 루트의 파일들 중 static 폴더를 제외한 파일들을 복사
+	from("$reactDir/build") {
+		exclude 'static/**'
+	}
+	// 2. build/static 폴더 내부의 파일들을 복사(폴더 내부의 내용만 복사)
+	from("$reactDir/build/static") {
+		// 별도의 하위 폴더 생성 없이 대상 디렉토리 바로 복사
+		into '.'
+	}
+	into "$projectDir/src/main/resources/static"
 }
+
+
 jar { // jar 파일에 리액트 빌드 파일들을 포함시킨다.
 	enabled = false // 기본 jar 파일 생성을 끈다.
 }

@@ -61,10 +61,10 @@ const AxiosApi2 = {
     return await axios.post(KH_DOMAIN + "/my_course/add_my_academy", params);
   },
   regCourse: async (courseName, courseId, memberId, academyId, academyName) => {
-    console.log("강의 아이디", courseId);
-    console.log("학원 아이디", academyId);
-    console.log("멤버 아이디", memberId);
-    console.log("강의 명", courseName);
+    console.log("api 강의 아이디", courseId);
+    console.log("api 학원 아이디", academyId);
+    console.log("api 멤버 아이디", memberId);
+    console.log("api 강의 명", courseName);
     const params = {
       course: courseName,
       course_id: courseId,
@@ -305,6 +305,7 @@ const AxiosApi2 = {
     }
   },
   checkRegCourse: async (courseId, memberId) => {
+    console.log("api 멤버확인", memberId);
     const params = {
       course_id: courseId,
       member_id: memberId,

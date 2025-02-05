@@ -25,6 +25,17 @@ import Blockquote from "@tiptap/extension-blockquote";
 
 import ConfirmationModal from "./ConfirmationModal"; // 추가된 모달
 
+// 🟢 Toast 라이브러리 import (alert 대신 사용)
+import { toast } from "react-toastify";
+
+/**
+ * 게시글 생성 컴포넌트
+ *
+ * 이 컴포넌트는 사용자가 게시글을 생성할 수 있도록 제목, 카테고리, 내용 및 파일 첨부 기능을 제공하며,
+ * Tiptap 에디터를 이용한 리치 텍스트 편집 기능을 포함합니다.
+ *
+ * @returns {JSX.Element} 게시글 생성 폼을 렌더링하는 React 컴포넌트
+ */
 const CreatePost = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -58,6 +69,10 @@ const CreatePost = () => {
 
   /**
    * ✅ 사용자 정보 및 카테고리 리스트 불러오기
+   *
+   * - 사용자의 로그인 상태와 memberId를 확인합니다.
+   * - 로그인 되어 있지 않은 경우, 로그인 페이지로 이동합니다.
+   * - ForumApi를 통해 카테고리 데이터를 가져와서 상태에 저장합니다.
    */
   useEffect(() => {
     const fetchData = async () => {
@@ -66,7 +81,7 @@ const CreatePost = () => {
         if (userInfo && userInfo.memberId) {
           setMemberId(userInfo.memberId);
         } else {
-          alert("로그인이 필요합니다.");
+          toast.error("로그인이 필요합니다.");
           navigate("/login");
           return;
         }
@@ -75,7 +90,7 @@ const CreatePost = () => {
         setCategories(categoryData);
       } catch (error) {
         console.error("데이터 로딩 오류:", error);
-        alert("데이터를 불러오는 중 오류가 발생했습니다.");
+        toast.error("데이터를 불러오는 중 오류가 발생했습니다.");
       }
     };
 
@@ -84,6 +99,8 @@ const CreatePost = () => {
 
   /**
    * 🔄 폼 데이터 변경 처리
+   *
+   * @param {React.ChangeEvent<HTMLInputElement | HTMLSelectElement>} e - 폼 입력 이벤트
    */
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -92,6 +109,8 @@ const CreatePost = () => {
 
   /**
    * 📂 파일 선택 처리
+   *
+   * @param {React.ChangeEvent<HTMLInputElement>} e - 파일 선택 이벤트
    */
   const handleFileChange = (e) => {
     setSelectedFile(e.target.files[0]);
@@ -99,16 +118,32 @@ const CreatePost = () => {
 
   /**
    * 📝 게시글 생성 처리
+   *
+   * 게시글을 생성하기 전에 다음 사항들을 확인합니다:
+   * - 사용자가 로그인 되어 있는지
+   * - 필수 입력 필드인 제목, 카테고리, 내용이 채워져 있는지
+   *
+   * 게시글 내용이 비어 있을 경우, 구체적인 경고 메시지를 Toast로 표시하고 제출을 중단합니다.
+   * 파일이 첨부된 경우, Firebase Storage에 업로드 후 다운로드 URL을 포함합니다.
+   *
+   * @param {React.FormEvent<HTMLFormElement>} e - 폼 제출 이벤트
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setUploading(true);
 
+    // 내용 필드가 비어 있거나 기본 빈 에디터 내용일 경우 구체적인 경고 메시지 표시
+    if (!formData.content || formData.content === "<p></p>") {
+      toast.error("내용을 입력해주세요.");
+      setUploading(false);
+      return;
+    }
+
     let fileUrl = null;
 
     try {
       if (!memberId) {
-        alert("로그인이 필요합니다.");
+        toast.error("로그인이 필요합니다.");
         navigate("/login");
         return;
       }
@@ -127,11 +162,11 @@ const CreatePost = () => {
 
       const response = await ForumApi.createPost(postData);
 
-      alert("게시글이 성공적으로 생성되었습니다!");
+      toast.success("게시글이 성공적으로 생성되었습니다!");
       navigate(`/forum/post/${response.id}`);
     } catch (error) {
       console.error("게시글 생성 중 오류:", error);
-      alert("게시글 생성에 실패했습니다.");
+      toast.error("게시글 생성에 실패했습니다.");
     } finally {
       setUploading(false);
     }
@@ -139,6 +174,10 @@ const CreatePost = () => {
 
   /**
    * 🔗 링크 추가 모달 열기
+   *
+   * 링크 추가 모달을 열어 사용자가 에디터에 링크를 추가할 수 있도록 합니다.
+   *
+   * @param {React.MouseEvent<HTMLButtonElement>} e - 버튼 클릭 이벤트
    */
   const openLinkModal = (e) => {
     e.preventDefault(); // 🚀 **이걸 추가하면 버튼 클릭 시 form이 제출되지 않음**
@@ -147,6 +186,10 @@ const CreatePost = () => {
 
   /**
    * 🔗 링크 추가 확인 처리
+   *
+   * 사용자가 모달에 입력한 링크를 에디터에 적용합니다.
+   *
+   * @param {string} url - 추가할 링크 URL
    */
   const handleAddLink = (url) => {
     if (!url) return;
