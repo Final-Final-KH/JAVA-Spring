@@ -18,7 +18,7 @@ const FeedApi = {
    */
   fetchFeeds: async (page, size = 10, memberId) => {
     try {
-      // Change currentMemberId -> memberId so that the backend receives it
+      // memberId를 전달하여 백엔드에서 각 피드의 좋아요 상태(liked)를 올바르게 설정하도록 함
       const response = await AxiosInstance.get(`/api/feeds`, {
         params: { page, size, memberId },
       });
@@ -39,7 +39,7 @@ const FeedApi = {
    */
   getFeedById: async (feedId, memberId) => {
     try {
-      // Change currentMemberId -> memberId so that backend mapping works correctly
+      // memberId를 전달하여 백엔드에서 피드의 좋아요 상태(liked)를 설정하도록 함
       const response = await AxiosInstance.get(`/api/feeds/${feedId}`, {
         params: { memberId },
       });
@@ -217,7 +217,7 @@ const FeedApi = {
    */
   likeComment: async (commentId, memberId) => {
     try {
-      // 좋아요는 POST 메소드로 호출
+      // 댓글 좋아요는 POST 메소드로 호출
       await AxiosInstance.post(`/api/feeds/comments/${commentId}/like`, null, {
         params: { memberId },
       });
@@ -234,7 +234,7 @@ const FeedApi = {
    */
   unlikeComment: async (commentId, memberId) => {
     try {
-      // unlike는 DELETE 메소드로 호출 (405 에러 방지를 위해)
+      // 댓글 좋아요 취소는 DELETE 메소드로 호출
       await AxiosInstance.delete(`/api/feeds/comments/${commentId}/like`, {
         params: { memberId },
       });

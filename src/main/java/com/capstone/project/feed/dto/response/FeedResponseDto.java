@@ -1,5 +1,7 @@
 package com.capstone.project.feed.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,10 +13,13 @@ import java.util.List;
  * 피드 응답 데이터 전송 객체.
  * 이 DTO는 피드 데이터를 클라이언트로 전송할 때 사용되며,
  * 피드 내용, 작성자 정보, 좋아요 수 등과 함께 현재 사용자가 해당 피드를 좋아요 했는지를 나타내는 liked 필드를 포함한다.
+ *
+ * 순환참조를 방지하기 위해 @JsonIdentityInfo를 사용한다.
  */
 @Getter
 @Setter
 @Builder
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "feedId")
 public class FeedResponseDto {
     private Integer feedId;             // 피드 ID
     private Integer memberId;           // 작성자 ID

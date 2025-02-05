@@ -10,7 +10,7 @@ import imgLogo1 from "../../images/RefreshButton.png";
 import imgLogo2 from "../../images/DeveloperMark.jpg";
 import imgLogo3 from "../../images/PictureButton.png";
 
-// 스타일 컴포넌트 임포트
+// 스타일 컴포넌트 임포트 (스타일 관련 코드는 변경하지 않음)
 import {
   LayoutContainer,
   ProfileSection,
@@ -57,8 +57,11 @@ import {
 } from "../../styles/FeedStyles";
 
 /**
- * Recursively update a comment (or nested reply) in an array.
- * The third parameter (updatedData) may be an object or a function that returns an update object.
+ * 재귀적으로 댓글(또는 대댓글)을 업데이트한다.
+ * @param {Array} comments - 댓글 배열
+ * @param {number} commentId - 업데이트할 댓글 ID
+ * @param {object|function} updatedData - 업데이트 데이터 객체 또는 함수를 전달
+ * @returns {Array} 업데이트된 댓글 배열
  */
 const updateCommentRecursively = (comments, commentId, updatedData) => {
   return comments.map((comment) => {
@@ -82,7 +85,10 @@ const updateCommentRecursively = (comments, commentId, updatedData) => {
 };
 
 /**
- * Merge two feed objects.
+ * 두 피드 객체를 병합한다.
+ * @param {object} oldFeed - 기존 피드 데이터
+ * @param {object} newFeed - 새로 가져온 피드 데이터
+ * @returns {object} 병합된 피드 데이터
  */
 const mergeFeedData = (oldFeed, newFeed) => {
   return {
@@ -94,15 +100,32 @@ const mergeFeedData = (oldFeed, newFeed) => {
 };
 
 /**
- * Recursively render nested replies.
- * Note: We now pass down "commentLikeLoading" so that nested replies can disable their like button when needed.
+ * 대댓글을 재귀적으로 렌더링한다.
+ * (답글 또한 댓글과 같은 로직으로 좋아요 상태가 처리된다)
+ * @param {Array} replies - 대댓글 배열
+ * @param {number} parentFeedId - 상위 피드 ID
+ * @param {number} memberId - 현재 사용자 ID
+ * @param {object} likedComments - 댓글 및 대댓글의 좋아요 상태 객체
+ * @param {object} commentLikeLoading - 좋아요 처리 중 상태 객체
+ * @param {function} handleCommentLike - 댓글 좋아요/취소 처리 함수
+ * @param {function} toggleReplyInput - 답글 입력 토글 함수
+ * @param {object} showReplyInput - 답글 입력창 표시 상태 객체
+ * @param {object} replyInputs - 답글 입력값 상태 객체
+ * @param {function} setReplyInputs - 답글 입력값 업데이트 함수
+ * @param {function} handleReplySubmit - 답글 제출 처리 함수
+ * @param {function} startEditingComment - 댓글 수정 시작 함수
+ * @param {number|null} editingCommentId - 현재 수정 중인 댓글 ID
+ * @param {string} editingCommentContent - 수정 중인 댓글 내용
+ * @param {function} setEditingCommentContent - 수정 중인 댓글 내용 업데이트 함수
+ * @param {function} submitCommentEdit - 댓글 수정 제출 함수
+ * @returns {JSX.Element} 대댓글 렌더링 JSX
  */
 const renderReplies = (
   replies,
   parentFeedId,
   memberId,
   likedComments,
-  commentLikeLoading, // new parameter
+  commentLikeLoading,
   handleCommentLike,
   toggleReplyInput,
   showReplyInput,
@@ -117,74 +140,55 @@ const renderReplies = (
 ) => {
   return (
     <ReplyContainer>
-      {(replies || []).map((reply, idx) => (
-        <CommentCard
-          key={reply.commentId || idx}
-          style={{
-            padding: "10px",
-            borderBottom: "1px solid #eee",
-            display: "flex",
-            flexDirection: "column",
-            gap: "5px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <img
-              src={reply.profilePictureUrl || imgLogo2}
-              alt="답글 작성자 이미지"
-              style={{
-                width: "25px",
-                height: "25px",
-                borderRadius: "50%",
-                marginRight: "8px",
-              }}
-            />
-            <span style={{ fontWeight: "bold", fontSize: "13px" }}>
-              {reply.memberName || "Unknown"}
-            </span>
-          </div>
-          {editingCommentId === reply.commentId ? (
-            <div>
-              <CommentInput
-                type="text"
-                value={editingCommentContent}
-                onChange={(e) => setEditingCommentContent(e.target.value)}
-                placeholder="댓글 수정..."
+      {(replies || []).map((reply, idx) => {
+        // Log the reply's ID and its current liked status
+        console.log(
+          "Rendering reply:",
+          reply.commentId,
+          "liked status:",
+          likedComments[reply.commentId]
+        );
+        return (
+          <CommentCard
+            key={reply.commentId || idx}
+            style={{
+              padding: "10px",
+              borderBottom: "1px solid #eee",
+              display: "flex",
+              flexDirection: "column",
+              gap: "5px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <img
+                src={reply.profilePictureUrl || imgLogo2}
+                alt="답글 작성자 이미지"
+                style={{
+                  width: "25px",
+                  height: "25px",
+                  borderRadius: "50%",
+                  marginRight: "8px",
+                }}
               />
-              <button onClick={submitCommentEdit}>저장</button>
-              <button onClick={() => startEditingComment(null)}>취소</button>
+              <span style={{ fontWeight: "bold", fontSize: "13px" }}>
+                {reply.memberName || "Unknown"}
+              </span>
             </div>
-          ) : (
-            <div style={{ fontSize: "13px" }}>{reply.comment}</div>
-          )}
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button
-              style={{
-                border: "none",
-                background: "transparent",
-                color: "#0073b1",
-                fontSize: "12px",
-                cursor: "pointer",
-              }}
-              onClick={() => handleCommentLike(reply.commentId, parentFeedId)}
-              disabled={commentLikeLoading[reply.commentId]}
-            >
-              {likedComments[reply.commentId] ? "Unlike" : "Like"} (
-              {reply.likesCount != null ? reply.likesCount : 0})
-            </button>
-            <button
-              style={{
-                border: "none",
-                background: "transparent",
-                color: "#0073b1",
-                fontSize: "12px",
-                cursor: "pointer",
-              }}
-              onClick={() => toggleReplyInput(reply.commentId)}
-            >
-              Reply
-            </button>
-            {reply.memberId === memberId && (
+            {editingCommentId === reply.commentId ? (
+              <div>
+                <CommentInput
+                  type="text"
+                  value={editingCommentContent}
+                  onChange={(e) => setEditingCommentContent(e.target.value)}
+                  placeholder="댓글 수정..."
+                />
+                <button onClick={submitCommentEdit}>저장</button>
+                <button onClick={() => startEditingComment(null)}>취소</button>
+              </div>
+            ) : (
+              <div style={{ fontSize: "13px" }}>{reply.comment}</div>
+            )}
+            <div style={{ display: "flex", gap: "10px" }}>
               <button
                 style={{
                   border: "none",
@@ -193,95 +197,113 @@ const renderReplies = (
                   fontSize: "12px",
                   cursor: "pointer",
                 }}
-                onClick={() => startEditingComment(reply)}
+                onClick={() => handleCommentLike(reply.commentId, parentFeedId)}
+                disabled={commentLikeLoading[reply.commentId]}
               >
-                수정
+                {likedComments[reply.commentId] ? "Unlike" : "Like"} (
+                {reply.likesCount != null ? reply.likesCount : 0})
               </button>
-            )}
-          </div>
-          {showReplyInput[reply.commentId] && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                marginTop: "5px",
-              }}
-            >
-              <CommentInput
-                type="text"
-                placeholder="답글 추가..."
-                value={replyInputs[reply.commentId] || ""}
-                onChange={(e) =>
-                  setReplyInputs((prev) => ({
-                    ...prev,
-                    [reply.commentId]: e.target.value,
-                  }))
-                }
-                onKeyDown={(e) => {
-                  if (e.key === "Enter")
-                    handleReplySubmit(reply.commentId, parentFeedId);
-                }}
-              />
               <button
-                style={{ padding: "5px", fontSize: "12px", cursor: "pointer" }}
-                onClick={() => handleReplySubmit(reply.commentId, parentFeedId)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: "#0073b1",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                }}
+                onClick={() => toggleReplyInput(reply.commentId)}
               >
-                Send
+                Reply
               </button>
+              {reply.memberId === memberId && (
+                <button
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "#0073b1",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => startEditingComment(reply)}
+                >
+                  수정
+                </button>
+              )}
             </div>
-          )}
-          {reply.replies &&
-            reply.replies.length > 0 &&
-            renderReplies(
-              reply.replies,
-              parentFeedId,
-              memberId,
-              likedComments,
-              commentLikeLoading, // pass it along
-              handleCommentLike,
-              toggleReplyInput,
-              showReplyInput,
-              replyInputs,
-              setReplyInputs,
-              handleReplySubmit,
-              startEditingComment,
-              editingCommentId,
-              editingCommentContent,
-              setEditingCommentContent,
-              submitCommentEdit
+            {showReplyInput[reply.commentId] && (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  marginTop: "5px",
+                }}
+              >
+                <CommentInput
+                  type="text"
+                  placeholder="답글 추가..."
+                  value={replyInputs[reply.commentId] || ""}
+                  onChange={(e) =>
+                    setReplyInputs((prev) => ({
+                      ...prev,
+                      [reply.commentId]: e.target.value,
+                    }))
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter")
+                      handleReplySubmit(reply.commentId, parentFeedId);
+                  }}
+                />
+                <button
+                  style={{
+                    padding: "5px",
+                    fontSize: "12px",
+                    cursor: "pointer",
+                  }}
+                  onClick={() =>
+                    handleReplySubmit(reply.commentId, parentFeedId)
+                  }
+                >
+                  Send
+                </button>
+              </div>
             )}
-        </CommentCard>
-      ))}
+            {reply.replies &&
+              reply.replies.length > 0 &&
+              renderReplies(
+                reply.replies,
+                parentFeedId,
+                memberId,
+                likedComments,
+                commentLikeLoading,
+                handleCommentLike,
+                toggleReplyInput,
+                showReplyInput,
+                replyInputs,
+                setReplyInputs,
+                handleReplySubmit,
+                startEditingComment,
+                editingCommentId,
+                editingCommentContent,
+                setEditingCommentContent,
+                submitCommentEdit
+              )}
+          </CommentCard>
+        );
+      })}
     </ReplyContainer>
   );
-};
-
-/**
- * Helper to find an updated comment by its id from an array of comments.
- */
-const findCommentById = (comments, commentId) => {
-  for (let comment of comments) {
-    if (comment.commentId === commentId) {
-      return comment;
-    }
-    if (comment.replies && comment.replies.length > 0) {
-      const found = findCommentById(comment.replies, commentId);
-      if (found) return found;
-    }
-  }
-  return null;
 };
 
 /**
  * Feed 컴포넌트
  */
 function Feed() {
-  // Set page background color.
+  // 페이지 배경색 설정
   useEffect(() => {
     document.body.style.backgroundColor = "#f5f6f7";
   }, []);
 
-  // Feed and related state.
+  // 피드 및 관련 상태
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
@@ -293,7 +315,7 @@ function Feed() {
   const [memberId, setMemberId] = useState(null);
   const [memberData, setMemberData] = useState(null);
 
-  // Feed, comment, and like states.
+  // 피드, 댓글, 좋아요 상태
   const [likedPosts, setLikedPosts] = useState({});
   const [likeLoading, setLikeLoading] = useState({});
   const [showCommentInput, setShowCommentInput] = useState({});
@@ -304,22 +326,22 @@ function Feed() {
   const [showReplyInput, setShowReplyInput] = useState({});
   const [replyInputs, setReplyInputs] = useState({});
 
-  // New state for tracking comment/reply like actions.
+  // 댓글/대댓글 좋아요 처리 중 상태
   const [commentLikeLoading, setCommentLikeLoading] = useState({});
 
-  // Edit mode states.
+  // 수정 모드 상태
   const [editingFeedId, setEditingFeedId] = useState(null);
   const [editingFeedContent, setEditingFeedContent] = useState("");
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
 
-  // Profile context.
+  // 프로필 컨텍스트
   const { profileInfo } = useProfile();
   useEffect(() => {
     console.log("Profile 정보:", profileInfo);
   }, [profileInfo]);
 
-  // Fetch current user info.
+  // 현재 사용자 정보 가져오기
   const fetchMemberData = async () => {
     try {
       const userInfo = await getUserInfo();
@@ -343,7 +365,7 @@ function Feed() {
     fetchMemberData();
   }, []);
 
-  // Fetch feed posts.
+  // 피드 게시물 가져오기
   const fetchFeedPosts = async () => {
     if (!memberId) return;
     setLoading(true);
@@ -351,7 +373,7 @@ function Feed() {
       const data = await FeedApi.fetchFeeds(page, 10, memberId);
       if (data.length === 0) setHasMore(false);
       setPosts((prevPosts) => [...prevPosts, ...data]);
-      // Update feed like states.
+      // 피드 좋아요 상태 업데이트
       setLikedPosts((prev) => {
         const newLiked = { ...prev };
         data.forEach((post) => {
@@ -359,13 +381,14 @@ function Feed() {
         });
         return newLiked;
       });
-      // Update comment like states.
+      // 댓글 좋아요 상태 업데이트 (직접 연결된 댓글)
       setLikedComments((prev) => {
         const newLikedComments = { ...prev };
         data.forEach((post) => {
           if (post.comments && Array.isArray(post.comments)) {
             post.comments.forEach((comment) => {
               newLikedComments[comment.commentId] = comment.liked || false;
+              // (답글은 재귀적으로 처리됨)
               if (comment.replies && Array.isArray(comment.replies)) {
                 comment.replies.forEach((reply) => {
                   newLikedComments[reply.commentId] = reply.liked || false;
@@ -387,7 +410,7 @@ function Feed() {
     fetchFeedPosts();
   }, [page, memberId]);
 
-  // Intersection Observer for infinite scroll.
+  // 무한 스크롤용 Intersection Observer
   const lastPostElementRef = (node) => {
     if (loading) return;
     if (observer.current) observer.current.disconnect();
@@ -399,7 +422,7 @@ function Feed() {
     if (node) observer.current.observe(node);
   };
 
-  // Create a feed post.
+  // 피드 작성 처리
   const handleCreateFeed = async () => {
     if (!newFeed.trim() && !image) return;
     const data = { memberId, content: newFeed, mediaUrl: image };
@@ -415,7 +438,7 @@ function Feed() {
     }
   };
 
-  // Save a feed post.
+  // 피드 저장 처리
   const handleSaveFeed = async (feedId) => {
     try {
       await FeedApi.saveFeed(feedId);
@@ -426,7 +449,7 @@ function Feed() {
     }
   };
 
-  // Refresh feeds.
+  // 피드 새로고침 처리
   const handleRefreshFeeds = () => {
     setRefreshing(true);
     setPage(0);
@@ -436,7 +459,7 @@ function Feed() {
     setTimeout(() => setRefreshing(false), 300);
   };
 
-  // Handle image upload.
+  // 이미지 업로드 처리
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -448,7 +471,12 @@ function Feed() {
     }
   };
 
-  // Feed post like/unlike (pessimistic approach).
+  /**
+   * 피드 게시글 좋아요/취소 처리 (비관적 업데이트)
+   * - 현재 likedPosts 상태에 따라 POST (like) 또는 DELETE (unlike) API 호출
+   * - 호출 후, getFeedById로 피드 데이터를 다시 받아와서 상태를 업데이트한다.
+   * @param {number} feedId - 피드 ID
+   */
   const handleLike = async (feedId) => {
     if (likeLoading[feedId]) return;
     setLikeLoading((prev) => ({ ...prev, [feedId]: true }));
@@ -474,7 +502,10 @@ function Feed() {
     }
   };
 
-  // Toggle comment input visibility.
+  /**
+   * 댓글 입력창 토글 처리
+   * @param {number} feedId - 피드 ID
+   */
   const toggleCommentInput = (feedId) => {
     setShowCommentInput((prev) => ({
       ...prev,
@@ -482,12 +513,19 @@ function Feed() {
     }));
   };
 
-  // Update comment input.
+  /**
+   * 댓글 입력값 업데이트 처리
+   * @param {number} feedId - 피드 ID
+   * @param {string} value - 입력값
+   */
   const handleCommentInputChange = (feedId, value) => {
     setCommentInputs((prev) => ({ ...prev, [feedId]: value }));
   };
 
-  // Submit a new comment.
+  /**
+   * 새로운 댓글 제출 처리
+   * @param {number} feedId - 피드 ID
+   */
   const handleCommentSubmit = async (feedId) => {
     const comment = commentInputs[feedId];
     if (!comment || !comment.trim()) return;
@@ -530,17 +568,27 @@ function Feed() {
     }
   };
 
-  // Toggle repost input visibility.
+  /**
+   * 리포스트 입력창 토글 처리
+   * @param {number} feedId - 피드 ID
+   */
   const toggleRepostInput = (feedId) => {
     setShowRepostInput((prev) => ({ ...prev, [feedId]: !prev[feedId] }));
   };
 
-  // Update repost input.
+  /**
+   * 리포스트 입력값 업데이트 처리
+   * @param {number} feedId - 피드 ID
+   * @param {string} value - 입력값
+   */
   const handleRepostInputChange = (feedId, value) => {
     setRepostInputs((prev) => ({ ...prev, [feedId]: value }));
   };
 
-  // Submit a repost.
+  /**
+   * 리포스트 제출 처리
+   * @param {number} feedId - 피드 ID
+   */
   const handleRepostSubmit = async (feedId) => {
     const repostComment = repostInputs[feedId] || "";
     try {
@@ -554,31 +602,41 @@ function Feed() {
   };
 
   /**
-   * Toggle comment (or reply) like using a pessimistic approach.
-   * We re-fetch the entire feed for that post after the like/unlike API call
-   * to ensure the UI reflects the backend state.
-   * (Requires feedId to be passed along with commentId.)
+   * 댓글 또는 대댓글 좋아요 처리 (비관적 업데이트)
+   * - 댓글 및 대댓글 모두 같은 로직을 사용하며, API 호출 후 전체 피드를 재조회하여 상태를 업데이트한다.
+   * @param {number} commentId - 댓글 (또는 대댓글) ID
+   * @param {number} feedId - 해당 댓글이 속한 피드 ID
    */
   const handleCommentLike = async (commentId, feedId) => {
     if (commentLikeLoading[commentId]) return;
+    console.log(
+      "handleCommentLike: commentId",
+      commentId,
+      "current liked:",
+      likedComments[commentId]
+    );
     setCommentLikeLoading((prev) => ({ ...prev, [commentId]: true }));
     try {
       if (likedComments[commentId]) {
+        // 댓글 좋아요 취소: DELETE 호출
         await FeedApi.unlikeComment(commentId, memberId);
       } else {
+        // 댓글 좋아요 추가: POST 호출
         await FeedApi.likeComment(commentId, memberId);
       }
-      // Re-fetch updated feed data for this post.
+      // 피드 전체 데이터를 재조회하여 최신 상태를 가져온다.
       const updatedFeed = await FeedApi.getFeedById(feedId, memberId);
-      // Update the posts array for the updated feed.
-      setPosts((prevPosts) =>
-        prevPosts.map((post) =>
-          post.feedId === feedId ? mergeFeedData(post, updatedFeed) : post
-        )
-      );
-      // Extract the updated comment from the updated feed.
+      console.log("Updated feed after like toggle:", updatedFeed);
+
+      // 업데이트된 댓글 정보를 찾아 liked 상태를 업데이트
       const findCommentById = (comments, id) => {
         for (let comment of comments) {
+          console.log(
+            "Inspecting comment:",
+            comment.commentId,
+            "with replies:",
+            comment.replies
+          );
           if (comment.commentId === id) return comment;
           if (comment.replies) {
             const found = findCommentById(comment.replies, id);
@@ -588,10 +646,26 @@ function Feed() {
         return null;
       };
       const updatedComment = findCommentById(updatedFeed.comments, commentId);
-      if (updatedComment) {
+      console.log(
+        "Found updated comment for id",
+        commentId,
+        ":",
+        updatedComment
+      );
+      // If the API does not return a proper boolean, toggle the previous state manually.
+      if (updatedComment && typeof updatedComment.liked === "boolean") {
         setLikedComments((prev) => ({
           ...prev,
           [commentId]: updatedComment.liked,
+        }));
+      } else {
+        // Fallback: toggle manually (and log a warning)
+        console.warn(
+          "Updated comment liked value is undefined, toggling manually."
+        );
+        setLikedComments((prev) => ({
+          ...prev,
+          [commentId]: !prev[commentId],
         }));
       }
       toast.success("댓글 좋아요 상태가 변경되었습니다.");
@@ -603,12 +677,19 @@ function Feed() {
     }
   };
 
-  // Toggle reply input visibility.
+  /**
+   * 답글 입력창 토글 처리
+   * @param {number} commentId - 댓글(답글) ID
+   */
   const toggleReplyInput = (commentId) => {
     setShowReplyInput((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
   };
 
-  // Submit a reply.
+  /**
+   * 답글 제출 처리
+   * @param {number} commentId - 부모 댓글 ID (답글의 부모)
+   * @param {number} feedId - 피드 ID
+   */
   const handleReplySubmit = async (commentId, feedId) => {
     const reply = replyInputs[commentId];
     if (!reply || !reply.trim()) return;
@@ -637,7 +718,7 @@ function Feed() {
     }
   };
 
-  // Start editing a feed post.
+  // 피드 게시글 수정 시작
   const startEditingFeed = (feed) => {
     if (feed.memberId !== memberId) {
       toast.error("자신의 게시글만 수정할 수 있습니다.");
@@ -647,7 +728,7 @@ function Feed() {
     setEditingFeedContent(feed.content);
   };
 
-  // Submit feed edit.
+  // 피드 게시글 수정 제출
   const submitFeedEdit = async () => {
     if (!editingFeedContent.trim()) return;
     try {
@@ -671,7 +752,7 @@ function Feed() {
     }
   };
 
-  // Start editing a comment.
+  // 댓글 수정 시작
   const startEditingComment = (comment) => {
     if (!comment || comment.memberId !== memberId) {
       toast.error("자신의 댓글만 수정할 수 있습니다.");
@@ -681,7 +762,7 @@ function Feed() {
     setEditingCommentContent(comment.comment);
   };
 
-  // Submit comment edit.
+  // 댓글 수정 제출
   const submitCommentEdit = async () => {
     if (!editingCommentContent.trim()) return;
     try {
@@ -713,7 +794,7 @@ function Feed() {
 
   return (
     <LayoutContainer>
-      {/* Profile Section */}
+      {/* 프로필 섹션 */}
       <ProfileSection>
         <ProfileImage src={imgLogo2} alt="프로필 이미지" />
         <p>Email: {profileInfo.email}</p>
@@ -721,7 +802,7 @@ function Feed() {
       </ProfileSection>
 
       <FeedContainer>
-        {/* Create Feed Section */}
+        {/* 피드 작성 섹션 */}
         <CreateFeedContainer>
           <TextareaContainer>
             <textarea
@@ -745,7 +826,7 @@ function Feed() {
           <button onClick={handleCreateFeed}>피드 작성</button>
         </CreateFeedContainer>
 
-        {/* Refresh Button */}
+        {/* 새로고침 버튼 */}
         <RefreshButton onClick={handleRefreshFeeds}>
           <RefreshIcon
             className={refreshing ? "refreshing" : ""}
@@ -754,7 +835,7 @@ function Feed() {
           />
         </RefreshButton>
 
-        {/* Post List */}
+        {/* 피드 게시물 목록 */}
         <PostList>
           {(posts || []).map((post, index) => {
             const isLastPost = (posts || []).length === index + 1;
@@ -807,6 +888,7 @@ function Feed() {
                 )}
                 <hr />
                 <PostActions>
+                  {/* 피드 게시글 좋아요 처리 (직접 연결된 피드에 대해) */}
                   <ActionButton onClick={() => handleLike(post.feedId)}>
                     {likedPosts[post.feedId] ? "Unlike" : "Like"} (
                     {post.likesCount})
@@ -899,6 +981,7 @@ function Feed() {
                           </div>
                         )}
                         <div style={{ display: "flex", gap: "10px" }}>
+                          {/* 직접 연결된 댓글 좋아요 처리 */}
                           <button
                             style={{
                               border: "none",
@@ -956,7 +1039,7 @@ function Feed() {
                                 post.feedId,
                                 memberId,
                                 likedComments,
-                                commentLikeLoading, // pass the loading state
+                                commentLikeLoading,
                                 handleCommentLike,
                                 toggleReplyInput,
                                 showReplyInput,
@@ -1041,7 +1124,7 @@ function Feed() {
         </PostList>
       </FeedContainer>
 
-      {/* Friend Suggestions Section */}
+      {/* 친구 추천 섹션 */}
       <FriendsSection>
         <h2>친구 추천</h2>
         <FriendList>
@@ -1055,7 +1138,10 @@ function Feed() {
 }
 
 /**
- * Friend Suggestions Component.
+ * 친구 추천 컴포넌트
+ * @param {object} props - 컴포넌트 props
+ * @param {number} props.memberId - 현재 로그인한 사용자 ID
+ * @returns {JSX.Element} 친구 추천 목록 렌더링
  */
 function FriendSuggestions({ memberId }) {
   const [friendList, setFriendList] = useState([]);

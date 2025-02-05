@@ -28,6 +28,9 @@ import java.util.stream.Collectors;
 /**
  * 피드 서비스 클래스.
  * 피드 생성, 수정, 삭제, 리포스트, 좋아요 처리 등 피드와 관련된 모든 비즈니스 로직을 처리한다.
+ *
+ * KR: 여기서는 댓글 및 대댓글의 매핑 시 항상 재귀적으로 mapCommentWithReplies() 메소드를 호출하여
+ *     각 댓글의 좋아요 수와 좋아요 상태를 정확하게 계산하도록 한다.
  */
 @Service
 @Slf4j
@@ -124,7 +127,7 @@ public class FeedService {
 
     /**
      * 전체 피드를 조회한다.
-     * (추가: 현재 사용자(memberId)를 받아서 각 피드에 대해 좋아요 여부(liked)를 설정한다.)
+     * (현재 사용자(memberId)를 받아서 각 피드에 대해 좋아요 여부(liked)를 설정한다.)
      *
      * @param currentMemberId 현재 사용자 ID
      * @return 모든 피드를 FeedResponseDto 리스트로 반환
@@ -135,7 +138,7 @@ public class FeedService {
                 .stream()
                 .map(feed -> {
                     FeedResponseDto feedResponse = mapToResponseDto(feed, currentMemberId);
-                    // 댓글 매핑 (대댓글 포함)
+                    // KR: 댓글 매핑 시 재귀적으로 mapCommentWithReplies()를 호출하여 대댓글까지 정확히 매핑한다.
                     List<CommentResponseDto> commentsWithReplies = feed.getComments().stream()
                             .filter(comment -> comment.getParentComment() == null)
                             .map(comment -> mapCommentWithReplies(comment, currentMemberId))
@@ -148,7 +151,7 @@ public class FeedService {
 
     /**
      * 특정 피드를 조회한다.
-     * (추가: 현재 사용자(memberId)를 받아서 좋아요 여부(liked)를 설정한다.)
+     * (현재 사용자(memberId)를 받아서 좋아요 여부(liked)를 설정한다.)
      *
      * @param feedId          피드 ID
      * @param currentMemberId 현재 사용자 ID
@@ -213,6 +216,8 @@ public class FeedService {
      * Feed 엔티티를 FeedResponseDto로 변환한다.
      * 현재 사용자(currentMemberId)를 고려하여 좋아요 여부(liked)를 설정한다.
      *
+     * KR: 여기서 댓글들은 모두 mapCommentWithReplies() 메소드를 통해 재귀적으로 매핑된다.
+     *
      * @param feed            Feed 엔티티
      * @param currentMemberId 현재 사용자 ID
      * @return FeedResponseDto 객체
@@ -228,10 +233,11 @@ public class FeedService {
         String profilePictureUrl = memberResponse.getProfilePictureUrl();
         String authorName = memberResponse.getName();
 
-        // 좋아요 여부: 현재 사용자가 해당 피드를 좋아요 했는지 확인
+        // 현재 사용자가 피드를 좋아요 했는지 여부
         boolean liked = currentMemberId != null &&
                 feedLikeRepository.existsByFeed_FeedIdAndMemberId(feed.getFeedId(), currentMemberId);
 
+        // 댓글 매핑: 부모 댓글만 필터링한 후 재귀적으로 대댓글까지 매핑
         List<CommentResponseDto> commentsWithReplies = feed.getComments().stream()
                 .filter(comment -> comment.getParentComment() == null)
                 .map(comment -> mapCommentWithReplies(comment, currentMemberId))
@@ -262,24 +268,28 @@ public class FeedService {
      * 재귀적으로 댓글(및 대댓글)을 DTO로 변환한다.
      * 현재 사용자(currentMemberId)를 고려하여 좋아요 여부(liked)를 설정한다.
      *
+     * KR: 이 메소드는 각 댓글에 대해 프로필 사진, 이름, 좋아요 수, 좋아요 여부를 새로 계산하며,
+     *     만약 해당 댓글에 대댓글(replies)이 있다면 재귀적으로 동일한 처리를 진행한다.
+     *
      * @param comment         FeedComment 엔티티
      * @param currentMemberId 현재 사용자 ID
      * @return CommentResponseDto 객체
      */
     private CommentResponseDto mapCommentWithReplies(FeedComment comment, Integer currentMemberId) {
+        // 작성자 프로필 사진 및 이름 조회 (기본값 제공)
         String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
         if (profilePictureUrl == null || profilePictureUrl.isEmpty()) {
             profilePictureUrl = "https://example.com/default-profile-picture.jpg";
         }
-
-        Long likesCount = commentLikeRepository.countByComment_CommentId(comment.getCommentId());
         String memberName = memberService.getMemberProfile(comment.getMemberId()).getName();
 
-        // 좋아요 여부: 현재 사용자가 해당 댓글을 좋아요 했는지 확인
+        // 해당 댓글의 좋아요 수 계산
+        Long likesCount = commentLikeRepository.countByComment_CommentId(comment.getCommentId());
+        // 현재 사용자가 이 댓글을 좋아요 했는지 여부 계산
         boolean liked = currentMemberId != null &&
                 commentLikeRepository.existsByComment_CommentIdAndMemberId(comment.getCommentId(), currentMemberId);
 
-        // 재귀적으로 대댓글 매핑
+        // 재귀적으로 대댓글(자식 댓글) 매핑
         List<CommentResponseDto> replies = comment.getReplies().stream()
                 .map(reply -> mapCommentWithReplies(reply, currentMemberId))
                 .collect(Collectors.toList());
@@ -318,7 +328,7 @@ public class FeedService {
         }
     }
 
-    // 피드 좋아요 추가 및 취소 메서드는 그대로 두면 된다.
+    // 피드 좋아요 추가 및 취소 메서드는 그대로 유지한다.
     @Transactional
     public void likeFeed(Integer feedId, Integer memberId) {
         if (feedLikeRepository.existsByFeed_FeedIdAndMemberId(feedId, memberId)) {

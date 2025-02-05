@@ -1,5 +1,7 @@
 package com.capstone.project.feed.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import com.capstone.project.feed.entity.FeedComment;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,10 +16,13 @@ import java.util.stream.Collectors;
  * 이 DTO는 댓글 및 대댓글 데이터를 클라이언트로 전송할 때 사용되며,
  * 작성자 이름(memberName), 프로필 사진 URL, 댓글 내용, 생성/수정 시간,
  * 좋아요 수(likesCount)와 함께 현재 사용자가 해당 댓글을 좋아요 했는지를 나타내는 liked 필드를 포함한다.
+ *
+ * 순환참조를 방지하기 위해 @JsonIdentityInfo를 사용한다.
  */
 @Getter
 @Setter
 @Builder(toBuilder = true)
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "commentId")
 public class CommentResponseDto {
     private Integer commentId;             // 댓글 ID
     private Integer feedId;                // 피드 ID
@@ -106,7 +111,7 @@ public class CommentResponseDto {
                         true,
                         memberName,
                         likesCount, // 예시로 전달; 실제 좋아요 수는 개별로 계산 필요
-                        false // 기본값 false; 재귀 호출시 currentUser 정보가 필요하면 별도 처리
+                        false // 기본값 false; 재귀 호출시 currentMemberId 정보가 필요하면 별도 처리
                 ))
                 .collect(Collectors.toList())
                 : List.of();
