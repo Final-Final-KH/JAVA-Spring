@@ -70,3 +70,37 @@ h2 {
   font-weight: bold;
   color: #2e8b57;
 }
+
+/* 작은 화면에서 courseName만 보이도록 하기 위한 미디어 쿼리 */
+@media (max-width: 768px) {
+  .course-table th,
+  .course-table td {
+    font-size: 12px; /* 폰트 크기 줄임 */
+    padding: 8px; /* 테이블 셀 패딩을 줄임 */
+  }
+
+  /* 헤더를 숨김 */
+  .course-table thead {
+    display: none;
+  }
+
+  /* 전체 td를 숨김 */
+  .course-table td {
+    display: none;
+  }
+
+  /* 두 번째 열만 보이도록 */
+  .course-table td:nth-child(1) {
+    display: block;
+    font-weight: bold;
+  }
+
+  .course-table td:nth-child(1)::after {
+    content: " : ";
+  }
+
+  /* No data 메시지의 크기와 가독성 개선 */
+  .no-data {
+    font-size: 14px;
+  }
+}
