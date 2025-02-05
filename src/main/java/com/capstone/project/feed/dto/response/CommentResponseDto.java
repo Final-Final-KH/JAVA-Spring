@@ -10,28 +10,29 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 댓글 응답 데이터 전송 객체
- *
- * 이 DTO는 댓글 및 대댓글 데이터를 클라이언트로 전송할 때 사용된다.
- * 추가로 작성자 이름(memberName)을 포함하여 프론트엔드에서 올바른 이름을 표시할 수 있도록 한다.
+ * 댓글 응답 데이터 전송 객체.
+ * 이 DTO는 댓글 및 대댓글 데이터를 클라이언트로 전송할 때 사용되며,
+ * 작성자 이름(memberName), 프로필 사진 URL, 댓글 내용, 생성/수정 시간,
+ * 좋아요 수(likesCount)와 함께 현재 사용자가 해당 댓글을 좋아요 했는지를 나타내는 liked 필드를 포함한다.
  */
 @Getter
 @Setter
-@Builder(toBuilder = true) // toBuilder() 메서드 활성화
+@Builder(toBuilder = true)
 public class CommentResponseDto {
     private Integer commentId;             // 댓글 ID
     private Integer feedId;                // 피드 ID
     private Integer memberId;              // 작성자 ID
-    private String memberName;             // 작성자 이름 (추가된 필드)
+    private String memberName;             // 작성자 이름
     private String comment;                // 댓글 내용
     private LocalDateTime createdAt;       // 생성 시간
     private LocalDateTime updatedAt;       // 수정 시간
     private String profilePictureUrl;      // 작성자의 프로필 사진 URL
     private List<CommentResponseDto> replies; // 대댓글 리스트
     private Long likesCount;               // 댓글 좋아요 수
+    private boolean liked;                 // 현재 사용자가 이 댓글을 좋아요 했는지 여부
 
     /**
-     * Builder 패턴을 위한 생성자
+     * 모든 필드를 포함하는 생성자.
      *
      * @param commentId         댓글 ID
      * @param feedId            피드 ID
@@ -43,11 +44,12 @@ public class CommentResponseDto {
      * @param profilePictureUrl 작성자 프로필 사진 URL
      * @param replies           대댓글 리스트
      * @param likesCount        댓글 좋아요 수
+     * @param liked             현재 사용자가 좋아요 했는지 여부
      */
     @Builder
     public CommentResponseDto(Integer commentId, Integer feedId, Integer memberId, String memberName, String comment,
                               LocalDateTime createdAt, LocalDateTime updatedAt, String profilePictureUrl,
-                              List<CommentResponseDto> replies, Long likesCount) {
+                              List<CommentResponseDto> replies, Long likesCount, boolean liked) {
         this.commentId = commentId;
         this.feedId = feedId;
         this.memberId = memberId;
@@ -58,17 +60,19 @@ public class CommentResponseDto {
         this.profilePictureUrl = profilePictureUrl;
         this.replies = replies;
         this.likesCount = likesCount;
+        this.liked = liked;
     }
 
     /**
-     * FeedComment 엔티티에서 DTO로 변환 (대댓글 제외)
+     * FeedComment 엔티티에서 DTO로 변환 (대댓글 제외).
      *
      * @param comment           FeedComment 엔티티
      * @param profilePictureUrl 작성자 프로필 사진 URL
      * @param memberName        작성자 이름
      * @param likesCount        댓글 좋아요 수
+     * @param liked             현재 사용자가 좋아요 했는지 여부
      */
-    public CommentResponseDto(FeedComment comment, String profilePictureUrl, String memberName, Long likesCount) {
+    public CommentResponseDto(FeedComment comment, String profilePictureUrl, String memberName, Long likesCount, boolean liked) {
         this.commentId = comment.getCommentId();
         this.feedId = comment.getFeed().getFeedId();
         this.memberId = comment.getMemberId();
@@ -79,29 +83,30 @@ public class CommentResponseDto {
         this.profilePictureUrl = profilePictureUrl;
         this.replies = List.of(); // 기본적으로 빈 리스트
         this.likesCount = likesCount;
+        this.liked = liked;
     }
 
     /**
-     * FeedComment 엔티티에서 DTO로 변환 (대댓글 포함)
+     * FeedComment 엔티티에서 DTO로 변환 (대댓글 포함).
      *
      * @param comment           FeedComment 엔티티
      * @param profilePictureUrl 작성자 프로필 사진 URL
      * @param includeReplies    대댓글 포함 여부 (true이면 대댓글도 매핑)
      * @param memberName        작성자 이름
-     * @param likesCount        댓글 좋아요 수 (Service에서 전달받음)
+     * @param likesCount        댓글 좋아요 수
+     * @param liked             현재 사용자가 좋아요 했는지 여부
      */
-    public CommentResponseDto(FeedComment comment, String profilePictureUrl, boolean includeReplies, String memberName, Long likesCount) {
-        // 올바른 생성자 호출: memberName(작성자 이름)과 likesCount를 순서대로 전달한다.
-        this(comment, profilePictureUrl, memberName, likesCount);
-        // 대댓글 처리 로직: includeReplies가 true이면 대댓글 목록을 매핑, 아니면 빈 리스트 반환
+    public CommentResponseDto(FeedComment comment, String profilePictureUrl, boolean includeReplies, String memberName, Long likesCount, boolean liked) {
+        this(comment, profilePictureUrl, memberName, likesCount, liked);
         this.replies = includeReplies && comment.getReplies() != null
                 ? comment.getReplies().stream()
                 .map(reply -> new CommentResponseDto(
                         reply,
-                        profilePictureUrl, // 여기서는 동일한 프로필 사진과 작성자 이름을 사용
+                        profilePictureUrl, // 동일 프로필 사진 (실제 상황에서는 각 대댓글마다 가져와야 함)
                         true,
                         memberName,
-                        likesCount // 좋아요 수는 예시로 Service에서 전달받은 값을 사용; 실제로는 각 대댓글의 좋아요 수를 별도로 계산해야 할 수 있음
+                        likesCount, // 예시로 전달; 실제 좋아요 수는 개별로 계산 필요
+                        false // 기본값 false; 재귀 호출시 currentUser 정보가 필요하면 별도 처리
                 ))
                 .collect(Collectors.toList())
                 : List.of();

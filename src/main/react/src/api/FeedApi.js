@@ -13,16 +13,16 @@ const FeedApi = {
    *
    * @param {number} page - 현재 페이지 번호 (0부터 시작)
    * @param {number} size - 가져올 게시글 수 (기본값: 10)
-   * @param {number} currentMemberId - 현재 사용자의 회원 ID (좋아요 상태 판별용)
+   * @param {number} memberId - 현재 사용자의 회원 ID (좋아요 상태 판별용)
    * @returns {Promise<Array>} - 백엔드에서 반환한 FeedResponseDto 객체 배열을 반환한다.
    */
-  fetchFeeds: async (page, size = 10, currentMemberId) => {
+  fetchFeeds: async (page, size = 10, memberId) => {
     try {
+      // Change currentMemberId -> memberId so that the backend receives it
       const response = await AxiosInstance.get(`/api/feeds`, {
-        params: { page, size, currentMemberId },
+        params: { page, size, memberId },
       });
       console.log("API Response from `/api/feeds`", response.data);
-      // 백엔드가 배열 자체를 반환하므로 response.data를 그대로 반환한다.
       return response.data;
     } catch (error) {
       console.error("❌ 피드 가져오기 실패:", error);
@@ -34,13 +34,14 @@ const FeedApi = {
    * 특정 피드 조회
    *
    * @param {number} feedId - 조회할 피드 ID
-   * @param {number} currentMemberId - 현재 사용자의 회원 ID (좋아요 상태 판별용)
+   * @param {number} memberId - 현재 사용자의 회원 ID (좋아요 상태 판별용)
    * @returns {Promise<Object>} - 조회된 피드 데이터를 반환
    */
-  getFeedById: async (feedId, currentMemberId) => {
+  getFeedById: async (feedId, memberId) => {
     try {
+      // Change currentMemberId -> memberId so that backend mapping works correctly
       const response = await AxiosInstance.get(`/api/feeds/${feedId}`, {
-        params: { currentMemberId },
+        params: { memberId },
       });
       return response.data;
     } catch (error) {
@@ -216,6 +217,7 @@ const FeedApi = {
    */
   likeComment: async (commentId, memberId) => {
     try {
+      // 좋아요는 POST 메소드로 호출
       await AxiosInstance.post(`/api/feeds/comments/${commentId}/like`, null, {
         params: { memberId },
       });
@@ -228,10 +230,11 @@ const FeedApi = {
    * 댓글 좋아요 취소 API
    *
    * @param {number} commentId - 좋아요 취소할 댓글 ID
-   * @param {number} memberId - 좋아요 취소한 사용자 ID
+   * @param {number} memberId - 좋아요를 취소한 사용자 ID
    */
   unlikeComment: async (commentId, memberId) => {
     try {
+      // unlike는 DELETE 메소드로 호출 (405 에러 방지를 위해)
       await AxiosInstance.delete(`/api/feeds/comments/${commentId}/like`, {
         params: { memberId },
       });
@@ -271,11 +274,10 @@ const FeedApi = {
         params: { memberId },
       });
       console.log("Response from `/api/members/suggested`", response.data);
-      // response.data가 undefined이면 빈 배열([])를 반환
       return response.data || [];
     } catch (error) {
       console.error("❌ 친구 추천 가져오기 실패:", error);
-      return []; // 오류 발생 시 빈 배열을 반환
+      return [];
     }
   },
 };
