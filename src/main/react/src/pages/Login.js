@@ -1,5 +1,5 @@
 // Login.js
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AxiosInstance from "../axios/AxiosInstanse";
 import Common from "../utils/Common";
@@ -30,7 +30,14 @@ function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { loggedIn } = useContext(AuthContext);
+  const { isLoggedIn, loggedIn } = useContext(AuthContext);
+
+  // 로그인 상태 확인후 자동 리디렉션
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate("/feed");
+    }
+  }, [isLoggedIn, navigate]);
 
   // 일반 로그인 처리
   const handleSubmit = async (e) => {
