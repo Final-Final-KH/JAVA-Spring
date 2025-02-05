@@ -1,7 +1,9 @@
 {
   "files": {
+    
     "main.css": "/static/css/main.362afcb6.css",
     "main.js": "/static/js/main.9e306afb.js",
+
     "static/media/JobPost003.png": "/static/media/JobPost003.11843f88487c17131e1b.png",
     "static/media/JobPost006.png": "/static/media/JobPost006.d00bec914b28ab84171f.png",
     "static/media/JobPost007.png": "/static/media/JobPost007.51c26efcac711455723e.png",
@@ -26,5 +28,6 @@
   "entrypoints": [
     "static/css/main.362afcb6.css",
     "static/js/main.9e306afb.js"
+
   ]
 }

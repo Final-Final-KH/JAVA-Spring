@@ -17,133 +17,143 @@ import javax.persistence.EntityNotFoundException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-// 댓글 서비스
+/**
+ * 댓글 서비스 클래스.
+ * 댓글 및 대댓글의 추가, 수정, 삭제, 조회 및 좋아요 처리를 담당한다.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CommentService {
-    private final FeedRepository feedRepository; // Feed 엔티티와 상호작용하는 리포지토리
-    private final FeedCommentRepository feedCommentRepository; // FeedComment 엔티티와 상호작용하는 리포지토리
-    private final CommentLikeRepository commentLikeRepository; // 댓글 좋아요 관련 리포지토리
-    private final MemberService memberService; // 멤버 서비스
+    private final FeedRepository feedRepository;
+    private final FeedCommentRepository feedCommentRepository;
+    private final CommentLikeRepository commentLikeRepository;
+    private final MemberService memberService;
 
-    // 댓글 추가 또는 대댓글 추가
+    /**
+     * 댓글 또는 대댓글을 추가한다.
+     *
+     * @param feedId          댓글이 추가될 피드 ID
+     * @param requestDto      댓글 요청 DTO (댓글 내용 및 작성자 ID 포함)
+     * @param parentCommentId 부모 댓글 ID (대댓글일 경우; 없으면 null)
+     * @return 생성된 댓글의 CommentResponseDto 반환 (기본 liked=false)
+     */
     public CommentResponseDto addComment(Integer feedId, CommentRequestDto requestDto, Integer parentCommentId) {
-        // Feed 유효성 검증
         Feed feed = feedRepository.findById(feedId)
                 .orElseThrow(() -> new EntityNotFoundException("Feed not found with ID: " + feedId));
 
         FeedComment parentComment = null;
         if (parentCommentId != null) {
-            // 부모 댓글 유효성 검증
             parentComment = feedCommentRepository.findById(parentCommentId)
                     .orElseThrow(() -> new EntityNotFoundException("Parent comment not found with ID: " + parentCommentId));
         }
 
-        // FeedComment 객체 생성 및 저장
         FeedComment comment = FeedComment.builder()
-                .feed(feed) // 댓글이 속한 Feed 설정
-                .memberId(requestDto.getMemberId()) // 작성자 ID 설정
-                .comment(requestDto.getComment()) // 댓글 내용 설정
-                .parentComment(parentComment) // 부모 댓글 설정 (대댓글의 경우)
+                .feed(feed)
+                .memberId(requestDto.getMemberId())
+                .comment(requestDto.getComment())
+                .parentComment(parentComment)
                 .build();
 
-        feedCommentRepository.save(comment); // 댓글 저장
+        feedCommentRepository.save(comment);
         log.info("Comment added successfully: {}", comment);
 
-        // 작성자의 프로필 사진 URL 가져오기
         String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
+        String memberName = memberService.getMemberProfile(comment.getMemberId()).getName();
 
-        return new CommentResponseDto(
-                comment,
-                profilePictureUrl,
-                commentLikeRepository.countByComment_CommentId(comment.getCommentId()) // 좋아요 수 추가
-        ); // 저장된 댓글 반환
+        // currentMemberId not available here, so default liked to false.
+        return new CommentResponseDto(comment, profilePictureUrl, memberName,
+                commentLikeRepository.countByComment_CommentId(comment.getCommentId()), false);
     }
 
-    // 댓글 수정
+    /**
+     * 댓글을 수정한다.
+     *
+     * @param commentId  수정할 댓글 ID
+     * @param requestDto 수정 요청 DTO (새 댓글 내용)
+     * @return 수정된 댓글의 CommentResponseDto 반환 (liked는 기본 false)
+     */
     public CommentResponseDto editComment(Integer commentId, CommentRequestDto requestDto) {
-        // 댓글 유효성 검증
         FeedComment comment = feedCommentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found with ID: " + commentId));
 
-        comment.setComment(requestDto.getComment()); // 댓글 내용 수정
-        feedCommentRepository.save(comment); // 수정된 댓글 저장
+        comment.setComment(requestDto.getComment());
+        feedCommentRepository.save(comment);
         log.info("Comment edited successfully: {}", comment);
 
-        // 작성자의 프로필 사진 URL 가져오기
         String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
+        String memberName = memberService.getMemberProfile(comment.getMemberId()).getName();
 
-        return new CommentResponseDto(
-                comment,
-                profilePictureUrl,
-                commentLikeRepository.countByComment_CommentId(comment.getCommentId()) // 좋아요 수 추가
-        ); // 수정된 댓글 반환
+        return new CommentResponseDto(comment, profilePictureUrl, memberName,
+                commentLikeRepository.countByComment_CommentId(comment.getCommentId()), false);
     }
 
-    // 댓글 삭제
+    /**
+     * 댓글을 삭제한다.
+     *
+     * @param commentId 삭제할 댓글 ID
+     */
     public void deleteComment(Integer commentId) {
-        // Delete associated likes first
         commentLikeRepository.deleteByComment_CommentId(commentId);
-
-        // Then delete the comment
         FeedComment comment = feedCommentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found with ID: " + commentId));
         feedCommentRepository.delete(comment);
         log.info("Comment deleted successfully: {}", commentId);
     }
 
-    // 특정 피드의 댓글 조회 (대댓글 제외)
+    /**
+     * 특정 피드의 부모 댓글들을 조회한다.
+     *
+     * @param feedId 피드 ID
+     * @return 부모 댓글들의 CommentResponseDto 리스트 반환 (liked 기본 false)
+     */
     public List<CommentResponseDto> getCommentsByFeedId(Integer feedId) {
-        // Feed 유효성 검증
         Feed feed = feedRepository.findById(feedId)
                 .orElseThrow(() -> new EntityNotFoundException("Feed not found with ID: " + feedId));
 
-        // Feed에 연결된 모든 댓글 조회 (부모 댓글만)
         return feedCommentRepository.findByFeedAndParentCommentIsNull(feed)
                 .stream()
                 .map(comment -> {
                     String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
-                    return new CommentResponseDto(
-                            comment,
-                            profilePictureUrl,
-                            commentLikeRepository.countByComment_CommentId(comment.getCommentId()) // 좋아요 수 추가
-                    );
-                }) // FeedComment -> CommentResponseDto 변환
+                    String memberName = memberService.getMemberProfile(comment.getMemberId()).getName();
+                    return new CommentResponseDto(comment, profilePictureUrl, memberName,
+                            commentLikeRepository.countByComment_CommentId(comment.getCommentId()), false);
+                })
                 .collect(Collectors.toList());
     }
 
-    // 특정 댓글 조회 (좋아요 수 포함)
+    /**
+     * 특정 댓글을 조회한다.
+     *
+     * @param commentId 댓글 ID
+     * @return 해당 댓글의 CommentResponseDto 반환 (liked 기본 false)
+     */
     public CommentResponseDto getCommentWithLikes(Integer commentId) {
-        // 댓글 유효성 검증
         FeedComment comment = feedCommentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found with ID: " + commentId));
 
-        // 작성자의 프로필 사진 URL 가져오기
         String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
-
-        // 좋아요 수 가져오기
+        String memberName = memberService.getMemberProfile(comment.getMemberId()).getName();
         Long likesCount = commentLikeRepository.countByComment_CommentId(commentId);
-
-        return new CommentResponseDto(comment, profilePictureUrl, likesCount); // 댓글 반환
+        return new CommentResponseDto(comment, profilePictureUrl, memberName, likesCount, false);
     }
 
-    // 특정 회원의 모든 댓글 조회 (대댓글 포함, 중복 제거)
+    /**
+     * 특정 회원의 모든 댓글(대댓글 포함)을 조회하고 중복 제거한다.
+     *
+     * @param memberId 회원 ID
+     * @return 중복 제거된 CommentResponseDto 리스트 반환 (liked 기본 false)
+     */
     public List<CommentResponseDto> getCommentsByMemberId(Integer memberId) {
-        // 모든 댓글 조회
         List<CommentResponseDto> allComments = feedCommentRepository.findByMemberId(memberId).stream()
                 .map(comment -> {
                     String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
-                    return new CommentResponseDto(
-                            comment,
-                            profilePictureUrl,
-                            true,
-                            commentLikeRepository.countByComment_CommentId(comment.getCommentId()) // 좋아요 수 추가
-                    );
+                    String memberName = memberService.getMemberProfile(comment.getMemberId()).getName();
+                    return new CommentResponseDto(comment, profilePictureUrl, true, memberName,
+                            commentLikeRepository.countByComment_CommentId(comment.getCommentId()), false);
                 })
                 .collect(Collectors.toList());
 
-        // 중복 제거: 대댓글에 포함된 댓글을 상위 레벨에서 제거
         Set<Integer> replyIds = new HashSet<>();
         allComments.forEach(comment -> collectReplyIds(comment, replyIds));
 
@@ -152,38 +162,50 @@ public class CommentService {
                 .collect(Collectors.toList());
     }
 
-    // 대댓글 ID를 수집하는 재귀 메서드
+    /**
+     * 재귀적으로 대댓글의 ID를 수집한다.
+     *
+     * @param comment  현재 댓글 DTO
+     * @param replyIds 대댓글 ID를 저장할 Set
+     */
     private void collectReplyIds(CommentResponseDto comment, Set<Integer> replyIds) {
         if (comment.getReplies() != null && !comment.getReplies().isEmpty()) {
             for (CommentResponseDto reply : comment.getReplies()) {
-                replyIds.add(reply.getCommentId()); // 대댓글 ID 추가
-                collectReplyIds(reply, replyIds); // 재귀적으로 대댓글 처리
+                replyIds.add(reply.getCommentId());
+                collectReplyIds(reply, replyIds);
             }
         }
     }
 
-    // 댓글 좋아요
+    /**
+     * 댓글 좋아요를 처리한다.
+     *
+     * @param commentId 댓글 ID
+     * @param memberId  좋아요를 누른 회원 ID
+     */
     public void likeComment(Integer commentId, Integer memberId) {
-        // 댓글 유효성 검증
         FeedComment comment = feedCommentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found with ID: " + commentId));
 
-        // 이미 좋아요를 눌렀는지 확인
         if (commentLikeRepository.existsByComment_CommentIdAndMemberId(commentId, memberId)) {
             throw new IllegalArgumentException("Comment already liked by this member");
         }
 
-        // CommentLike 객체 생성 및 저장
         CommentLike like = CommentLike.builder()
-                .comment(comment) // 댓글 설정
-                .memberId(memberId) // 좋아요 누른 사용자 ID 설정
+                .comment(comment)
+                .memberId(memberId)
                 .build();
 
-        commentLikeRepository.save(like); // 좋아요 저장
+        commentLikeRepository.save(like);
         log.info("Comment liked: commentId={}, memberId={}", commentId, memberId);
     }
 
-    // 댓글 좋아요 취소
+    /**
+     * 댓글 좋아요 취소를 처리한다.
+     *
+     * @param commentId 댓글 ID
+     * @param memberId  좋아요 취소한 회원 ID
+     */
     public void unlikeComment(Integer commentId, Integer memberId) {
         FeedComment comment = feedCommentRepository.findById(commentId)
                 .orElseThrow(() -> new EntityNotFoundException("Comment not found with ID: " + commentId));
@@ -195,23 +217,24 @@ public class CommentService {
         log.info("Comment unliked: commentId={}, memberId={}", commentId, memberId);
     }
 
-    // 특정 피드의 댓글 및 대댓글 조회
+    /**
+     * 특정 피드의 부모 댓글 및 그 대댓글들을 조회한다.
+     *
+     * @param feedId 피드 ID
+     * @return 부모 댓글 및 대댓글이 포함된 CommentResponseDto 리스트 반환 (liked 기본 false)
+     */
     public List<CommentResponseDto> getCommentsByFeedIdWithReplies(Integer feedId) {
-        // Feed 유효성 검증
         Feed feed = feedRepository.findById(feedId)
                 .orElseThrow(() -> new EntityNotFoundException("Feed not found with ID: " + feedId));
 
-        // 부모 댓글만 반환 (parentComment가 null인 댓글)
-        return feedCommentRepository.findByFeedAndParentCommentIsNull(feed).stream()
+        return feedCommentRepository.findByFeedAndParentCommentIsNull(feed)
+                .stream()
                 .map(comment -> {
                     String profilePictureUrl = memberService.getMemberProfile(comment.getMemberId()).getProfilePictureUrl();
-                    return new CommentResponseDto(
-                            comment,
-                            profilePictureUrl,
-                            true,
-                            commentLikeRepository.countByComment_CommentId(comment.getCommentId()) // 좋아요 수 추가
-                    );
-                }) // 대댓글 포함
+                    String memberName = memberService.getMemberProfile(comment.getMemberId()).getName();
+                    return new CommentResponseDto(comment, profilePictureUrl, true, memberName,
+                            commentLikeRepository.countByComment_CommentId(comment.getCommentId()), false);
+                })
                 .collect(Collectors.toList());
     }
 }
