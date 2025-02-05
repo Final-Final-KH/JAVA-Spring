@@ -1,5 +1,6 @@
 package com.capstone.project.member.service;
 
+import com.capstone.project.jwt.repository.RefreshTokenRepository;
 import com.capstone.project.member.dto.request.MemberRequestDto;
 import com.capstone.project.member.dto.response.MemberResponseDto;
 import com.capstone.project.member.entity.Member;
@@ -18,6 +19,7 @@ import javax.persistence.EntityNotFoundException;
 public class MemberService {
 
     private final MemberRepository memberRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     // Fetch member profile
     public MemberResponseDto getMemberProfile(Integer memberId) {
@@ -60,9 +62,14 @@ public class MemberService {
     }
 
     // Delete member account
+    @Transactional
     public void deleteMember(Integer memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new EntityNotFoundException("Member not found with ID: " + memberId));
+
+        // 먼저 연관된 RefreshToken 삭제 (Integer -> Long으로 변환)
+        refreshTokenRepository.deleteByMemberId(memberId);
+
         memberRepository.delete(member);
     }
 
