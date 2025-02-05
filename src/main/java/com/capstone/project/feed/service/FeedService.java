@@ -103,6 +103,7 @@ public class FeedService {
         Feed originalFeed = feedRepository.findById(originalFeedId)
                 .orElseThrow(() -> new IllegalArgumentException("Feed not found with ID: " + originalFeedId));
 
+        // 리포스트할 경우, 만약 요청 DTO에 내용이 없으면 원본의 내용을 그대로 사용
         String repostContent = (requestDto.getContent() != null && !requestDto.getContent().isEmpty())
                 ? requestDto.getContent()
                 : originalFeed.getContent();
@@ -121,9 +122,11 @@ public class FeedService {
                 .build();
 
         feedRepository.save(repost);
-        // 리포스트 시에도 기본적으로 좋아요가 없으므로 liked=false
+
+        // In mapToResponseDto() below, we retrieve original poster info if this is a repost.
         return mapToResponseDto(repost, reposterId);
     }
+
 
     /**
      * 전체 피드를 조회한다.
@@ -225,19 +228,21 @@ public class FeedService {
     private FeedResponseDto mapToResponseDto(Feed feed, Integer currentMemberId) {
         MemberInfoDto originalPoster = null;
         if (feed.getRepostedFrom() != null) {
-            Feed originalFeed = feed.getRepostedFrom();
-            originalPoster = getMemberInfoById(originalFeed.getMemberId());
+            log.info("RepostedFrom exists for feed {}: {}", feed.getFeedId(), feed.getRepostedFrom());
+            // Retrieve original poster information
+            originalPoster = getMemberInfoById(feed.getRepostedFrom().getMemberId());
+            log.info("Original Poster info: {}", originalPoster);
+        } else {
+            log.info("Feed {} is not a repost (repostedFrom is null)", feed.getFeedId());
         }
 
         MemberResponseDto memberResponse = memberService.getMemberProfile(feed.getMemberId());
         String profilePictureUrl = memberResponse.getProfilePictureUrl();
         String authorName = memberResponse.getName();
 
-        // 현재 사용자가 피드를 좋아요 했는지 여부
         boolean liked = currentMemberId != null &&
                 feedLikeRepository.existsByFeed_FeedIdAndMemberId(feed.getFeedId(), currentMemberId);
 
-        // 댓글 매핑: 부모 댓글만 필터링한 후 재귀적으로 대댓글까지 매핑
         List<CommentResponseDto> commentsWithReplies = feed.getComments().stream()
                 .filter(comment -> comment.getParentComment() == null)
                 .map(comment -> mapCommentWithReplies(comment, currentMemberId))
@@ -256,13 +261,15 @@ public class FeedService {
                 .repostCreatedAt(feed.getRepostCreatedAt())
                 .mediaUrl(feed.getMediaUrl())
                 .profilePictureUrl(profilePictureUrl)
-                .originalPoster(originalPoster)
+                .originalPoster(originalPoster) // Original poster info if repost
                 .authorName(authorName)
                 .comments(commentsWithReplies)
-                .isRepost(feed.isRepost())
+                .isRepost(feed.getRepostedFrom() != null) // Use repostedFrom != null as the condition
                 .liked(liked)
                 .build();
     }
+
+
 
     /**
      * 재귀적으로 댓글(및 대댓글)을 DTO로 변환한다.

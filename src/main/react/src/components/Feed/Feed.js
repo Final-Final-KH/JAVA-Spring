@@ -42,6 +42,7 @@ import {
   MessageButton,
   PostActions,
   ActionButton,
+  EditButton, // New EditButton for editing controls
   CommentContainer,
   CommentInput,
   CommentInputContainer,
@@ -99,6 +100,16 @@ const mergeFeedData = (oldFeed, newFeed) => {
   };
 };
 
+const getOriginalPosterLabel = (originalPoster) => {
+  if (originalPoster) {
+    console.log("Original Poster exists:", originalPoster);
+    return `- ${originalPoster.name}`;
+  } else {
+    console.log("Original Poster is null or undefined");
+    return "";
+  }
+};
+
 /**
  * 대댓글을 재귀적으로 렌더링한다.
  * (답글 또한 댓글과 같은 로직으로 좋아요 상태가 처리된다)
@@ -141,7 +152,6 @@ const renderReplies = (
   return (
     <ReplyContainer>
       {(replies || []).map((reply, idx) => {
-        // Log the reply's ID and its current liked status
         console.log(
           "Rendering reply:",
           reply.commentId,
@@ -149,16 +159,7 @@ const renderReplies = (
           likedComments[reply.commentId]
         );
         return (
-          <CommentCard
-            key={reply.commentId || idx}
-            style={{
-              padding: "10px",
-              borderBottom: "1px solid #eee",
-              display: "flex",
-              flexDirection: "column",
-              gap: "5px",
-            }}
-          >
+          <CommentCard key={reply.commentId || idx}>
             <div style={{ display: "flex", alignItems: "center" }}>
               <img
                 src={reply.profilePictureUrl || imgLogo2}
@@ -182,8 +183,19 @@ const renderReplies = (
                   onChange={(e) => setEditingCommentContent(e.target.value)}
                   placeholder="댓글 수정..."
                 />
-                <button onClick={submitCommentEdit}>저장</button>
-                <button onClick={() => startEditingComment(null)}>취소</button>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    gap: "10px",
+                    marginTop: "5px",
+                  }}
+                >
+                  <EditButton onClick={submitCommentEdit}>저장</EditButton>
+                  <EditButton onClick={() => startEditingComment(null)}>
+                    취소
+                  </EditButton>
+                </div>
               </div>
             ) : (
               <div style={{ fontSize: "13px" }}>{reply.comment}</div>
@@ -253,18 +265,14 @@ const renderReplies = (
                       handleReplySubmit(reply.commentId, parentFeedId);
                   }}
                 />
-                <button
-                  style={{
-                    padding: "5px",
-                    fontSize: "12px",
-                    cursor: "pointer",
-                  }}
+                <EditButton
+                  style={{ padding: "5px", fontSize: "12px" }}
                   onClick={() =>
                     handleReplySubmit(reply.commentId, parentFeedId)
                   }
                 >
                   Send
-                </button>
+                </EditButton>
               </div>
             )}
             {reply.replies &&
@@ -298,7 +306,6 @@ const renderReplies = (
  * Feed 컴포넌트
  */
 function Feed() {
-  // 페이지 배경색 설정
   useEffect(() => {
     document.body.style.backgroundColor = "#f5f6f7";
   }, []);
@@ -334,6 +341,14 @@ function Feed() {
   const [editingFeedContent, setEditingFeedContent] = useState("");
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editingCommentContent, setEditingCommentContent] = useState("");
+
+  useEffect(() => {
+    posts.forEach((post) => {
+      if (post.isRepost) {
+        console.log("Repost detected:", post);
+      }
+    });
+  }, [posts]);
 
   // 프로필 컨텍스트
   const { profileInfo } = useProfile();
@@ -372,7 +387,12 @@ function Feed() {
     try {
       const data = await FeedApi.fetchFeeds(page, 10, memberId);
       if (data.length === 0) setHasMore(false);
-      setPosts((prevPosts) => [...prevPosts, ...data]);
+      setPosts((prevPosts) => {
+        const combined = [...prevPosts, ...data];
+        // 정렬: 최신 피드가 상단에 오도록 (createdAt 기준 내림차순)
+        combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        return combined;
+      });
       // 피드 좋아요 상태 업데이트
       setLikedPosts((prev) => {
         const newLiked = { ...prev };
@@ -388,7 +408,6 @@ function Feed() {
           if (post.comments && Array.isArray(post.comments)) {
             post.comments.forEach((comment) => {
               newLikedComments[comment.commentId] = comment.liked || false;
-              // (답글은 재귀적으로 처리됨)
               if (comment.replies && Array.isArray(comment.replies)) {
                 comment.replies.forEach((reply) => {
                   newLikedComments[reply.commentId] = reply.liked || false;
@@ -473,8 +492,6 @@ function Feed() {
 
   /**
    * 피드 게시글 좋아요/취소 처리 (비관적 업데이트)
-   * - 현재 likedPosts 상태에 따라 POST (like) 또는 DELETE (unlike) API 호출
-   * - 호출 후, getFeedById로 피드 데이터를 다시 받아와서 상태를 업데이트한다.
    * @param {number} feedId - 피드 ID
    */
   const handleLike = async (feedId) => {
@@ -592,7 +609,12 @@ function Feed() {
   const handleRepostSubmit = async (feedId) => {
     const repostComment = repostInputs[feedId] || "";
     try {
-      await FeedApi.repostFeed(feedId, memberId, { content: repostComment });
+      // Ensure the repost API returns original post info (e.g. isRepost, repostedFromContent, originalPosterName)
+      const repostResponse = await FeedApi.repostFeed(feedId, memberId, {
+        content: repostComment,
+      });
+      // Immediately add the new repost to the feed (it should include original post data)
+      setPosts((prevPosts) => [repostResponse, ...prevPosts]);
       setRepostInputs((prev) => ({ ...prev, [feedId]: "" }));
       toast.success("리포스트가 완료되었습니다!");
     } catch (error) {
@@ -603,7 +625,6 @@ function Feed() {
 
   /**
    * 댓글 또는 대댓글 좋아요 처리 (비관적 업데이트)
-   * - 댓글 및 대댓글 모두 같은 로직을 사용하며, API 호출 후 전체 피드를 재조회하여 상태를 업데이트한다.
    * @param {number} commentId - 댓글 (또는 대댓글) ID
    * @param {number} feedId - 해당 댓글이 속한 피드 ID
    */
@@ -618,17 +639,12 @@ function Feed() {
     setCommentLikeLoading((prev) => ({ ...prev, [commentId]: true }));
     try {
       if (likedComments[commentId]) {
-        // 댓글 좋아요 취소: DELETE 호출
         await FeedApi.unlikeComment(commentId, memberId);
       } else {
-        // 댓글 좋아요 추가: POST 호출
         await FeedApi.likeComment(commentId, memberId);
       }
-      // 피드 전체 데이터를 재조회하여 최신 상태를 가져온다.
       const updatedFeed = await FeedApi.getFeedById(feedId, memberId);
       console.log("Updated feed after like toggle:", updatedFeed);
-
-      // 업데이트된 댓글 정보를 찾아 liked 상태를 업데이트
       const findCommentById = (comments, id) => {
         for (let comment of comments) {
           console.log(
@@ -652,14 +668,12 @@ function Feed() {
         ":",
         updatedComment
       );
-      // If the API does not return a proper boolean, toggle the previous state manually.
       if (updatedComment && typeof updatedComment.liked === "boolean") {
         setLikedComments((prev) => ({
           ...prev,
           [commentId]: updatedComment.liked,
         }));
       } else {
-        // Fallback: toggle manually (and log a warning)
         console.warn(
           "Updated comment liked value is undefined, toggling manually."
         );
@@ -854,31 +868,45 @@ function Feed() {
                     <PostDate>{post.createdAt}</PostDate>
                   </AuthorDetails>
                   {post.memberId === memberId && (
-                    <button
+                    <EditButton
                       onClick={() => startEditingFeed(post)}
                       style={{ marginLeft: "auto" }}
                     >
                       수정
-                    </button>
+                    </EditButton>
                   )}
                 </PostHeader>
-                {post.isRepost && post.repostedFromContent && (
+                {post.originalPoster && (
                   <OriginalPostContainer>
-                    <OriginalPostHeader>원본 게시글</OriginalPostHeader>
+                    <OriginalPostHeader>
+                      원본 게시글 {getOriginalPosterLabel(post.originalPoster)}
+                    </OriginalPostHeader>
                     <OriginalPostContent>
-                      {post.repostedFromContent}
+                      {post.repostedFromContent || "내용이 없습니다."}
                     </OriginalPostContent>
                   </OriginalPostContainer>
                 )}
+
                 {editingFeedId === post.feedId ? (
                   <div>
-                    <textarea
+                    <CommentInput
                       value={editingFeedContent}
                       onChange={(e) => setEditingFeedContent(e.target.value)}
-                      rows="3"
+                      placeholder="게시글 수정..."
                     />
-                    <button onClick={submitFeedEdit}>저장</button>
-                    <button onClick={() => setEditingFeedId(null)}>취소</button>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        gap: "10px",
+                        marginTop: "5px",
+                      }}
+                    >
+                      <EditButton onClick={submitFeedEdit}>저장</EditButton>
+                      <EditButton onClick={() => setEditingFeedId(null)}>
+                        취소
+                      </EditButton>
+                    </div>
                   </div>
                 ) : (
                   <p>{post.content}</p>
@@ -888,7 +916,6 @@ function Feed() {
                 )}
                 <hr />
                 <PostActions>
-                  {/* 피드 게시글 좋아요 처리 (직접 연결된 피드에 대해) */}
                   <ActionButton onClick={() => handleLike(post.feedId)}>
                     {likedPosts[post.feedId] ? "Unlike" : "Like"} (
                     {post.likesCount})
@@ -970,10 +997,23 @@ function Feed() {
                               }
                               placeholder="댓글 수정..."
                             />
-                            <button onClick={submitCommentEdit}>저장</button>
-                            <button onClick={() => setEditingCommentId(null)}>
-                              취소
-                            </button>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "flex-end",
+                                gap: "10px",
+                                marginTop: "5px",
+                              }}
+                            >
+                              <EditButton onClick={submitCommentEdit}>
+                                저장
+                              </EditButton>
+                              <EditButton
+                                onClick={() => setEditingCommentId(null)}
+                              >
+                                취소
+                              </EditButton>
+                            </div>
                           </div>
                         ) : (
                           <div style={{ fontSize: "14px" }}>
@@ -981,7 +1021,6 @@ function Feed() {
                           </div>
                         )}
                         <div style={{ display: "flex", gap: "10px" }}>
-                          {/* 직접 연결된 댓글 좋아요 처리 */}
                           <button
                             style={{
                               border: "none",
@@ -1080,12 +1119,8 @@ function Feed() {
                                   );
                               }}
                             />
-                            <button
-                              style={{
-                                padding: "5px",
-                                fontSize: "12px",
-                                cursor: "pointer",
-                              }}
+                            <EditButton
+                              style={{ padding: "5px", fontSize: "12px" }}
                               onClick={() =>
                                 handleReplySubmit(
                                   comment.commentId,
@@ -1094,7 +1129,7 @@ function Feed() {
                               }
                             >
                               Send
-                            </button>
+                            </EditButton>
                           </div>
                         )}
                       </CommentCard>

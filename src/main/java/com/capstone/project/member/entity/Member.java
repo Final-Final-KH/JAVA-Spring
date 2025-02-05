@@ -1,7 +1,6 @@
 package com.capstone.project.member.entity;
 
 import javax.persistence.*;
-
 import com.capstone.project.jwt.entity.RefreshToken;
 import com.capstone.project.kedu.entity.board.*;
 import com.capstone.project.kedu.entity.comment.*;
@@ -17,8 +16,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 회원 Entity 클래스
- * 회원 정보를 데이터베이스에 저장하고 관리
+ * 회원(Entity) 클래스
+ * <p>
+ * 회원 정보를 데이터베이스에 저장 및 관리하는 엔티티 클래스입니다.
+ * </p>
  */
 @Entity
 @Table(name = "members")
@@ -35,7 +36,6 @@ public class Member {
     @Column(name = "member_id")
     private Integer id; // 회원 ID
 
-
     @Column(nullable = true, unique = true, length = 100)
     private String email; // 이메일 (로그인 ID)
 
@@ -43,7 +43,7 @@ public class Member {
     private String password; // 비밀번호 (OAuth 사용자는 NULL 가능)
 
     @Column(nullable = false, length = 50)
-    private String name; // 이름
+    private String name; // 사용자 이름
 
     @Column(name = "phone_number", unique = true, length = 15)
     private String phoneNumber; // 전화번호
@@ -69,7 +69,7 @@ public class Member {
 
     @Column(name = "show_company")
     @Builder.Default
-    private Boolean showCompany = false; // 회사 공개 여부
+    private Boolean showCompany = false; // 회사 공개 여부 (기본값: false)
 
     @Column(nullable = false)
     @Builder.Default
@@ -82,21 +82,8 @@ public class Member {
     @Column(name = "profile_picture_url", length = 255)
     private String profilePictureUrl; // 프로필 사진 URL
 
-    /**
-     * 엔티티 생성 이벤트 처리 (등록 시간 및 수정 시간 설정)
-     */
-    @PrePersist
-    protected void onCreate() {
-        this.registeredAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
+    // 연관 엔티티 매핑
 
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    // 연관 엔티티 설정 (CascadeType.ALL 및 orphanRemoval 설정 포함)
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<KeduBoardEntity2> boards = new ArrayList<>();
 
@@ -127,20 +114,43 @@ public class Member {
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<MyAcademyEntity2> myAcademy = new ArrayList<>();
 
+    /**
+     * 리프레시 토큰 매핑
+     * <p>
+     * 회원과 연관된 리프레시 토큰을 저장합니다.
+     * 회원이 삭제되면 해당 리프레시 토큰들도 함께 삭제됩니다.
+     * </p>
+     */
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RefreshToken> refreshTokens = new ArrayList<>();
 
     /**
+     * 친구 목록 (다대다 관계)
+     * <p>
+     * 한 회원이 여러 친구를 가질 수 있으며, 친구 목록은 회원이 삭제되어도 유지됩니다.
+     * </p>
+     */
+    @ManyToMany
+    @JoinTable(
+            name = "member_friends",
+            joinColumns = @JoinColumn(name = "member_id"),
+            inverseJoinColumns = @JoinColumn(name = "friend_id")
+    )
+    private List<Member> friends = new ArrayList<>();
+
+    /**
      * 사용자 역할 Enum
-     * USER: 일반 사용자
+     * <p>
+     * USER: 일반 사용자<br>
      * ADMIN: 관리자
+     * </p>
      */
     public enum Role {
         USER, ADMIN
     }
 
     /**
-     * 사용자 ID를 반환 (getMemberId 메서드 추가)
+     * 사용자 ID 반환 메서드
      *
      * @return Integer 사용자 ID
      */
@@ -148,20 +158,49 @@ public class Member {
         return this.id;
     }
 
+    /**
+     * 사용자 생성자 (빌더 패턴)
+     * <p>
+     * friends 필드를 빈 리스트로 초기화하여 NullPointerException을 방지합니다.
+     * </p>
+     *
+     * @param email              이메일
+     * @param password           비밀번호
+     * @param name               사용자 이름
+     * @param phoneNumber        전화번호
+     * @param role               사용자 역할
+     * @param currentCompany     현재 소속 회사
+     * @param showCompany        회사 공개 여부
+     * @param provider           OAuth 제공자
+     * @param providerId         OAuth 제공자로부터 받은 고유 ID
+     * @param profilePictureUrl  프로필 사진 URL
+     */
     @Builder
-    public Member(String email, String password, String name, String phoneNumber, Role role, String currentCompany, boolean showCompany, String provider, String providerId, String profilePictureUrl) {
+    public Member(
+            String email,
+            String password,
+            String name,
+            String phoneNumber,
+            Role role,
+            String currentCompany,
+            Boolean showCompany,
+            String provider,
+            String providerId,
+            String profilePictureUrl
+    ) {
         this.email = email;
         this.password = password;
         this.name = name;
         this.phoneNumber = phoneNumber;
-        this.role = role;
-        this.currentCompany = currentCompany;
-        this.showCompany = showCompany;
+        this.role = role != null ? role : Role.USER;
+        this.currentCompany = currentCompany != null ? currentCompany : "Unemployed";
+        this.showCompany = showCompany != null ? showCompany : false;
         this.provider = provider;
         this.providerId = providerId;
         this.profilePictureUrl = profilePictureUrl;
         this.registeredAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
+        this.friends = new ArrayList<>();
     }
 
     /**
@@ -171,5 +210,24 @@ public class Member {
      */
     public Member(Integer memberId) {
         this.id = memberId;
+    }
+
+    /**
+     * 등록 전 이벤트 핸들러
+     * 등록 시간과 수정 시간을 현재 시간으로 설정합니다.
+     */
+    @PrePersist
+    protected void onCreate() {
+        this.registeredAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * 수정 전 이벤트 핸들러
+     * 수정 시간을 현재 시간으로 갱신합니다.
+     */
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }

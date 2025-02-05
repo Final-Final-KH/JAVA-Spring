@@ -165,11 +165,17 @@ const FeedApi = {
    */
   repostFeed: async (feedId, reposterId, repostData) => {
     try {
-      await AxiosInstance.post(`/api/feeds/${feedId}/repost`, repostData, {
-        params: { reposterId },
-      });
+      const response = await AxiosInstance.post(
+        `/api/feeds/${feedId}/repost`,
+        repostData,
+        {
+          params: { reposterId },
+        }
+      );
+      return response.data; // Return the repost object from the backend
     } catch (error) {
       console.error("❌ 게시글 리포스트 실패:", error);
+      throw error;
     }
   },
 

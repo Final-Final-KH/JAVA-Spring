@@ -17,11 +17,7 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
-
 import javax.persistence.EntityNotFoundException;
 import javax.transaction.Transactional;
 import java.time.LocalDateTime;
@@ -30,6 +26,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * 인증 서비스 클래스
+ * <p>
+ * 회원 가입, 로그인, 토큰 재발급 등 인증 관련 로직을 처리합니다.
+ * </p>
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -42,12 +44,23 @@ public class AuthService {
     private final TokenProvider tokenProvider;
     private final AuthenticationManagerBuilder authenticationManagerBuilder;
 
-    // Check if the email is already registered
+    /**
+     * 이메일 등록 여부 확인
+     *
+     * @param email 확인할 이메일
+     * @return true: 등록됨, false: 미등록
+     */
     public boolean isEmailRegistered(String email) {
         return memberRepository.existsByEmail(email);
     }
 
-    // Register a new user
+    /**
+     * 회원 가입
+     *
+     * @param requestDto 회원 가입 요청 DTO
+     * @return 가입된 회원 정보 DTO
+     * @throws IllegalStateException 이미 등록된 이메일일 경우 예외 발생
+     */
     public MemberResponseDto signUp(MemberRequestDto requestDto) {
         if (memberRepository.existsByEmail(requestDto.getEmail())) {
             throw new IllegalStateException("이미 등록된 Email 입니다.");
@@ -58,25 +71,29 @@ public class AuthService {
                 .password(passwordEncoder.encode(requestDto.getPassword()))
                 .name(requestDto.getName())
                 .phoneNumber(requestDto.getPhoneNumber())
-                .currentCompany(requestDto.getCurrentCompany()) // Default value
-                .showCompany(requestDto.getShowCompany())           // Default visibility
+                .currentCompany(requestDto.getCurrentCompany()) // 기본값 사용
+                .showCompany(requestDto.getShowCompany())         // 공개 여부
                 .build();
 
         Member savedMember = memberRepository.save(member);
         return new MemberResponseDto(savedMember);
     }
 
-    // Authenticate and issue tokens
+    /**
+     * 로그인 및 토큰 발급
+     *
+     * @param loginDto 로그인 요청 DTO
+     * @return 발급된 토큰 DTO
+     * @throws RuntimeException 회원 정보를 찾을 수 없거나 리프레시 토큰 저장에 실패할 경우 예외 발생
+     */
     public TokenDto login(LoginRequestDto loginDto) {
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword());
         log.info("로그인 요청 - 이메일: {}", loginDto.getEmail());
 
         Authentication authentication = authenticationManagerBuilder.getObject().authenticate(authenticationToken);
-
         TokenDto loginToken = tokenProvider.generateTokenDto(authentication);
 
-        // 이메일을 사용해 Member를 데이터베이스에서 조회
         Member member = memberRepository.findByEmail(loginDto.getEmail())
                 .orElseThrow(() -> new RuntimeException("회원 정보를 찾을 수 없습니다."));
         try {
@@ -92,7 +109,13 @@ public class AuthService {
         return loginToken;
     }
 
-    // Refresh access token
+    /**
+     * 리프레시 토큰을 사용하여 새 액세스 토큰 생성
+     *
+     * @param refreshToken 리프레시 토큰
+     * @return 새 액세스 토큰 문자열
+     * @throws IllegalArgumentException 유효하지 않은 토큰일 경우 예외 발생
+     */
     public String createAccessToken(String refreshToken) {
         if (!tokenProvider.validateToken(refreshToken)) {
             throw new IllegalArgumentException("유효하지 않은 리프레시 토큰입니다.");
@@ -105,11 +128,17 @@ public class AuthService {
         return tokenProvider.generateAccessToken(authentication);
     }
 
+    /**
+     * OAuth2 로그인 처리
+     *
+     * @param loginDto OAuth2 로그인 요청 DTO
+     * @return 발급된 토큰 DTO
+     */
     public TokenDto OAuth2Login(OAuth2LoginRequestDto loginDto) {
         // 구글은 프로바이더 ID의 식별명이 sub 다. 하지만 프론트에서 프로바이더 id로 이름을 다시 붙여 보냈다.
         // 네이버는 프로바이더 ID의 식별명이 ID 다. 이것 또한 프론트에서 프로바이더 id로 이름을 다시 붙여 보냈다.
         Optional<Member> existingMember = memberRepository.findByProviderAndProviderId(loginDto.getProvider(), loginDto.getProviderId());
-        log.info(" 제 3자 로그인 요청 - 이메일: {}", loginDto.getEmail());
+        log.info("제 3자 로그인 요청 - 이메일: {}", loginDto.getEmail());
         Member member;
         if (existingMember.isPresent()) {
             //회원이 존재
@@ -147,6 +176,13 @@ public class AuthService {
 
     }
 
+    /**
+     * 리프레시 토큰을 사용하여 토큰 재발급
+     *
+     * @param refreshToken 리프레시 토큰
+     * @return 새 토큰 DTO
+     * @throws IllegalArgumentException 유효하지 않거나 존재하지 않는 토큰일 경우 예외 발생
+     */
     public TokenDto reissueAccessToken(String refreshToken) {
         log.info("토큰 재발급 요청 - 리프레시 토큰: {}", refreshToken);
 
@@ -173,9 +209,5 @@ public class AuthService {
                 LocalDateTime.now(ZoneId.of("Asia/Seoul")).plusDays(7));
 
         return newToken;
-
     }
-
-
 }
-

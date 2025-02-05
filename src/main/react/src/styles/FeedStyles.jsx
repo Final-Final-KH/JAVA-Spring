@@ -315,6 +315,12 @@ export const ActionButton = styled.button`
   }
 `;
 
+/** 🔹 편집 버튼 (저장, 취소 등 편집 관련 액션) */
+export const EditButton = styled(ActionButton)`
+  padding: 5px;
+  font-size: 12px;
+`;
+
 /** 🔹 댓글 입력 영역 */
 export const CommentContainer = styled.div`
   margin-top: 10px;
@@ -351,19 +357,20 @@ export const RepostSubmitButton = styled.button`
   }
 `;
 
-/** 🔹 원본 게시글 컨테이너 (리포스트된 경우) */
+/** 🔹 원본 게시글 컨테이너 (리포스트된 경우) - LinkedIn 스타일 미니 피드 */
 export const OriginalPostContainer = styled.div`
-  background: #f0f2f5;
-  padding: 8px;
-  border-radius: 5px;
-  margin-bottom: 10px;
+  background: #f3f6f8; /* light background for the mini feed */
+  border: 1px solid #d1d9e6; /* subtle border */
+  border-radius: 8px;
+  padding: 10px;
+  margin: 10px 0;
 `;
 
 /** 🔹 원본 게시글 헤더 */
 export const OriginalPostHeader = styled.div`
-  font-size: 12px;
+  font-size: 14px;
   font-weight: bold;
-  color: #555;
+  color: #0073b1;
   margin-bottom: 5px;
 `;
 
@@ -371,6 +378,7 @@ export const OriginalPostHeader = styled.div`
 export const OriginalPostContent = styled.div`
   font-size: 14px;
   color: #333;
+  line-height: 1.4;
 `;
 
 /** 🔹 댓글 입력 컨테이너 - 입력 필드와 제출 버튼 포함 */
