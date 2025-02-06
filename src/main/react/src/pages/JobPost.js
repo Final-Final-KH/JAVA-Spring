@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
+import "../css/JobPost.css";
 import imgLogo1 from "../images/JobPost001.png";
 import imgLogo2 from "../images/JobPost002.png";
 import imgLogo3 from "../images/JobPost003.png";
@@ -117,23 +118,23 @@ function JobPost() {
   useEffect(() => {
     // 페이지 로드 시 body의 배경 색상을 설정
     document.body.style.backgroundColor = "#f5f6f7";
-  });
+  }, []);
 
   return (
-    <div style={styles.container}>
-      <div style={styles.grid}>
+    <div className="container">
+      <div className="grid">
         {jobData.map((job) => (
-          <div key={job.id} style={styles.card}>
-            <Link to={`/job/${job.id}`} style={{ textDecoration: "none" }}>
+          <div key={job.id} className="card">
+            <Link to={`/job/${job.id}`} className="job-link">
               <img
                 src={job.thumbnail}
                 alt={`${job.title} 썸네일`}
-                style={styles.thumbnail}
+                className="thumbnail"
               />
-              <h2 style={styles.title}>{job.title}</h2>
-              <p style={styles.company}>{job.company}</p>
-              <p style={styles.location}>{job.location}</p>
-              <p style={styles.salary}>{job.salary}</p>
+              <h2 className="title">{job.title}</h2>
+              <p className="company">{job.company}</p>
+              <p className="location">{job.location}</p>
+              <p className="salary">{job.salary}</p>
             </Link>
           </div>
         ))}
@@ -141,63 +142,5 @@ function JobPost() {
     </div>
   );
 }
-
-const styles = {
-  container: {
-    padding: "20px",
-    fontFamily: "'Arial', sans-serif",
-    textAlign: "center",
-    marginTop: "50px",
-    backgroundColor: "#f5f6f7",
-  },
-  heading: {
-    fontSize: "24px",
-    fontWeight: "bold",
-    marginBottom: "20px",
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)", // 기본 4열
-    gap: "20px",
-    justifyContent: "center",
-    marginTop: "20px",
-  },
-  card: {
-    border: "1px solid #ddd",
-    borderRadius: "8px",
-    padding: "15px",
-    boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
-    transition: "transform 0.2s, box-shadow 0.2s",
-    backgroundColor: "#fff",
-    cursor: "pointer",
-  },
-  thumbnail: {
-    width: "100%",
-    height: "200px",
-    objectFit: "cover",
-    borderRadius: "4px",
-    marginBottom: "10px",
-  },
-  title: {
-    fontSize: "18px",
-    fontWeight: "bold",
-    margin: "10px 0 5px",
-  },
-  company: {
-    fontSize: "14px",
-    color: "#555",
-    margin: "0 0 5px",
-  },
-  location: {
-    fontSize: "14px",
-    color: "#777",
-    margin: "0 0 5px",
-  },
-  salary: {
-    fontSize: "14px",
-    color: "#009688",
-    fontWeight: "bold",
-  },
-};
 
 export default JobPost;

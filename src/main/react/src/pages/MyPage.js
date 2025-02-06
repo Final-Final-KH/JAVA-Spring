@@ -544,6 +544,22 @@ const MyPage = () => {
             flex-direction: column;
             gap: 20px;
           }
+            /* 768px 이하일 때 좌측 프로필 숨기고 우측이 전체 화면을 차지 */
+            @media (max-width: 768px) {
+              .mypage-container {
+                grid-template-columns: 1fr; /* 1열로 변경 */
+              }
+
+              .profile-section,
+              .profile-image {
+                display: none;
+              }
+
+              .right-section {
+                width: 100%; /* 전체 너비 차지 */
+              }
+            }
+
 
           .section-container {
             background: white;
