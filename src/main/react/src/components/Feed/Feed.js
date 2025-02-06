@@ -447,7 +447,7 @@ function Feed() {
     const data = { memberId, content: newFeed, mediaUrl: image };
     try {
       const createdPost = await FeedApi.createFeed(data);
-      setPosts((prevPosts) => [...prevPosts, createdPost]);
+      setPosts((prevPosts) => [createdPost, ...prevPosts]);
       setNewFeed("");
       setImage(null);
       toast.success("피드 작성이 완료되었습니다.");
@@ -1196,66 +1196,22 @@ function FriendSuggestions({ memberId }) {
   return (
     <>
       {(friendList || []).map((friend) => (
-        <div
-          key={friend.memberId}
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "15px",
-            padding: "10px",
-            borderRadius: "8px",
-            backgroundColor: "#f9f9f9",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <img
+        <FriendItem key={friend.memberId}>
+          <FriendInfo>
+            <FriendImage
               src={friend.profilePictureUrl || imgLogo2}
               alt="친구 이미지"
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                marginRight: "10px",
-              }}
             />
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <FriendDetails>
               <span>{friend.name}</span>
-              <span style={{ fontSize: "12px", color: "#888" }}>
-                {friend.currentCompany || "미등록 회사"}
-              </span>
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: "5px" }}>
-            <button
-              style={{
-                backgroundColor: "#4caf50",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                padding: "5px 10px",
-                fontSize: "14px",
-                cursor: "pointer",
-              }}
-            >
-              친구 요청
-            </button>
-            <button
-              style={{
-                backgroundColor: "#f0f0f0",
-                color: "#555",
-                border: "none",
-                borderRadius: "5px",
-                padding: "5px 10px",
-                fontSize: "14px",
-                cursor: "pointer",
-              }}
-            >
-              메시지
-            </button>
-          </div>
-        </div>
+              <FriendRole>{friend.currentCompany || "미등록 회사"}</FriendRole>
+            </FriendDetails>
+          </FriendInfo>
+          <FriendActions>
+            <FriendRequestButton>친구 요청</FriendRequestButton>
+            <MessageButton>메시지</MessageButton>
+          </FriendActions>
+        </FriendItem>
       ))}
     </>
   );
