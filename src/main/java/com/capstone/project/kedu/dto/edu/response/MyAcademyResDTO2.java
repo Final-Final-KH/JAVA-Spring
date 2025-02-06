@@ -10,6 +10,7 @@ import lombok.ToString;
 @ToString
 @NoArgsConstructor
 public class MyAcademyResDTO2 {
+    private Long list_id;
     private int member_id;
     private Long academy_id;
     private String academy;
