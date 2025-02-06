@@ -13,6 +13,7 @@ import { useProfile } from "./ProfileContext";
 import { toast } from "react-toastify";
 
 const MyPage = () => {
+  const { profilePic } = useProfile();
   const { profileInfo } = useProfile();
 
   useEffect(() => {
@@ -224,7 +225,7 @@ const MyPage = () => {
       <div className="mypage-container">
         {/* Left Section from Feed */}
         <div className="profile-section">
-          <img src={imgLogo1} alt="프로필 이미지" className="profile-image" />
+          <img src={profilePic} alt="Profile" className="profile-image" />
           <p>Email: {profileInfo.email}</p>
           <p>Name: {profileInfo.name}</p>
           <NaverPayButton></NaverPayButton>

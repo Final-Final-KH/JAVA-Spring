@@ -19,11 +19,26 @@ export const ProfileProvider = ({ children }) => {
     resume: "",
   });
 
+  useEffect(() => {
+    // 페이지 로드 시 localStorage에서 프로필 사진 URL을 가져오기
+    const storedProfilePic = localStorage.getItem("profilePic");
+    if (storedProfilePic) {
+      setProfilePic(storedProfilePic);
+    }
+  }, []);
+
+  const [profilePic, setProfilePic] = useState("initialPicUrl.jpg");
+
   const updateProfile = (newProfileInfo) => {
     setProfileInfo((prevState) => ({
       ...prevState,
       ...newProfileInfo,
     }));
+  };
+
+  const handleProfilePicChange = (newPic) => {
+    setProfilePic(newPic);
+    localStorage.setItem("profilePic", newPic); // 변경된 URL을 localStorage에 저장
   };
 
   const fetchProfileData = async () => {
@@ -40,17 +55,23 @@ export const ProfileProvider = ({ children }) => {
         skills: data.skills || "",
         resume: data.resumeUrl || "",
       });
+      // If the profile pic URL is part of the response, update it
+      if (data.profilePic) {
+        handleProfilePicChange(data.profilePic);
+      }
     } catch (error) {
       console.error("Failed to fetch profile data:", error);
     }
   };
 
   useEffect(() => {
-    fetchProfileData(); // 컴포넌트가 마운트되면 데이터 불러오기
+    fetchProfileData(); // Fetch data when component mounts
   }, []);
 
   return (
-    <ProfileContext.Provider value={{ profileInfo, updateProfile }}>
+    <ProfileContext.Provider
+      value={{ profileInfo, updateProfile, profilePic, handleProfilePicChange }}
+    >
       {children}
     </ProfileContext.Provider>
   );
