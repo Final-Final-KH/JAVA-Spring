@@ -794,7 +794,8 @@ const PostDetail = () => {
                 <FontAwesomeIcon icon={faCircleExclamation} />
                 {isAdmin && post.reportCount !== undefined && (
                   <ReportCountText>
-                    신고 누적 수: {post.reportCount}
+                    {/* {신고 누적 수} */}
+                    {post.reportCount}
                   </ReportCountText>
                 )}
               </report-button>
@@ -916,7 +917,8 @@ const PostDetail = () => {
                       comment.reportCount !== null &&
                       comment.reportCount >= 0 && (
                         <ReportCountText>
-                          신고 누적 수: {comment.reportCount}
+                          {/* {신고 누적 수: } */}
+                          {comment.reportCount}
                         </ReportCountText>
                       )}
                   </report-button>

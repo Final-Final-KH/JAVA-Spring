@@ -58,26 +58,42 @@ export const ContentInfo = styled.div`
   }
 `;
 
+// ActionButtons styled component with mobile adjustments
 export const ActionButtons = styled.div`
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 10px; /* 왼쪽과 오른쪽 그룹 사이의 간격 */
 
   .left,
   .right {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap; /* 작은 화면에서 버튼들이 줄바꿈 되도록 허용 */
+    align-items: center;
+    justify-content: center; /* 버튼들을 중앙 정렬 */
   }
 
-  button {
+  /* 모든 버튼 및 커스텀 버튼(report-button, admin-button, disabled-button)에 적용 */
+  button,
+  report-button,
+  admin-button,
+  disabled-button {
     padding: 5px 10px;
     font-size: 14px;
     border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+    flex-shrink: 0; /* 버튼들이 너무 작아지지 않도록 방지 */
+    display: flex;
+    align-items: center;
+    justify-content: center; /* 버튼 안의 아이콘 및 텍스트를 중앙에 배치 */
+  }
+
+  button {
     border: 2px solid #007bff;
     background-color: white;
     color: #007bff;
-    cursor: pointer;
-    transition: 0.3s;
-
     &:hover {
       background-color: #007bff;
       color: white;
@@ -85,15 +101,9 @@ export const ActionButtons = styled.div`
   }
 
   report-button {
-    padding: 5px 10px;
-    font-size: 14px;
     border: 2px solid #ff0000;
-    border-radius: 5px;
     background-color: white;
     color: #ff0000;
-    cursor: pointer;
-    transition: 0.3s;
-
     &:hover {
       background-color: #ff0000;
       color: white;
@@ -104,15 +114,9 @@ export const ActionButtons = styled.div`
   }
 
   admin-button {
-    padding: 5px 10px;
-    font-size: 14px;
     border: 2px solid #ff9900;
-    border-radius: 5px;
     background-color: white;
     color: #ff9900;
-    cursor: pointer;
-    transition: 0.3s;
-
     &:hover {
       background-color: #ff9900;
       color: white;
@@ -120,14 +124,31 @@ export const ActionButtons = styled.div`
   }
 
   disabled-button {
-    padding: 5px 10px;
-    font-size: 14px;
     border: 2px solid #747474;
-    border-radius: 5px;
     background-color: #d3d3d3;
     color: #747474;
     cursor: not-allowed;
     opacity: 0.6;
+  }
+
+  /* 480px 이하의 화면에 대해 미디어 쿼리 적용 */
+  @media screen and (max-width: 480px) {
+    flex-direction: column; /* 상하로 배치 */
+    align-items: stretch;
+
+    .left,
+    .right {
+      width: 100%;
+      justify-content: center; /* 버튼들을 중앙 정렬 */
+    }
+
+    button,
+    report-button,
+    admin-button,
+    disabled-button {
+      width: 48%; /* 두 개씩 배치하거나, 100%로 한 줄에 하나씩 배치 가능 */
+      margin-bottom: 5px; /* 버튼 사이에 간격 추가 */
+    }
   }
 `;
 
