@@ -11,10 +11,11 @@ import { auth, storage } from "../utils/FirebaseConfig";
 import { useProfile } from "./ProfileContext";
 import { AuthContext } from "../api/context/AuthContext";
 import Modal03 from "../component/Modal03";
+import FeedApi from "../api/FeedApi"; // KR: 친구 추천 데이터를 가져오기 위한 API 임포트
 
 const Profile = () => {
+  // KR: 페이지 로드시 body 배경색 설정
   useEffect(() => {
-    // 페이지 로드 시 body의 배경 색상을 설정
     document.body.style.backgroundColor = "#f5f6f7";
   }, []);
 
@@ -23,12 +24,13 @@ const Profile = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { logout } = useContext(AuthContext);
 
-  const fileInputRef = useRef(null); // ref로 파일 입력 요소를 참조
+  const fileInputRef = useRef(null); // KR: 파일 입력 요소를 참조하기 위한 ref
 
   const goToMyPage = () => {
     navigate("/profile/mypage");
   };
 
+  // KR: 프로필 관련 로컬 상태 초기화
   const [profileInfo, setProfileInfo] = useState({
     memberId: "",
     name: "User Name",
@@ -40,13 +42,16 @@ const Profile = () => {
     resume: "",
   });
 
+  // KR: 프로필 컨텍스트에서 프로필 사진과 사진 변경 함수를 불러옴
   const { profilePic, handleProfilePicChange } = useProfile();
   const [newPic, setNewPic] = useState("");
 
+  // KR: 프로필 사진 변경 핸들러
   const handleChangePic = () => {
     handleProfilePicChange(newPic);
   };
 
+  // KR: 서버에서 프로필 데이터를 불러오는 useEffect (파이어베이스에서 이미지 URL도 가져옴)
   useEffect(() => {
     const fetchProfileData = async () => {
       try {
@@ -63,7 +68,7 @@ const Profile = () => {
           resume: data.resumeUrl || "",
         });
 
-        // Firebase에서 프로필 이미지 URL을 가져오는 로직
+        // KR: Firebase에서 프로필 이미지 URL 가져오기
         const imageRef = ref(storage, `profile_images/${data.memberId}`);
         const downloadURL = await getDownloadURL(imageRef);
         setProfileImage(downloadURL);
@@ -71,13 +76,14 @@ const Profile = () => {
       } catch (error) {
         console.error("Failed to fetch profile data:", error);
       } finally {
-        setLoading(false); // 데이터 불러오기 완료 후 로딩 상태 해제
+        setLoading(false); // KR: 데이터 불러오기 완료 후 로딩 상태 해제
       }
     };
 
     fetchProfileData();
   }, []);
 
+  // KR: 파이어베이스에 이미지 업로드 후 다운로드 URL 반환 함수
   const upLoadProfileImage = async (file, memberId) => {
     if (!file) {
       console.error("파일이 없습니다.");
@@ -85,8 +91,8 @@ const Profile = () => {
     }
     try {
       const imageRef = ref(storage, `profile_images/${memberId}`);
-      await uploadBytes(imageRef, file); // 업로드
-      const downloadURL = await getDownloadURL(imageRef); // 업로드한 파일의 URL 가져오기
+      await uploadBytes(imageRef, file); // KR: 파일 업로드
+      const downloadURL = await getDownloadURL(imageRef); // KR: 업로드한 파일의 URL 가져오기
       return downloadURL;
     } catch (error) {
       console.error("이미지 업로드 중 오류 발생:", error);
@@ -94,6 +100,7 @@ const Profile = () => {
     }
   };
 
+  // KR: 특정 프로필 필드를 서버에 업데이트하는 함수
   const updateProfileField = async (field, value) => {
     const fieldMap = {
       name: "/name",
@@ -107,7 +114,7 @@ const Profile = () => {
     try {
       const endpoint = `/api/profile${fieldMap[field]}`;
       await AxiosInstance.put(endpoint, null, { params: { [field]: value } });
-      setProfileInfo((prev) => ({ ...prev, [field]: value })); // 성공 시 로컬 상태 업데이트
+      setProfileInfo((prev) => ({ ...prev, [field]: value })); // KR: 성공 시 로컬 상태 업데이트
       alert(`${field} updated successfully`);
     } catch (error) {
       console.error(`Failed to update ${field}:`, error);
@@ -135,78 +142,85 @@ const Profile = () => {
   const [imageModified, setImageModified] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
 
-  // handleImageUpload에서 두 번째 클릭을 방지하기 위한 조건 추가
-
+  // KR: 이미지 변경 이벤트 핸들러 (파일 업로드 진행 중이면 추가 동작 방지)
   const handleImageChange = async (event) => {
     console.log("handleImageChange triggered");
-
-    // 이미지 업로드 중이면 추가 동작을 방지
     if (imageUploading) return;
-
     const file = event.target.files[0];
     if (file) {
       try {
         console.log("업로드할 파일 선택됨:", file);
-        // 업로드 진행 중으로 상태 업데이트
         setImageUploading(true);
-
-        // 이미지 업로드
         const uploadedImageUrl = await upLoadProfileImage(
           file,
           profileInfo.memberId
         );
-
         if (uploadedImageUrl) {
-          setProfileImage(uploadedImageUrl); // 업로드된 이미지 URL 설정
+          setProfileImage(uploadedImageUrl);
           console.log("업로드된 이미지 URL:", uploadedImageUrl);
-          setImageModified(true); // 이미지가 수정된 상태로 업데이트
+          setImageModified(true);
         } else {
           console.error("이미지 업로드 오류 발생");
         }
       } catch (error) {
         console.error("이미지 업로드 중 오류 발생:", error);
       } finally {
-        setImageUploading(false); // 업로드 완료 후 상태 해제
+        setImageUploading(false);
       }
     }
   };
 
-  const [friendList, setFriendList] = useState([
-    { id: 1, name: "홍길동", isFriend: false, requestSent: false },
-    { id: 2, name: "김철수", isFriend: false, requestSent: false },
-    { id: 3, name: "이영희", isFriend: false, requestSent: false },
-  ]);
+  // ---------------- 친구 추천 부분 ----------------
+  // KR: 기존에 하드코딩된 친구 목록 대신 빈 배열로 초기화
+  const [friendList, setFriendList] = useState([]);
 
+  // KR: 프로필 정보에서 memberId가 준비되면 서버에서 친구 추천 데이터를 동적으로 불러옴
+  useEffect(() => {
+    async function fetchFriends() {
+      try {
+        if (profileInfo.memberId) {
+          const suggestedFriends = await FeedApi.fetchSuggestedFriends(
+            profileInfo.memberId
+          );
+          setFriendList(suggestedFriends);
+        }
+      } catch (error) {
+        console.error("❌ 친구 추천 불러오기 실패:", error);
+      }
+    }
+    fetchFriends();
+  }, [profileInfo.memberId]);
+
+  // KR: 친구 요청 버튼 클릭 시 상태 업데이트 함수
   const handleSendRequest = (id) => {
     setFriendList((prevList) =>
       prevList.map((friend) =>
-        friend.id === id ? { ...friend, requestSent: true } : friend
+        friend.memberId === id ? { ...friend, requestSent: true } : friend
       )
     );
   };
 
+  // KR: 친구 요청 취소 버튼 클릭 시 상태 업데이트 함수
   const handleCancelRequest = (id) => {
     setFriendList((prevList) =>
       prevList.map((friend) =>
-        friend.id === id ? { ...friend, requestSent: false } : friend
+        friend.memberId === id ? { ...friend, requestSent: false } : friend
       )
     );
   };
 
+  // ---------------- 기타 유틸리티 함수 ----------------
   const validatePhoneNumber = (phone) => {
-    // 전화번호가 숫자와 하이픈(-)만 포함하는지 확인하는 정규식
+    // KR: 전화번호가 숫자와 하이픈만 포함하는지 확인하는 정규식
     const phoneRegex = /^[0-9-]+$/;
     return phoneRegex.test(phone);
   };
 
   const handleSavePhone = (value) => {
     if (!validatePhoneNumber(value)) {
-      // 유효하지 않은 전화번호일 경우 경고 메시지 표시
       alert("전화번호는 숫자와 하이픈만 포함할 수 있습니다.");
-      return; // 유효하지 않으면 저장을 취소하고 함수 종료
+      return;
     }
-
-    // 유효한 전화번호일 경우 상태 업데이트 및 서버 저장
     updateProfileField("phone", value);
   };
 
@@ -219,11 +233,7 @@ const Profile = () => {
     try {
       await AxiosInstance.delete(`/api/members/${profileInfo.memberId}`);
       alert("회원 탈퇴가 완료되었습니다.");
-
-      // 로그아웃 처리
       logout();
-
-      // 홈으로 이동
       navigate("/");
     } catch (error) {
       console.error("회원 탈퇴 실패:", error);
@@ -234,12 +244,12 @@ const Profile = () => {
   };
 
   if (loading) {
-    return <div>Loading...</div>; // 로딩 중일 때 표시
+    return <div>Loading...</div>;
   }
 
+  // ---------------- 프로필 화면 렌더링 ----------------
   return (
     <div className="layout-container">
-      {" "}
       {/* 좌측 섹션: 프로필 및 소개 */}
       <div className="profile-left">
         <div className="profile-image-container">
@@ -327,33 +337,38 @@ const Profile = () => {
           정말 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.
         </Modal03>
       </div>
+
       {/* 우측 섹션: 친구 추천 */}
       <div className="profile-right friends-section">
         <h2>친구 추천</h2>
         <ul className="friend-list">
           {friendList.map((friend) => (
-            <li key={friend.id} className="friend-item">
+            <li key={friend.memberId} className="friend-item">
               <div className="friend-info">
-               <img src={null} alt="친구 이미지" className="friend-image" />
+                <img
+                  src={friend.profilePictureUrl || imgLogo2}
+                  alt="친구 이미지"
+                  className="friend-image"
+                />
                 <div className="friend-details">
                   <span>{friend.name}</span>
-                  <span className="friend-role">미친구</span>
+                  <span className="friend-role">
+                    {friend.currentCompany || "미등록 회사"}
+                  </span>
                 </div>
               </div>
-
-              {/* 친구 요청 버튼과 메시지 버튼 */}
               <div className="friend-actions">
                 {!friend.isFriend && !friend.requestSent ? (
                   <button
                     className="friend-request-button"
-                    onClick={() => handleSendRequest(friend.id)}
+                    onClick={() => handleSendRequest(friend.memberId)}
                   >
                     친구 요청
                   </button>
                 ) : friend.requestSent ? (
                   <button
                     className="friend-request-button"
-                    onClick={() => handleCancelRequest(friend.id)}
+                    onClick={() => handleCancelRequest(friend.memberId)}
                   >
                     요청 취소
                   </button>
