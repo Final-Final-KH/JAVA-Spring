@@ -10,6 +10,7 @@ import PaymentPage from "./kedu/etc/TossPay";
 import Modal from "./kedu/etc/Modal2";
 import Grass from "./kedu/etc/Grass";
 import { useProfile } from "./ProfileContext";
+import { toast } from "react-toastify";
 
 const MyPage = () => {
   const { profileInfo } = useProfile();
@@ -183,6 +184,41 @@ const MyPage = () => {
   const closeModal = () => {
     setModalState(false);
   };
+
+  const academyDelete = async (academtid) => {
+    const rsp = await AxiosApi2.academyDelete(academtid, member.memberId);
+    if (rsp.data === true) {
+      toast.success("나의 학원 삭제에 성공했습니다.");
+      MyAcademy();
+    }
+  };
+  const courseDelete = async (courseid) => {
+    const rsp = await AxiosApi2.courseDelete(courseid, member.memberId);
+    if (rsp.data === true) {
+      toast.success("나의 강의 삭제에 성공했습니다.");
+      MyCourse();
+    }
+  };
+  const academyReviewDelete = async (academyReviewId) => {
+    const rsp = await AxiosApi2.academyReviewDelete(
+      academyReviewId,
+      member.memberId
+    );
+    if (rsp.data === true) {
+      toast.success("나의 학원 리뷰 삭제에 성공했습니다.");
+      MyAcademyComment();
+    }
+  };
+  const courseReviewDelete = async (courseReviewId) => {
+    const rsp = await AxiosApi2.courseReviewDelete(
+      courseReviewId,
+      member.memberId
+    );
+    if (rsp.data === true) {
+      toast.success("나의 강의 리뷰 삭제에 성공했습니다.");
+      MyCourseComment();
+    }
+  };
   return (
     <Content>
       <div className="mypage-container">
@@ -209,6 +245,13 @@ const MyPage = () => {
                         academy.map((academy) => (
                           <tr key={academy.academy_id}>
                             <td>{academy.academy}</td>
+                            <td>
+                              <button
+                                onClick={() => academyDelete(academy.list_id)}
+                              >
+                                삭제
+                              </button>
+                            </td>
                           </tr>
                         ))
                       ) : (
@@ -234,6 +277,13 @@ const MyPage = () => {
                           <tr key={course.list_id}>
                             <td>{course.academy}</td>
                             <td>{course.course}</td>
+                            <td>
+                              <button
+                                onClick={() => courseDelete(course.list_id)}
+                              >
+                                삭제
+                              </button>
+                            </td>
                           </tr>
                         ))
                       ) : (
@@ -309,6 +359,17 @@ const MyPage = () => {
                               : "N/A"}
                           </p>
                         </div>
+                        <div>
+                          <button
+                            onClick={() =>
+                              academyReviewDelete(
+                                academyComment.academy_comment_id
+                              )
+                            }
+                          >
+                            삭제
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       <p>로딩 중...</p>
@@ -361,6 +422,17 @@ const MyPage = () => {
                               ? courseComment.skillUp.toFixed(2)
                               : "N/A"}
                           </p>
+                        </div>
+                        <div>
+                          <button
+                            onClick={() =>
+                              courseReviewDelete(
+                                courseComment.course_comment_id
+                              )
+                            }
+                          >
+                            삭제
+                          </button>
                         </div>
                       </div>
                     ) : (
