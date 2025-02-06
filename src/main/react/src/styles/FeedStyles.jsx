@@ -12,6 +12,12 @@ export const LayoutContainer = styled.div`
   background-color: #f5f6f7;
   min-height: 100vh;
   font-family: Arial, sans-serif;
+
+  /* For screens below 768px, switch to a single-column layout */
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    /* You can also reduce padding, etc., as needed */
+  }
 `;
 
 /**
@@ -27,11 +33,21 @@ export const Section = styled.div`
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  /* Slightly reduce padding and font sizes on tablets */
+  @media (max-width: 1200px) and (min-width: 769px) {
+    padding: 15px;
+    font-size: 0.95rem; /* slightly smaller text */
+  }
 `;
 
 /** 🔹 프로필 섹션 */
 export const ProfileSection = styled(Section)`
   text-align: center;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 /** 🔹 프로필 이미지 */
@@ -40,6 +56,12 @@ export const ProfileImage = styled.img`
   height: 150px;
   border-radius: 50%;
   margin-bottom: 15px;
+
+  /* Slightly shrink on tablet */
+  @media (max-width: 1200px) and (min-width: 769px) {
+    width: 120px;
+    height: 120px;
+  }
 `;
 
 /** 🔹 피드 컨테이너 */
@@ -48,6 +70,11 @@ export const FeedContainer = styled.div`
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  /* On tablets, shrink padding a bit */
+  @media (max-width: 1200px) and (min-width: 769px) {
+    padding: 15px;
+  }
 `;
 
 /** 🔹 피드 작성 컨테이너 */
@@ -207,7 +234,17 @@ export const RefreshIcon = styled.img`
 `;
 
 /** 🔹 친구 추천 섹션 */
-export const FriendsSection = styled(Section)``;
+export const FriendsSection = styled(Section)`
+  @media (max-width: 768px) {
+    display: none;
+  }
+
+  /* Slightly reduce padding or font size on tablets if you want */
+  @media (max-width: 1200px) and (min-width: 769px) {
+    padding: 15px;
+    font-size: 0.95rem;
+  }
+`;
 
 /** 🔹 친구 목록 스타일 */
 export const FriendList = styled.ul`
@@ -273,6 +310,18 @@ export const FriendRequestButton = styled.button`
   &:hover {
     background-color: #45a049;
   }
+
+  /* Tablet (769–1200px): Slightly reduce size */
+  @media (max-width: 1200px) and (min-width: 769px) {
+    padding: 4px 8px;
+    font-size: 13px;
+  }
+
+  /* Mobile (<768px): Even smaller */
+  @media (max-width: 768px) {
+    padding: 3px 6px;
+    font-size: 12px;
+  }
 `;
 
 /** 🔹 메시지 보내기 버튼 */
@@ -287,6 +336,18 @@ export const MessageButton = styled.button`
 
   &:hover {
     background-color: #e0e0e0;
+  }
+
+  /* Tablet (769–1200px) */
+  @media (max-width: 1200px) and (min-width: 769px) {
+    padding: 4px 8px;
+    font-size: 13px;
+  }
+
+  /* Mobile (<768px) */
+  @media (max-width: 768px) {
+    padding: 3px 6px;
+    font-size: 12px;
   }
 `;
 

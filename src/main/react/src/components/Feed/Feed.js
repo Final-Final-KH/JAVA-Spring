@@ -386,14 +386,30 @@ function Feed() {
     setLoading(true);
     try {
       const data = await FeedApi.fetchFeeds(page, 10, memberId);
-      if (data.length === 0) setHasMore(false);
+
+      // 🔹 새로 가져온 데이터가 없으면 더 이상 불러올 피드가 없음
+      if (data.length === 0) {
+        setHasMore(false);
+      }
+
+      // 🔹 중복 제거 및 병합: 기존 피드의 feedId를 Set으로 관리하여 새 데이터 중 중복된 항목은 제외
       setPosts((prevPosts) => {
-        const combined = [...prevPosts, ...data];
-        // 정렬: 최신 피드가 상단에 오도록 (createdAt 기준 내림차순)
+        const existingIds = new Set(prevPosts.map((p) => p.feedId));
+        const filteredNewData = data.filter(
+          (item) => !existingIds.has(item.feedId)
+        );
+        const combined = [...prevPosts, ...filteredNewData];
+        // 최신순 정렬 (createdAt 내림차순)
         combined.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         return combined;
       });
-      // 피드 좋아요 상태 업데이트
+
+      // 🔹 한 번에 10개씩 가져오므로, 10개 미만이면 마지막 페이지로 간주
+      if (data.length < 10) {
+        setHasMore(false);
+      }
+
+      // 🔹 피드 좋아요 상태 업데이트
       setLikedPosts((prev) => {
         const newLiked = { ...prev };
         data.forEach((post) => {
@@ -401,7 +417,8 @@ function Feed() {
         });
         return newLiked;
       });
-      // 댓글 좋아요 상태 업데이트 (직접 연결된 댓글)
+
+      // 🔹 댓글 좋아요 상태 업데이트 (직접 연결된 댓글)
       setLikedComments((prev) => {
         const newLikedComments = { ...prev };
         data.forEach((post) => {
@@ -429,12 +446,14 @@ function Feed() {
     fetchFeedPosts();
   }, [page, memberId]);
 
-  // 무한 스크롤용 Intersection Observer
+  // 🔹 무한 스크롤용 Intersection Observer
   const lastPostElementRef = (node) => {
-    if (loading) return;
+    // 🔹 로딩 중이거나 더 불러올 피드가 없다면(ref를 붙이지 않음)
+    if (loading || !hasMore) return;
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && hasMore) {
+      if (entries[0].isIntersecting) {
+        // 🔹 마지막 요소가 화면에 들어오면 페이지 증가 → useEffect에서 fetchFeedPosts 호출
         setPage((prevPage) => prevPage + 1);
       }
     });
@@ -447,7 +466,7 @@ function Feed() {
     const data = { memberId, content: newFeed, mediaUrl: image };
     try {
       const createdPost = await FeedApi.createFeed(data);
-      setPosts((prevPosts) => [...prevPosts, createdPost]);
+      setPosts((prevPosts) => [createdPost, ...prevPosts]);
       setNewFeed("");
       setImage(null);
       toast.success("피드 작성이 완료되었습니다.");
@@ -1196,66 +1215,22 @@ function FriendSuggestions({ memberId }) {
   return (
     <>
       {(friendList || []).map((friend) => (
-        <div
-          key={friend.memberId}
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "15px",
-            padding: "10px",
-            borderRadius: "8px",
-            backgroundColor: "#f9f9f9",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center" }}>
-            <img
+        <FriendItem key={friend.memberId}>
+          <FriendInfo>
+            <FriendImage
               src={friend.profilePictureUrl || imgLogo2}
               alt="친구 이미지"
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                marginRight: "10px",
-              }}
             />
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <FriendDetails>
               <span>{friend.name}</span>
-              <span style={{ fontSize: "12px", color: "#888" }}>
-                {friend.currentCompany || "미등록 회사"}
-              </span>
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: "5px" }}>
-            <button
-              style={{
-                backgroundColor: "#4caf50",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                padding: "5px 10px",
-                fontSize: "14px",
-                cursor: "pointer",
-              }}
-            >
-              친구 요청
-            </button>
-            <button
-              style={{
-                backgroundColor: "#f0f0f0",
-                color: "#555",
-                border: "none",
-                borderRadius: "5px",
-                padding: "5px 10px",
-                fontSize: "14px",
-                cursor: "pointer",
-              }}
-            >
-              메시지
-            </button>
-          </div>
-        </div>
+              <FriendRole>{friend.currentCompany || "미등록 회사"}</FriendRole>
+            </FriendDetails>
+          </FriendInfo>
+          <FriendActions>
+            <FriendRequestButton>친구 요청</FriendRequestButton>
+            <MessageButton>메시지</MessageButton>
+          </FriendActions>
+        </FriendItem>
       ))}
     </>
   );

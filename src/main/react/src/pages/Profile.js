@@ -8,6 +8,7 @@ import "../css/profile.css";
 import AxiosInstance from "../axios/AxiosInstanse";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { auth, storage } from "../utils/FirebaseConfig";
+import { useProfile } from "./ProfileContext";
 import { AuthContext } from "../api/context/AuthContext";
 import Modal03 from "../component/Modal03";
 
@@ -38,6 +39,13 @@ const Profile = () => {
     skills: "",
     resume: "",
   });
+
+  const { profilePic, handleProfilePicChange } = useProfile();
+  const [newPic, setNewPic] = useState("");
+
+  const handleChangePic = () => {
+    handleProfilePicChange(newPic);
+  };
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -70,7 +78,7 @@ const Profile = () => {
     fetchProfileData();
   }, []);
 
-  const upLoadProfileIamge = async (file, memberId) => {
+  const upLoadProfileImage = async (file, memberId) => {
     if (!file) {
       console.error("파일이 없습니다.");
       return null;
@@ -122,7 +130,7 @@ const Profile = () => {
     recommendation: false,
   });
 
-  const [profileImage, setProfileImage] = useState(imgLogo1);
+  const [profileImage, setProfileImage] = useState(null);
   const [editImageMode, setEditImageMode] = useState(false);
   const [imageModified, setImageModified] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
@@ -143,7 +151,7 @@ const Profile = () => {
         setImageUploading(true);
 
         // 이미지 업로드
-        const uploadedImageUrl = await upLoadProfileIamge(
+        const uploadedImageUrl = await upLoadProfileImage(
           file,
           profileInfo.memberId
         );
@@ -236,11 +244,14 @@ const Profile = () => {
       <div className="profile-left">
         <div className="profile-image-container">
           <div className="profile-image-wrapper">
-            <img
-              src={profileImage}
-              alt="프로필 이미지"
-              className="profile-image"
+            <img src={profilePic} alt="Profile" className="profile-image" />
+            <input
+              type="file"
+              onChange={(e) =>
+                setNewPic(URL.createObjectURL(e.target.files[0]))
+              }
             />
+            <button onClick={handleChangePic}>프로필 사진 변경</button>
             <div className="my-page-button-container">
               <button
                 className="my-page-button"
@@ -249,25 +260,6 @@ const Profile = () => {
                 마이페이지
               </button>
             </div>
-            <label htmlFor="image-upload" className="edit-button">
-              <img
-                src={imgLogo2}
-                alt="이미지 업로드"
-                style={{
-                  width: "20px",
-                  height: "20px",
-                  cursor: "pointer",
-                }}
-              />
-            </label>
-            <input
-              id="image-upload"
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              className="hidden-input"
-              onChange={handleImageChange}
-            />
           </div>
         </div>
 
@@ -342,11 +334,7 @@ const Profile = () => {
           {friendList.map((friend) => (
             <li key={friend.id} className="friend-item">
               <div className="friend-info">
-                <img
-                  src={imgLogo1}
-                  alt="친구 이미지"
-                  className="friend-image"
-                />
+               <img src={null} alt="친구 이미지" className="friend-image" />
                 <div className="friend-details">
                   <span>{friend.name}</span>
                   <span className="friend-role">미친구</span>

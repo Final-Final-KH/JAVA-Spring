@@ -13,6 +13,7 @@ import { useProfile } from "./ProfileContext";
 import { toast } from "react-toastify";
 
 const MyPage = () => {
+  const { profilePic } = useProfile();
   const { profileInfo } = useProfile();
 
   useEffect(() => {
