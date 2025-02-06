@@ -9,6 +9,8 @@ import GoogleLoginButton from "../component/GoogleLoginButton";
 import NaverLoginButton from "../component/NaverLoginButton";
 import KakaoLoginButton from "../component/KakaoLoginButton";
 import styled from "styled-components";
+// 🔹 Import useProfile to allow fetching updated profile data after login
+import { useProfile } from "../pages/ProfileContext";
 
 const SubmitButton = styled.button`
   width: 100%;
@@ -31,6 +33,8 @@ function Login() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { isLoggedIn, loggedIn } = useContext(AuthContext);
+  // 🔹 Get fetchProfileData from the profile context
+  const { fetchProfileData } = useProfile();
 
   // 로그인 상태 확인후 자동 리디렉션
   useEffect(() => {
@@ -67,8 +71,10 @@ function Login() {
       console.log("User data to be stored:", userData); // Debug log
       localStorage.setItem("keduMember", JSON.stringify(userData));
 
-      // 로그인 상태 업데이트 및 피드 페이지로 이동
+      // 로그인 상태 업데이트
       loggedIn();
+      // 🔹 After successful login, refresh the profile data to update the context
+      await fetchProfileData();
       navigate("/feed");
     } catch (err) {
       setError("이메일 또는 비밀번호가 올바르지 않습니다."); // 에러 메시지 처리
@@ -94,6 +100,8 @@ function Login() {
         Common.setRefreshToken(refreshToken);
         console.log(jwtDecode(accessToken));
         loggedIn();
+        // 🔹 Also refresh the profile data after a successful Google login
+        await fetchProfileData();
         navigate("/feed");
       } catch (err) {
         setError("OAuth 로그인 실패");
