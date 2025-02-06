@@ -51,6 +51,13 @@ public class MyCourseController2 {
         boolean isSuccess = myCourseService2.deleteMyCourse(myCourseReqDTO2);
         return ResponseEntity.ok(isSuccess);
     }
+
+    // course_id와 member_id로 삭제
+    @PostMapping("/delete_my_academy")
+    public ResponseEntity<Boolean> delete_my_academy(@RequestBody MyCourseDeleteReqDTO2 myCourseReqDTO2){
+        boolean isSuccess = myCourseService2.deleteMyAcademy(myCourseReqDTO2);
+        return ResponseEntity.ok(isSuccess);
+    }
     // member_id로 검색
     @GetMapping("/search_my_course")
     public Map<String, Object> search_my_course(@RequestParam(value = "member_id") int member_id){

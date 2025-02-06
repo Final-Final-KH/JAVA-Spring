@@ -454,6 +454,38 @@ const AxiosApi2 = {
       params,
     });
   },
+  academyDelete: async (academyId, memberId) => {
+    const params = {
+      list_id: academyId,
+      member_id: memberId,
+    };
+    return await axios.post(KH_DOMAIN + "/my_course/delete_my_academy", params);
+  },
+  courseDelete: async (courseId, memberId) => {
+    const params = {
+      list_id: courseId,
+      member_id: memberId,
+    };
+    return await axios.post(KH_DOMAIN + "/my_course/delete_my_course", params);
+  },
+  academyReviewDelete: async (academyReviewId, memberId) => {
+    const params = {
+      academy_comment_id: academyReviewId,
+      member_id: memberId,
+    };
+    return await axios.post(KH_DOMAIN + "/academy_comment/delete", null, {
+      params,
+    });
+  },
+  courseReviewDelete: async (courseReviewId, memberId) => {
+    const params = {
+      course_comment_id: courseReviewId,
+      member_id: memberId,
+    };
+    return await axios.post(KH_DOMAIN + "/course_comment/delete", null, {
+      params,
+    });
+  },
 };
 
 export default AxiosApi2;

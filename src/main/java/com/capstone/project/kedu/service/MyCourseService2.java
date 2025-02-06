@@ -93,7 +93,19 @@ public class MyCourseService2 {
         }
     }
 
-
+    public boolean deleteMyAcademy(MyCourseDeleteReqDTO2 myCourseReqDTO2) {
+        try{
+            MyAcademyEntity2 myAcademyEntity2 = myAcademyRepository2.findById(myCourseReqDTO2.getList_id())
+                    .orElseThrow(()-> new RuntimeException("해당 수강 기록이 존재 하지 않습니다."));
+            Member member = memberRepository.findById(myCourseReqDTO2.getMember_id())
+                    .orElseThrow(()-> new RuntimeException("해당 회원이 존재 하지 않습니다."));
+            myAcademyRepository2.deleteByMemberIdAndListId(myAcademyEntity2.getList_id(), member.getMemberId());
+            return true;
+        }catch (Exception e) {
+            log.error("게시물 삭제에 실패 했습니다. : {}", e.getMessage());
+            return false;
+        }
+    }
     public boolean deleteMyCourse(MyCourseDeleteReqDTO2 myCourseReqDTO2) {
         try{
             MyCourseEntity2 myCourseEntity2 = myCourseRepository2.findById(myCourseReqDTO2.getList_id())
@@ -136,6 +148,7 @@ public class MyCourseService2 {
         List<MyAcademyResDTO2> myAcademyResDTO2s = new ArrayList<>();
         for (MyAcademyEntity2 myAcademyEntity2 : myAcademyEntity2s) {
             MyAcademyResDTO2 myAcademyResDTO2 = new MyAcademyResDTO2();
+            myAcademyResDTO2.setList_id(myAcademyEntity2.getList_id());
             myAcademyResDTO2.setMember_id(myAcademyEntity2.getMember().getMemberId());
             myAcademyResDTO2.setAcademy(myAcademyEntity2.getAcademyEntity2().getAcademyName());
             myAcademyResDTO2.setAcademy_id(myAcademyEntity2.getAcademyEntity2().getAcademyId());
@@ -167,7 +180,7 @@ public class MyCourseService2 {
 
         for(MyCourseEntity2 myCourseEntity2 : myCourseEntity){
             MyCourseResDTO2 myCourseResDTO2 = new MyCourseResDTO2();
-
+            myCourseResDTO2.setList_id(myCourseEntity2.getList_id());
             myCourseResDTO2.setAcademy_id(myCourseEntity2.getAcademyEntity2().getAcademyId());
             myCourseResDTO2.setCourse_id(myCourseEntity2.getCourseEntity2().getCourseId());
             myCourseResDTO2.setCourse(myCourseEntity2.getCourse_name());
@@ -177,6 +190,7 @@ public class MyCourseService2 {
 
         return myCourseResDTO;
     }
+
 
 
 }
