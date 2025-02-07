@@ -13,6 +13,9 @@ import { AuthContext } from "../api/context/AuthContext";
 import Modal03 from "../component/Modal03";
 import FeedApi from "../api/FeedApi"; // KR: 친구 추천 데이터를 가져오기 위한 API 임포트
 
+import { getUserInfo } from "../axios/AxiosInstanse"; // 사용자 정보 가져오기
+import { ToastContainer, toast } from "react-toastify"; // Toastify
+
 const Profile = () => {
   // KR: 페이지 로드시 body 배경색 설정
   useEffect(() => {
@@ -23,6 +26,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const { logout } = useContext(AuthContext);
+  const [memberId, setMemberId] = useState(null);
 
   const fileInputRef = useRef(null); // KR: 파일 입력 요소를 참조하기 위한 ref
 
@@ -86,7 +90,7 @@ const Profile = () => {
   // KR: 파이어베이스에 이미지 업로드 후 다운로드 URL 반환 함수
   const upLoadProfileImage = async (file, memberId) => {
     if (!file) {
-      console.error("파일이 없습니다.");
+      toast.error("파일이 없습니다.");
       return null;
     }
     try {
@@ -95,7 +99,7 @@ const Profile = () => {
       const downloadURL = await getDownloadURL(imageRef); // KR: 업로드한 파일의 URL 가져오기
       return downloadURL;
     } catch (error) {
-      console.error("이미지 업로드 중 오류 발생:", error);
+      toast.error("이미지 업로드 중 오류 발생:", error);
       return null;
     }
   };
@@ -160,10 +164,10 @@ const Profile = () => {
           console.log("업로드된 이미지 URL:", uploadedImageUrl);
           setImageModified(true);
         } else {
-          console.error("이미지 업로드 오류 발생");
+          toast.error("이미지 업로드 오류 발생");
         }
       } catch (error) {
-        console.error("이미지 업로드 중 오류 발생:", error);
+        toast.error("이미지 업로드 중 오류 발생:", error);
       } finally {
         setImageUploading(false);
       }
@@ -185,7 +189,7 @@ const Profile = () => {
           setFriendList(suggestedFriends);
         }
       } catch (error) {
-        console.error("❌ 친구 추천 불러오기 실패:", error);
+        toast.error("❌ 친구 추천 불러오기 실패:", error);
       }
     }
     fetchFriends();
@@ -208,6 +212,34 @@ const Profile = () => {
       )
     );
   };
+
+  // ======================================================================
+  // KR: 로그인 상태 확인
+  // 아래 useEffect는 현재 로그인한 사용자 정보를 가져와서, 유효한 사용자가 아니면 로그인 페이지로 리다이렉트합니다.
+  useEffect(() => {
+    const checkLoggedIn = async () => {
+      try {
+        const userInfo = await getUserInfo();
+        // KR: userInfo가 존재하고 memberId가 있는지 확인합니다.
+        if (userInfo && userInfo.memberId) {
+          setMemberId(userInfo.memberId);
+        } else {
+          toast.error("로그인이 필요합니다.");
+          setTimeout(() => {
+            navigate("/login");
+          }, 2500);
+        }
+      } catch (error) {
+        console.error("사용자 정보를 가져오는 중 오류:", error);
+        toast.error("사용자 정보를 확인할 수 없습니다.");
+        setTimeout(() => {
+          navigate("/login");
+        }, 2500);
+      }
+    };
+
+    checkLoggedIn();
+  }, [navigate]);
 
   // ---------------- 기타 유틸리티 함수 ----------------
   const validatePhoneNumber = (phone) => {
