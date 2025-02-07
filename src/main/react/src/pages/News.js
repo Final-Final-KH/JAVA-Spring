@@ -13,7 +13,7 @@ function News() {
         marginTop: "70px",
       }}
     >
-      <h1>Welcome to the News Page!</h1>
+      <h1>IT 뉴스 페이지에 오신 것을 환영합니다!</h1>
       <NewsList />
     </div>
   );
