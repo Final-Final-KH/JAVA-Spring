@@ -141,7 +141,7 @@ const Profile = () => {
     recommendation: false,
   });
 
-  const [profileImage, setProfileImage] = useState(null);
+  const [profileImage, setProfileImage] = useState(imgLogo1);
   const [editImageMode, setEditImageMode] = useState(false);
   const [imageModified, setImageModified] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
@@ -286,14 +286,11 @@ const Profile = () => {
       <div className="profile-left">
         <div className="profile-image-container">
           <div className="profile-image-wrapper">
-            <img src={profilePic} alt="Profile" className="profile-image" />
-            <input
-              type="file"
-              onChange={(e) =>
-                setNewPic(URL.createObjectURL(e.target.files[0]))
-              }
+            <img
+              src={profileImage}
+              alt="프로필 이미지"
+              className="profile-image"
             />
-            <button onClick={handleChangePic}>프로필 사진 변경</button>
             <div className="my-page-button-container">
               <button
                 className="my-page-button"
@@ -302,6 +299,25 @@ const Profile = () => {
                 마이페이지
               </button>
             </div>
+            <label htmlFor="image-upload" className="edit-button">
+              <img
+                src={imgLogo2}
+                alt="이미지 업로드"
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  cursor: "pointer",
+                }}
+              />
+            </label>
+            <input
+              id="image-upload"
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              className="hidden-input"
+              onChange={handleImageChange}
+            />
           </div>
         </div>
 
