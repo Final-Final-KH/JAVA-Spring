@@ -41,7 +41,6 @@ const NewsList = () => {
 
   return (
     <div>
-      <h1>News</h1>
       <div className="search-container">
         <input
           type="text"

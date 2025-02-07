@@ -27,7 +27,7 @@ public class EmailVerificationService {
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(email);
-        message.setSubject("LinkedUp의 회원가입을 위한 코드입니다");
+        message.setSubject("Skillhub의 회원가입을 위한 코드입니다");
         message.setText("당신의 이메일 검증용 코드는 : " + code +"입니다.");
         mailSender.send(message);
     }
