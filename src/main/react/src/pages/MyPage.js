@@ -224,16 +224,16 @@ const MyPage = () => {
     <Content>
       <div className="mypage-container">
         {/* Left Section from Feed */}
+        <div className="profile-section">
+          <img src={profilePic} alt="Profile" className="profile-image" />
+          <p>Email: {profileInfo.email}</p>
+          <p>Name: {profileInfo.name}</p>
+          <NaverPayButton></NaverPayButton>
+          <Button3 onClick={PayButton}>정기구독</Button3>
+        </div>
 
         {/* Right Section */}
         <div className="container mt-4">
-          <div>
-            <img src={imgLogo1} alt="프로필 이미지" className="profile-image" />
-            <p>Email: {profileInfo.email}</p>
-            <p>Name: {profileInfo.name}</p>
-            <NaverPayButton></NaverPayButton>
-            <Button3 onClick={PayButton}>정기구독</Button3>
-          </div>
           <div className="row">
             {/* My School */}
             <div className="col-md-6">
@@ -505,15 +505,32 @@ const MyPage = () => {
           </div>
         </div>
         <Modal open={modalState} close={closeModal} type={true}></Modal>
-        {/* Styles */}
+       {/* Styles */}
         <style jsx>{`
           .mypage-container {
             display: grid;
+            grid-template-columns: 1fr 3fr;
             gap: 20px;
             padding: 20px;
             background-color: #f5f6f7;
             min-height: 100vh;
           }
+          .profile-section {
+            position: sticky;
+            top: 90px; /* 네비게이션 바 높이만큼 내려오게 설정 */
+            align-self: start;
+            max-height: calc(
+              100vh - 90px
+            ); /* 뷰포트 높이에서 네비게이션 바 높이 제외 */
+            overflow-y: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+          }
+
+
           .profile-image {
             width: 150px;
             height: 150px;
@@ -527,6 +544,22 @@ const MyPage = () => {
             flex-direction: column;
             gap: 20px;
           }
+            /* 768px 이하일 때 좌측 프로필 숨기고 우측이 전체 화면을 차지 */
+            @media (max-width: 768px) {
+              .mypage-container {
+                grid-template-columns: 1fr; /* 1열로 변경 */
+              }
+
+              .profile-section,
+              .profile-image {
+                display: none;
+              }
+
+              .right-section {
+                width: 100%; /* 전체 너비 차지 */
+              }
+            }
+
 
           .section-container {
             background: white;

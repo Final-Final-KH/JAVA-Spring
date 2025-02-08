@@ -21,6 +21,7 @@ import {
   ReportCountText,
   InlineBlockContainer,
   ReplyQuoteGlobalStyle, // 전역 스타일 (blockquote, reply-quote 등)
+  GlobalKeyframes,
 } from "../../styles/PostDetailStyles"; // 스타일 컴포넌트
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -73,24 +74,40 @@ const PostDetail = () => {
   });
 
   /**
-   * [추가된 useEffect]
-   *  a.jump-to-original 링크 클릭 시, #... 앵커로 스크롤 이동
-   *  만약 http:// 등 외부 링크면 새 탭에서 열기
+   * 앵커 클릭 시 스크롤 위치를 조정하는 이벤트 핸들러를 등록합니다.
+   * 내부 앵커(#)인 경우, 해당 요소를 부드럽게 스크롤하여 중앙에 위치시킵니다.
+   * 만약 외부 링크인 경우 새 탭에서 열도록 처리합니다.
    */
   useEffect(() => {
+    /**
+     * a.jump-to-original 링크 클릭 시 실행되는 핸들러
+     * @param {Event} e 클릭 이벤트 객체
+     */
     const handleAnchorClick = (e) => {
       const target = e.target;
       if (target.matches("a.jump-to-original")) {
         e.preventDefault();
         const href = target.getAttribute("href") || "";
         if (href.startsWith("#")) {
-          const anchorId = href.slice(1); // "#comment-123" -> "comment-123"
+          const anchorId = href.slice(1); // 예: "#comment-123" -> "comment-123"
           const anchorEl = document.getElementById(anchorId);
           if (anchorEl) {
-            anchorEl.scrollIntoView({ behavior: "smooth" });
+            // 부드럽게 중앙으로 스크롤합니다.
+            console.log("Before adding class:", anchorEl.classList);
+            anchorEl.scrollIntoView({ behavior: "smooth", block: "center" });
+
+            // CommentCard 요소에 highlight 클래스를 추가합니다.
+            anchorEl.classList.add("highlighted");
+            console.log("After adding class:", anchorEl.classList);
+
+            // 2초 후 highlight 클래스를 제거합니다.
+            setTimeout(() => {
+              anchorEl.classList.remove("highlighted");
+              console.log("Removed highlighted class:", anchorEl.classList);
+            }, 2000);
           }
         } else {
-          // 만약 http://, https:// 이라면 새 탭
+          // 외부 링크인 경우 새 탭에서 엽니다.
           window.open(href, "_blank");
         }
       }
@@ -684,6 +701,7 @@ const PostDetail = () => {
     <PostDetailContainer>
       {/* 전역 스타일 (blockquote, reply-quote 등) */}
       <ReplyQuoteGlobalStyle />
+      <GlobalKeyframes />
 
       {/* --- 게시글 제목 섹션 --- */}
       <PostTitle>
@@ -776,7 +794,8 @@ const PostDetail = () => {
                 <FontAwesomeIcon icon={faCircleExclamation} />
                 {isAdmin && post.reportCount !== undefined && (
                   <ReportCountText>
-                    신고 누적 수: {post.reportCount}
+                    {/* {신고 누적 수} */}
+                    {post.reportCount}
                   </ReportCountText>
                 )}
               </report-button>
@@ -898,7 +917,8 @@ const PostDetail = () => {
                       comment.reportCount !== null &&
                       comment.reportCount >= 0 && (
                         <ReportCountText>
-                          신고 누적 수: {comment.reportCount}
+                          {/* {신고 누적 수: } */}
+                          {comment.reportCount}
                         </ReportCountText>
                       )}
                   </report-button>

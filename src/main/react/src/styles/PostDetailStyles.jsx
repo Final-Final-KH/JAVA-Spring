@@ -1,5 +1,4 @@
-import styled from "styled-components";
-import { createGlobalStyle } from "styled-components";
+import styled, { createGlobalStyle } from "styled-components";
 
 // Post detail container
 export const PostDetailContainer = styled.div`
@@ -59,26 +58,42 @@ export const ContentInfo = styled.div`
   }
 `;
 
+// ActionButtons styled component with mobile adjustments
 export const ActionButtons = styled.div`
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  gap: 10px; /* 왼쪽과 오른쪽 그룹 사이의 간격 */
 
   .left,
   .right {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap; /* 작은 화면에서 버튼들이 줄바꿈 되도록 허용 */
+    align-items: center;
+    justify-content: center; /* 버튼들을 중앙 정렬 */
   }
 
-  button {
+  /* 모든 버튼 및 커스텀 버튼(report-button, admin-button, disabled-button)에 적용 */
+  button,
+  report-button,
+  admin-button,
+  disabled-button {
     padding: 5px 10px;
     font-size: 14px;
     border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+    flex-shrink: 0; /* 버튼들이 너무 작아지지 않도록 방지 */
+    display: flex;
+    align-items: center;
+    justify-content: center; /* 버튼 안의 아이콘 및 텍스트를 중앙에 배치 */
+  }
+
+  button {
     border: 2px solid #007bff;
     background-color: white;
     color: #007bff;
-    cursor: pointer;
-    transition: 0.3s;
-
     &:hover {
       background-color: #007bff;
       color: white;
@@ -86,34 +101,22 @@ export const ActionButtons = styled.div`
   }
 
   report-button {
-    padding: 5px 10px;
-    font-size: 14px;
     border: 2px solid #ff0000;
-    border-radius: 5px;
     background-color: white;
     color: #ff0000;
-    cursor: pointer;
-    transition: 0.3s;
-
     &:hover {
       background-color: #ff0000;
       color: white;
     }
     &:hover + span {
-      color: white; /* Associated text (ReportCountText) also turns white */
+      color: white; /* ReportCountText도 흰색으로 변경 */
     }
   }
 
   admin-button {
-    padding: 5px 10px;
-    font-size: 14px;
     border: 2px solid #ff9900;
-    border-radius: 5px;
     background-color: white;
     color: #ff9900;
-    cursor: pointer;
-    transition: 0.3s;
-
     &:hover {
       background-color: #ff9900;
       color: white;
@@ -121,14 +124,31 @@ export const ActionButtons = styled.div`
   }
 
   disabled-button {
-    padding: 5px 10px;
-    font-size: 14px;
     border: 2px solid #747474;
-    border-radius: 5px;
     background-color: #d3d3d3;
     color: #747474;
     cursor: not-allowed;
     opacity: 0.6;
+  }
+
+  /* 480px 이하의 화면에 대해 미디어 쿼리 적용 */
+  @media screen and (max-width: 480px) {
+    flex-direction: column; /* 상하로 배치 */
+    align-items: stretch;
+
+    .left,
+    .right {
+      width: 100%;
+      justify-content: center; /* 버튼들을 중앙 정렬 */
+    }
+
+    button,
+    report-button,
+    admin-button,
+    disabled-button {
+      width: 48%; /* 두 개씩 배치하거나, 100%로 한 줄에 하나씩 배치 가능 */
+      margin-bottom: 5px; /* 버튼 사이에 간격 추가 */
+    }
   }
 `;
 
@@ -150,6 +170,28 @@ export const CommentCard = styled.div`
   border-radius: 10px;
   padding: 15px;
   margin-bottom: 10px;
+  transition: background-color 0.5s ease;
+
+  /* highlight 효과가 적용될 때의 스타일 */
+  &.highlighted {
+    background-color: yellow !important;
+    animation: highlightFade 2s ease-out;
+  }
+`;
+
+/**
+ * @description GlobalKeyframes - highlightFade 애니메이션 정의
+ * 0% 시점에는 노란색, 100% 시점에는 원래 배경색(투명 또는 원하는 색)으로 전환됩니다.
+ */
+export const GlobalKeyframes = createGlobalStyle`
+  @keyframes highlightFade {
+    0% {
+      background-color: yellow;
+    }
+    100% {
+      background-color: #ffffff;
+    }
+  }
 `;
 
 // Comment content
@@ -236,8 +278,7 @@ export const HiddenCommentNotice = styled.p`
 `;
 
 /**
- * [FIX] EditButton should use "cursor: pointer" if it is actually clickable.
- *  If you truly want it disabled, use DisabledEditButton below.
+ * @description 편집 가능한 버튼 스타일
  */
 export const EditButton = styled.button`
   padding: 5px;
@@ -245,7 +286,7 @@ export const EditButton = styled.button`
   border: none;
   background-color: transparent;
   color: #007bff;
-  cursor: pointer; /* was not-allowed before, changed to pointer */
+  cursor: pointer; /* 클릭 가능하도록 포인터 사용 */
   transition: color 0.3s ease;
 
   &:hover {
@@ -257,6 +298,9 @@ export const EditButton = styled.button`
   }
 `;
 
+/**
+ * @description 비활성화된 버튼 스타일 (수정 불가)
+ */
 export const DisabledEditButton = styled.button`
   padding: 5px;
   font-size: 20px;
@@ -272,7 +316,6 @@ export const DisabledEditButton = styled.button`
 `;
 
 export const InlineBlockContainer = styled.div`
-  /* display: flex; */
   align-items: baseline;
   gap: 0.5rem;
   margin-bottom: 5px;
@@ -299,8 +342,7 @@ export const ReportCountText = styled.span`
 `;
 
 /**
- * (선택) QuotedReply, QuotedSection 등은 아직 남겨놓음.
- *  But the main logic is in .reply-quote below
+ * @description 인용(답글) 영역 스타일
  */
 export const QuotedReply = styled.div`
   background-color: #f9f9f9;
@@ -340,7 +382,13 @@ export const QuotedSection = styled.div`
 `;
 
 /**
- * 🔻 최종적으로 <blockquote class="reply-quote">에 적용될 스타일 (Ragezone 유사)
+ * @description ReplyQuoteGlobalStyle - 인용(답글) 관련 전역 스타일
+ *
+ * <p>변경 사항:</p>
+ * <ul>
+ *   <li>스크롤 시 상단 오프셋을 위해 [id^="comment-"], [id^="post-"]에 scroll-margin-top을 추가합니다.</li>
+ *   <li>이 규칙은 스크롤시 요소가 화면 상단에 딱 붙지 않고 여유 공간(예: 100px)을 두어, UI의 가독성을 높입니다.</li>
+ * </ul>
  */
 export const ReplyQuoteGlobalStyle = createGlobalStyle`
   .reply-quote {
@@ -414,4 +462,24 @@ export const ReplyQuoteGlobalStyle = createGlobalStyle`
     color: #0056b3;
     text-decoration: underline;
   }
+
+  /* 
+   * 새로 추가된 글로벌 규칙:
+   * [id^="comment-"] 또는 [id^="post-"] 로 시작하는 요소에 대해
+   * 스크롤 시 상단에 100px의 여백을 적용합니다.
+   * 필요에 따라 값을 조정할 수 있습니다.
+   */
+  [id^="comment-"],
+  [id^="post-"] {
+    scroll-margin-top: 500px;
+  }
+
+  /**
+   * @description 요소가 하이라이트되었을 때의 애니메이션 효과
+   * "highlighted" 클래스가 추가되면 배경색이 노란색으로 변경되었다가 서서히 투명해집니다.
+   */
+  .highlighted {
+    animation: highlightFade 2s ease-out;
+  }
+
 `;
