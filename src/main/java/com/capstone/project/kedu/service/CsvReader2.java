@@ -1,62 +1,93 @@
 package com.capstone.project.kedu.service;
 
-import com.capstone.project.kedu.entity.KeduEntity2;
+import com.capstone.project.job.entity.JobEntity2;
+import com.capstone.project.kedu.entity.edu.KeduEntity2;
+import com.capstone.project.news.entity.NewsEntity2;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import java.io.FileReader;
-import java.io.Reader;
+import org.springframework.stereotype.Service;
+
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-@Component
+
+@Service
 public class CsvReader2 {
 
     @Autowired
     private ResourceLoader resourceLoader;
 
-    // CSV 파일을 읽어서 KeduEntity2 리스트로 변환
+    public List<NewsEntity2> newsCsv(String tech) throws Exception {
+        List<NewsEntity2> newsList = new ArrayList<>();
+
+        Resource resource = resourceLoader.getResource(tech);  // tech: classpath에서 리소스를 찾기 위한 경로
+        try (InputStream inputStream = resource.getInputStream();
+             InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+            Iterable<CSVRecord> records = CSVFormat.DEFAULT.withHeader().parse(reader);
+            for (CSVRecord record : records) {
+                NewsEntity2 newsEntity2 = new NewsEntity2();
+                newsEntity2.setTitle(record.get("Title"));
+                newsEntity2.setLink(record.get("Link"));
+                newsEntity2.setContent(record.get("Content"));
+                newsEntity2.setCategory(record.get("Category"));
+                newsEntity2.setReporter(record.get("Reporter"));
+                newsEntity2.setDate(record.get("Date"));
+                newsList.add(newsEntity2);
+            }
+        }
+        return newsList;
+    }
+
+    public List<JobEntity2> jobCsv(String jobData) throws Exception {
+        List<JobEntity2> jobList = new ArrayList<>();
+
+        Resource resource = resourceLoader.getResource(jobData);  // jobData: classpath에서 리소스를 찾기 위한 경로
+        try (InputStream inputStream = resource.getInputStream();
+             InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+            Iterable<CSVRecord> records = CSVFormat.DEFAULT.withHeader().parse(reader);
+            for (CSVRecord record : records) {
+                JobEntity2 jobEntity2 = new JobEntity2();
+                jobEntity2.setCompany(record.get("Company"));
+                jobEntity2.setTitle(record.get("Title"));
+                jobEntity2.setLink(record.get("Link"));
+                jobEntity2.setJob(record.get("Job"));
+                jobEntity2.setLocation(record.get("Location"));
+                jobList.add(jobEntity2);
+            }
+        }
+        return jobList;
+    }
+
     public List<KeduEntity2> readCsv(String filePath) throws Exception {
         List<KeduEntity2> courseList = new ArrayList<>();
-
-        // ResourceLoader를 통해 CSV 파일 로딩
-        Resource resource = resourceLoader.getResource(filePath);  // filePath는 classpath:/csv/kedu.csv
-        Reader in = new FileReader(resource.getFile());  // File 객체로 변환
-        Iterable<CSVRecord> records = CSVFormat.DEFAULT.withHeader().parse(in);
-
-        // 날짜 포맷 설정 (CSV 파일에서 읽은 날짜 포맷이 맞지 않을 경우 포맷을 설정)
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
-        
-        // CSV 파일의 각 레코드에 대해 KeduEntity2 객체로 변환
-        for (CSVRecord record : records) {
-            KeduEntity2 course = new KeduEntity2();
-
-            // 각 컬럼 데이터를 KeduEntity2 객체에 매핑
-            course.setAcademy_name(record.get("academy_name"));
-            course.setCourse_name(record.get("course_name"));
-
-            // 날짜를 변환하여 설정
-            course.setStart_date(parseDate(record.get("start_date"), dateFormat));
-            course.setEnd_date(parseDate(record.get("end_date"), dateFormat));
-            course.setRegion(record.get("region"));
-            course.setAuth(record.get("auth"));
-            course.setTr_date(parseDate(record.get("tr_date"), dateFormat));
-
-            // 숫자 데이터 매핑
-            course.setTotal_hour(parseInt(record.get("total_hour")));
-            course.setEmployment_rate(parseInt(record.get("employment_rate")));
-            course.setPrice_total(parseInt(record.get("price_total")));
-            course.setSelf_payment(parseInt(record.get("self_payment")));
-
-            // 리스트에 추가
-            courseList.add(course);
+        Resource resource = resourceLoader.getResource(filePath);  // filePath: classpath:/csv/kedu.csv
+        try (InputStream inputStream = resource.getInputStream();
+             InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+            Iterable<CSVRecord> records = CSVFormat.DEFAULT.withHeader().parse(reader);
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+            for (CSVRecord record : records) {
+                KeduEntity2 course = new KeduEntity2();
+                course.setAcademy_name(record.get("academy_name"));
+                course.setCourse_name(record.get("course_name"));
+                course.setStart_date(parseDate(record.get("start_date"), dateFormat));
+                course.setEnd_date(parseDate(record.get("end_date"), dateFormat));
+                course.setRegion(record.get("region"));
+                course.setAuth(record.get("auth"));
+                course.setTr_date(parseInt(record.get("tr_date")));
+                course.setTotal_hour(parseInt(record.get("total_hour")));
+                course.setEmployment_rate(parseInt(record.get("employment_rate")));
+                course.setPrice_total(parseInt(record.get("price_total")));
+                course.setSelf_payment(parseInt(record.get("self_payment")));
+                courseList.add(course);
+            }
         }
-
         return courseList;
     }
 

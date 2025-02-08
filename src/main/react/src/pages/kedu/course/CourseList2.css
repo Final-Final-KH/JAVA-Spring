@@ -1,0 +1,106 @@
+/* 기본 테이블 스타일 */
+.course-table-container {
+  width: 90%;
+  margin-top: 150px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 24px;
+  color: #333;
+}
+
+.course-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.course-table th,
+.course-table td {
+  padding: 12px;
+  text-align: center;
+  border: 1px solid #ddd;
+}
+
+.course-table th {
+  background-color: #4caf50;
+  color: white;
+  font-size: 16px;
+}
+
+.course-table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+/* tr hover 스타일 */
+.course-table tr:hover {
+  background-color: #e0f7fa; /* 마우스가 tr에 올려졌을 때 배경색 변경 */
+}
+
+.course-table td {
+  font-size: 14px;
+  color: #555;
+}
+
+.no-data {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  font-size: 16px;
+}
+
+/* 날짜 포맷 */
+.course-table td:nth-child(4),
+.course-table td:nth-child(5) {
+  font-size: 14px;
+  color: #555;
+}
+
+/* 가격과 결제금액을 잘 보이도록 */
+.course-table td:nth-child(11),
+.course-table td:nth-child(12) {
+  font-weight: bold;
+  color: #2e8b57;
+}
+
+/* 작은 화면에서 courseName만 보이도록 하기 위한 미디어 쿼리 */
+@media (max-width: 768px) {
+  .course-table th,
+  .course-table td {
+    font-size: 12px; /* 폰트 크기 줄임 */
+    padding: 8px; /* 테이블 셀 패딩을 줄임 */
+  }
+
+  /* 헤더를 숨김 */
+  .course-table thead {
+    display: none;
+  }
+
+  /* 전체 td를 숨김 */
+  .course-table td {
+    display: none;
+  }
+
+  /* 두 번째 열만 보이도록 */
+  .course-table td:nth-child(1) {
+    display: block;
+    font-weight: bold;
+  }
+
+  .course-table td:nth-child(1)::after {
+    content: " : ";
+  }
+
+  /* No data 메시지의 크기와 가독성 개선 */
+  .no-data {
+    font-size: 14px;
+  }
+}
