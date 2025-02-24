@@ -2,6 +2,8 @@ package com.capstone.project.oauth2.dto;
 
 import lombok.*;
 
+
+//김동형 멍청이
 @Getter
 @Setter
 @NoArgsConstructor
