@@ -150,6 +150,12 @@ public class AuthService {
             member.setName(loginDto.getName());
             member.setProvider(loginDto.getProvider());
             member.setProviderId(loginDto.getProviderId());
+
+            // GitHub의 경우 이메일이 비공개일 수도 있으므로 기본값 설정
+            if ("github".equalsIgnoreCase(loginDto.getProvider()) && (loginDto.getEmail() == null || loginDto.getEmail().isEmpty())) {
+                member.setEmail(loginDto.getProviderId() + "@github.com"); // GitHub ID 기반 이메일 대체
+            }
+
             memberRepository.save(member);
         }
 

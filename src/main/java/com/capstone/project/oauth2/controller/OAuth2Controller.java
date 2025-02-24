@@ -4,6 +4,7 @@ import com.capstone.project.member.dto.TokenDto;
 import com.capstone.project.member.service.AuthService;
 import com.capstone.project.member.service.MemberService;
 import com.capstone.project.oauth2.dto.OAuth2LoginRequestDto;
+import com.capstone.project.oauth2.service.GitHubService;
 import com.capstone.project.oauth2.service.NaverService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ public class OAuth2Controller {
     private final AuthService authService;
     private final MemberService memberService;
     private final NaverService naverService;
+    private final GitHubService githubService;
 
     @PostMapping("/google")
     public ResponseEntity<TokenDto> googleLogin(@RequestBody OAuth2LoginRequestDto loginRequestDto) {
@@ -55,4 +57,20 @@ public class OAuth2Controller {
         return ResponseEntity.ok(tokenDto);
     }
 
+    @PostMapping("/github")
+    public ResponseEntity<TokenDto> githubLogin(@RequestBody Map<String, String> request) {
+        String code = request.get("code");
+        System.out.println("GitHub 로그인 시도 중...");
+
+        // GitHub 액세스 토큰 가져오기
+        String accessToken = githubService.getGitHubAccessToken(code);
+
+        // GitHub 사용자 정보 가져오기
+        OAuth2LoginRequestDto loginDto = githubService.getUserInfo(accessToken);
+
+        // 사용자 정보를 처리하고 토큰 생성
+        TokenDto tokenDto = authService.OAuth2Login(loginDto);
+
+        return ResponseEntity.ok(tokenDto);
+    }
 }
