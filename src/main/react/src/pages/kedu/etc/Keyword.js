@@ -48,36 +48,34 @@ const Trend = () => {
   return (
     <div
       style={{
-        maxWidth: "800px", // 최대 너비 제한
-        margin: "0 auto", // 중앙 정렬
-        padding: "20px",
-        overflowX: "auto", // 가로 스크롤 방지
+        maxWidth: "500px", // 전체 최대 너비 증가
+        margin: "0 auto",
       }}
     >
       <h2>IT 키워드 트렌드</h2>
       <div
         style={{
-          display: "flex",
-          flexWrap: "wrap",
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)", // 2열 배치
           gap: "20px",
-          justifyContent: "center", // 가운데 정렬
+          justifyItems: "center",
         }}
       >
-        <div style={{ width: "100%", maxWidth: "380px" }}>
+        <div style={{ width: "100%", maxWidth: "300px" }}>
           <h3>AI</h3>
           <Line data={generateChartData("AI", "rgba(75, 192, 192, 1)")} />
         </div>
-        <div style={{ width: "100%", maxWidth: "380px" }}>
+        <div style={{ width: "100%", maxWidth: "300px" }}>
           <h3>인공 지능</h3>
           <Line
             data={generateChartData("인공 지능", "rgba(255, 99, 132, 1)")}
           />
         </div>
-        <div style={{ width: "100%", maxWidth: "380px" }}>
+        <div style={{ width: "100%", maxWidth: "300px" }}>
           <h3>빅데이터</h3>
           <Line data={generateChartData("빅데이터", "rgba(54, 162, 235, 1)")} />
         </div>
-        <div style={{ width: "100%", maxWidth: "380px" }}>
+        <div style={{ width: "100%", maxWidth: "300px" }}>
           <h3>양자 컴퓨터</h3>
           <Line
             data={generateChartData("양자 컴퓨터", "rgba(255, 206, 86, 1)")}
