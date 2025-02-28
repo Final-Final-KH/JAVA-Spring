@@ -30,6 +30,9 @@ import PostDetail from "./components/Forums/PostDetail";
 import ForumPosts from "./components/Forums/ForumPosts";
 import CourseList from "./pages/kedu/course/courseList2";
 import DetailCourse from "./pages/kedu/course/detailCourse2";
+import Trend from "./pages/kedu/etc/Trend";
+import Trend2 from "./pages/kedu/etc/Trend2";
+import Trend3 from "./pages/kedu/etc/Trend3";
 function App() {
   return (
     <AuthProvider>
@@ -96,6 +99,9 @@ function App() {
                   path="/detail/:region/:academyName/:courseId"
                   element={<DetailCourse />}
                 />
+                <Route path="/trend" element={<Trend />} />
+                <Route path="/trend2" element={<Trend2 />} />
+                <Route path="/trend3" element={<Trend3 />} />
                 {/* 김요한 국비 교육*/}
               </Routes>
               {/* 최상위에 ToastContainer 배치 */}
