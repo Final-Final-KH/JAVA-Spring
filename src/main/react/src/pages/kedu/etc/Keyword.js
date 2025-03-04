@@ -48,8 +48,7 @@ const Trend = () => {
   return (
     <div
       style={{
-        maxWidth: "500px", // 전체 최대 너비 증가
-        margin: "0 auto",
+        maxWidth: "620px", // 전체 최대 너비 증가
       }}
     >
       <h2>IT 키워드 트렌드</h2>
