@@ -21,7 +21,7 @@ ChartJS.register(
 );
 
 const octokit = new Octokit({
-  auth: "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",
+  auth: process.env.REACT_APP_GITHUB_TOKEN,
 });
 
 const Trend = () => {
