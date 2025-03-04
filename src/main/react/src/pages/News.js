@@ -1,6 +1,6 @@
 import { useState } from "react";
-import NewsList from "../component/NewsList";
 import TrendTab from "./kedu/etc/TrendTab";
+import NewsTab from "./kedu/etc/NewsTab";
 
 function News() {
   const [activeTab, setActiveTab] = useState("news"); // 현재 선택된 탭
@@ -51,7 +51,7 @@ function News() {
       </ul>
 
       {/* 선택된 탭에 따라 컴포넌트 표시 */}
-      {activeTab === "news" ? <NewsList /> : <TrendTab />}
+      {activeTab === "news" ? <NewsTab /> : <TrendTab />}
     </div>
   );
 }
